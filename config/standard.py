@@ -42,7 +42,7 @@ class MongoConfig(SimpleConfig):
     MONGODB_DB = os.environ.get("MONGODB_DATABASE") or 'test_database'
     MONGODB_HOST = os.environ.get("MONGODB_HOST") or 'localhost'
     MONGODB_PORT = os.environ.get("MONGODB_PORT") or 27017
-    MONGODB_CONNECT = os.environ.get("MONGODB_CONNECT") or True
+    MONGODB_CONNECT = os.environ.get("MONGODB_CONNECT") or True  # TODO Change to False for "multi-service" Docker app!
 
 
 __all__ = [
