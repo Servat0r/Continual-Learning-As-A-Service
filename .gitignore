@@ -4,3 +4,4 @@ venv/
 *.bat
 .env
 docs/*.yml
+docs/json_examples/
