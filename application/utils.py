@@ -39,7 +39,7 @@ def make_success_kwargs(status: int = HTTPStatus.OK, msg: str = _DFL_SUCCESS_MSG
     :param kwargs: Extra arguments.
     :return: A Response object.
     """
-    err_dict = kwargs
+    err_dict = kwargs if kwargs is not None else {}
     err_dict['message'] = msg
 
     response = jsonify(err_dict)

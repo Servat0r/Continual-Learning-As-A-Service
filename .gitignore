@@ -1,7 +1,9 @@
 .idea/
 __pycache__/
 venv/
+logs/
 *.bat
 .env
 docs/*.yml
 docs/json_examples/
+dbscripts/

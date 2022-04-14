@@ -7,16 +7,18 @@ import os
 from logging.handlers import SMTPHandler
 from flask import Flask
 from config import *
-from application.database import db
+from .database import db
 from .utils import *
 from .log import *
 from .converters import *
+from .mongo_resources import *
+from .models import *
 
 
 _NAME = os.environ.get('SERVER_NAME') or 'SERVER'
 
 
-def create_app(config_class=SimpleConfig):
+def create_app(config_class=MongoConfig):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
@@ -25,6 +27,16 @@ def create_app(config_class=SimpleConfig):
     # Put HERE the custom converters!
     app.url_map.converters['user'] = UsernameConverter
     app.url_map.converters['workspace'] = WorkspaceExperimentConverter
+
+    from application.users import bp as users_bp
+    from application.auth import bp as auth_bp
+    from application.workspaces import bp as workspace_bp
+    from application.mongo_resources.routes import bp as dummy_bp
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(users_bp)
+    app.register_blueprint(workspace_bp)
+    app.register_blueprint(dummy_bp)
 
     if not app.debug and not app.testing:
 
