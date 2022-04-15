@@ -23,13 +23,13 @@ class MongoDummyDocument(MongoResourceConfig):
     def create(cls, data, context: UserWorkspaceResourceContext, save: bool = True):
         result, msg = cls.validate_input(data, context)
         if not result:
-            raise ValueError()
+            raise ValueError(msg)
         else:
             name = data['name']
             description = data['description'] or ''
             config = MongoBuildConfig.get_by_name(data['build'])
             if config is None:
-                raise ValueError()
+                raise ValueError(f"Unknown build config: '{data['build']}'")
             build_config = t.cast(MongoBuildConfig, config).create(data['build'], cls.target_type(), context, save)
             uri = cls.dfl_uri_builder(context, name)
             owner = User.canonicalize(context.get_username())

@@ -25,12 +25,14 @@ def exc_500_handler(code):
     return response
 
 
+@bp.post('/<username>/<wname>/')
 @bp.post('/<username>/<wname>')
 def add_new_resource(username, wname):
     resource_ctx = DictUserWorkspaceResourceContext(
         username, wname,
         region='eu_south_1', country='Italy'
     )
+    print('PIPPO')
     data = request.get_json()
     ctp: MongoResourceConfig = t.cast(ReferrableDataType, DataType.get_type(data['type'])).config_type()
     resource_doc = ctp.create(data, resource_ctx)
@@ -38,6 +40,7 @@ def add_new_resource(username, wname):
     return jsonify({'message': f"Successfully created resource of type {data['type']}!"})
 
 
+@bp.get('/<username>/<wname>/<typename>/<name>/')
 @bp.get('/<username>/<wname>/<typename>/<name>')
 def build_resource(username, wname, typename, name):
     """
@@ -61,6 +64,7 @@ def build_resource(username, wname, typename, name):
         raise RuntimeError(f"Failed to build resource '{name}'.")
 
 
+@bp.delete('/<username>/<wname>/<typename>/<name>/')
 @bp.delete('/<username>/<wname>/<typename>/<name>')
 def delete_resource(username, wname, typename, name):
     """

@@ -1,6 +1,7 @@
 .idea/
 __pycache__/
 venv/
+files/
 logs/
 *.bat
 .env
