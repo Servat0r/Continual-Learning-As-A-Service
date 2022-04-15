@@ -97,36 +97,43 @@ class User(UserMixin, db.Document):
     @classmethod
     def create(cls, username: str, email: str = 'abc@example.com', password: str = '12345678', save: bool = True):
         now = datetime.utcnow()
-        expire = now - timedelta(seconds=10)
         # noinspection PyArgumentList
         user = User(
             username=username,
             email=email,
-            password_hash='',
+            password_hash=cls.__get_password_hash(password),
             token='',
-            token_expiration=expire,
+            token_expiration=now,
             metadata=UserMetadata(created=now, last_modified=now)
         )
+        user.get_token(expires_in=-1, save=False)
         if save:
             user.save(force_insert=True)
             print(f"Created user '{username}' with id '{user.id}'")
-        cls.set_password(user, password, save)
         return user
 
     def edit(self, data: dict, save: bool = True) -> dict[str, dict[str, str]]:
         username = data.pop('username')
         email = data.pop('email')
         result = {}
+        modified = False
 
         if (self.username != username) and (username is not None):
+            modified = True
             before_username = self.username
             self.username = username
             result['username'] = {'before': before_username, 'after': username}
 
         if (self.email != email) and (email is not None):
+            modified = True
             before_email = self.email
             self.email = email
             result['email'] = {'before': before_email, 'after': email}
+
+        if modified:
+            print(f"User {self.username} modified")
+            self.metadata.update_last_modified()
+
         if save:
             self.save()
         return result
@@ -134,7 +141,7 @@ class User(UserMixin, db.Document):
     def delete(self):
         db.Document.delete(self)
 
-    def set_password(self, password, save: bool = True):
+    def set_password(self, password: str, save: bool = True):
         """
         Sets the password for the current user.
         :param save:
@@ -142,8 +149,13 @@ class User(UserMixin, db.Document):
         :return:
         """
         self.password_hash = generate_password_hash(password)
+        self.metadata.update_last_modified()
         if save:
             self.save()
+
+    @staticmethod
+    def __get_password_hash(password: str) -> str:
+        return generate_password_hash(password)
 
     def check_correct_password(self, password):
         """
@@ -180,6 +192,7 @@ class User(UserMixin, db.Document):
             except NotUniqueError:
                 continue
         self.token_expiration = now + timedelta(seconds=expires_in)
+        self.metadata.update_last_modified()
         if save:
             self.save()
         return self.token

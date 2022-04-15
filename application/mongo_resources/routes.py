@@ -32,7 +32,6 @@ def add_new_resource(username, wname):
         username, wname,
         region='eu_south_1', country='Italy'
     )
-    print('PIPPO')
     data = request.get_json()
     ctp: MongoResourceConfig = t.cast(ReferrableDataType, DataType.get_type(data['type'])).config_type()
     resource_doc = ctp.create(data, resource_ctx)
