@@ -1,30 +1,67 @@
-from resources import ABC, DataType, ReferrableDataType
+from __future__ import annotations
+from application.mongo_resources.commons_test.base_datatypes import *
+from application.mongo_resources.commons_test.documents import *
 
 
 @DataType.set_resource_type()
-class Dummy(ReferrableDataType):
-    """
-    Dummy class for testing.
-    """
+class MongoDummy(Dummy):
 
-    def __init__(self, x: int, y: str, z: bool):
-        self.x = x
-        self.y = y
-        self.z = z
+    @classmethod
+    def canonical_typename(cls) -> str:
+        return Dummy.canonical_typename()
+
+    @staticmethod
+    def config_type() -> t.Type[MongoResourceConfig]:
+        return MongoDummyDocument
+
+    def __init__(self, x, y, z):
+        super().__init__(x, y, z)
+        self.metadata: TDesc = {}
+
+    def set_metadata(self, **kwargs):
+        for item in kwargs.items():
+            self.metadata[item[0]] = item[1]
+
+    def get_metadata(self, key: str | None = None) -> TDesc | t.Any:
+        if key is None:
+            return self.metadata.copy()
+        else:
+            return self.metadata[key]
 
     def __repr__(self):
-        return f"Dummy[x = {self.x}; y = \"{self.y}\"; z = {self.z}]"
+        return f"{type(self).__name__} ({super().__repr__()})."
+
+    def __str__(self):
+        return self.__repr__()
 
 
 @DataType.set_resource_type()
-class SuperDummy(ReferrableDataType):
-    """
-    "Super"-Dummy class for testing references.
-    """
+class MongoSuperDummy(SuperDummy):
+
+    @classmethod
+    def canonical_typename(cls) -> str:
+        return SuperDummy.canonical_typename()
+
+    @staticmethod
+    def config_type() -> t.Type[MongoResourceConfig]:
+        return MongoSuperDummyDocument
+
     def __init__(self, name: str, desc: str, dummy: Dummy):
-        self.name = name
-        self.desc = desc
-        self.dummy = dummy
+        super().__init__(name, desc, dummy)
+        self.metadata: TDesc = {}
+
+    def set_metadata(self, **kwargs):
+        for item in kwargs.items():
+            self.metadata[item[0]] = item[1]
+
+    def get_metadata(self, key: str | None = None) -> TDesc | t.Any:
+        if key is None:
+            return self.metadata.copy()
+        else:
+            return self.metadata[key]
 
     def __repr__(self):
-        return f"SuperDummy[name = {self.name}; desc = {self.desc}; dummy = {self.dummy}]"
+        return f"{type(self).__name__} ({super().__repr__()})."
+
+    def __str__(self):
+        return self.__repr__()

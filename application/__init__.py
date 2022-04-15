@@ -31,7 +31,7 @@ def create_app(config_class=MongoConfig):
     from application.users import bp as users_bp
     from application.auth import bp as auth_bp
     from application.workspaces import bp as workspace_bp
-    from application.mongo_resources.routes import bp as dummy_bp
+    from application.mongo_resources.commons_test.routes import bp as dummy_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(users_bp)

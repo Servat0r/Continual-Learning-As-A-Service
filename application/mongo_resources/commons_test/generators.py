@@ -1,4 +1,4 @@
-from .datatypes import Dummy, SuperDummy
+from .base_datatypes import Dummy, SuperDummy
 from resources import *
 
 

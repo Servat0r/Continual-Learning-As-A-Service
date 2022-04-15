@@ -1,6 +1,5 @@
 from __future__ import annotations
 from resources import *
-from resources import nbr_type
 
 
 class DictUserResourceContext(UserResourceContext):

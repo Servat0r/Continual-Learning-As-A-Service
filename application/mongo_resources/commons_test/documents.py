@@ -1,5 +1,5 @@
 from application.mongo_resources.mongo_base_configs import *
-from application.mongo_resources.metadata import *
+from application.mongo_resources.commons_test.metadata import *
 
 
 class MongoDummyDocument(MongoResourceConfig):
@@ -10,8 +10,8 @@ class MongoDummyDocument(MongoResourceConfig):
 
     @classmethod
     def dfl_uri_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
-        username = context.names_dict()[context.dfl_username()]
-        workspace = context.names_dict()[context.dfl_wname()]
+        username = context.get_username()
+        workspace = context.get_workspace()
         typename = cls.target_type().canonical_typename()
         return cls.uri_separator().join([typename, username, workspace, name])
 

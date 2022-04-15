@@ -2,10 +2,10 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from application.mongo_resources.mongo_base_metadata import BaseMetadata
+from application.mongo_resources.contexts import *
 from application.models.users import User
 from mongoengine import NotUniqueError
 from resources import *
-from application.mongo_resources.commons_test import *
 from application.validation import *
 from application.database import db
 from application.utils import *
@@ -51,8 +51,8 @@ class Workspace(JSONSerializable, URIBasedResource, db.Document):
 
     @classmethod
     def dfl_uri_builder(cls, context: UserWorkspaceResourceContext) -> str:
-        username = context.names_dict()[context.dfl_username()]
-        workspace = context.names_dict()[context.dfl_wname()]
+        username = context.get_username()
+        workspace = context.get_workspace()
         return cls.uri_separator().join(['workspace', username, workspace])
 
     @classmethod
@@ -112,11 +112,13 @@ class Workspace(JSONSerializable, URIBasedResource, db.Document):
 
     def open(self, save: bool = True):
         self.status = Workspace.OPEN
+        self.metadata.update_last_modified()
         if save:
             self.save()
 
     def close(self, save: bool = True):
         self.status = Workspace.CLOSED
+        self.metadata.update_last_modified()
         if save:
             self.save()
 

@@ -1,28 +1,9 @@
 from http import HTTPStatus
-from application.mongo_resources.builds import *
+from application.mongo_resources.contexts import *
+from application.mongo_resources.commons_test.builds import *
 from flask import Blueprint, request, jsonify
 
 bp = Blueprint('dbresource', __name__, url_prefix='/resources')
-
-
-# @bp.app_errorhandler(Exception)
-def exc_generic_handler(ex: Exception):
-    print(ex)
-    msg = ex.args[0]
-    response = jsonify({
-        'message': msg,
-    })
-    response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
-    return response
-
-
-# @bp.app_errorhandler(HTTPStatus.INTERNAL_SERVER_ERROR)
-def exc_500_handler(code):
-    response = jsonify({
-        'message': 'exception occurred',
-    })
-    response.status_code = code
-    return response
 
 
 @bp.post('/<username>/<wname>/')
