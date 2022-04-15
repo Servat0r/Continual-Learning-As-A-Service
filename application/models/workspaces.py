@@ -121,7 +121,7 @@ class Workspace(JSONSerializable, URIBasedResource, db.Document):
             self.save()
 
     def update_last_modified(self, save: bool = True):
-        self.metadata.update_last_modified()  # = datetime.utcnow()
+        self.metadata.update_last_modified()  
         if save:
             self.save()
 

@@ -132,7 +132,7 @@ class User(UserMixin, db.Document):
 
         if modified:
             print(f"User {self.username} modified")
-            self.metadata.update_last_modified()  # = datetime.utcnow()
+            self.metadata.update_last_modified()  
 
         if save:
             self.save()
@@ -149,7 +149,7 @@ class User(UserMixin, db.Document):
         :return:
         """
         self.password_hash = generate_password_hash(password)
-        self.metadata.update_last_modified()  # = datetime.utcnow()
+        self.metadata.update_last_modified()  
         if save:
             self.save()
 
@@ -192,7 +192,7 @@ class User(UserMixin, db.Document):
             except NotUniqueError:
                 continue
         self.token_expiration = now + timedelta(seconds=expires_in)
-        self.metadata.update_last_modified()  # = datetime.utcnow()
+        self.metadata.update_last_modified()
         if save:
             self.save()
         return self.token
