@@ -22,5 +22,7 @@ class BaseMetadata(JSONSerializable, db.EmbeddedDocument):
     created = db.DateTimeField(required=True)
     last_modified = db.DateTimeField(required=True)
 
-    def update_last_modified(self, time=datetime.utcnow()):
+    def update_last_modified(self, time=None):
+        if time is None:
+            time = datetime.utcnow()
         self.last_modified = time
