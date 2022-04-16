@@ -1,6 +1,6 @@
 from http import HTTPStatus
-from application.mongo_resources.contexts import *
-from application.mongo_resources.commons_test.builds import *
+from application.mongo_resources import *
+from commons_test.builds import *
 from flask import Blueprint, request, jsonify
 
 bp = Blueprint('dbresource', __name__, url_prefix='/resources')

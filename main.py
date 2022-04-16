@@ -1,4 +1,6 @@
 from application import *
+from mongoengine import NotUniqueError
+from flask import jsonify
 
 
 #   Useful routines
@@ -11,6 +13,17 @@ def clear():
 
 
 app = create_app()
+
+
+@app.errorhandler(Exception)
+def return_exception(ex: Exception):
+    print(ex)
+    msgs = [str(arg) for arg in ex.args]
+    resp = jsonify({
+        'error': msgs,
+    })
+    resp.status_code = 500
+    return resp
 
 
 dummy_data = {
@@ -46,13 +59,12 @@ def make_shell_context():
         'db': db, 'data': dummy_data, 'super_data': superdummy_data,
 
         # classes
-        'User': User, 'MongoDummy': MongoDummy, 'MongoSuperDummy': MongoSuperDummy,
-        'DataType': DataType, 'Context': DictUserWorkspaceResourceContext,
-        'MongoDummyDoc': MongoDummyDocument, 'MongoSuperDummyDoc': MongoSuperDummyDocument,
+        'User': User, 'DataType': DataType,
+        'Context': DictUserWorkspaceResourceContext,
+        'NotUniqueError': NotUniqueError,
     }
 
 
 if __name__ == '__main__':
-    # print('DBResource:\n', DBResource.get_all_resource_types(), '\n')
-    print('DataType:\n', DataType.get_all_typenames(), '\n')
-    app.run()
+    # print('DataType:\n', DataType.get_all_typenames(), '\n')
+    app.run('0.0.0.0')

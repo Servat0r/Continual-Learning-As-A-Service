@@ -1,90 +1,103 @@
+import os
 import unittest
-import pymongo.collection
+from dotenv import load_dotenv
+from http import HTTPStatus
 from config import *
 from resources import *
 from application import *
 import requests
+from client import *
+
+
+def handle_response(response, target_status_code=HTTPStatus.OK):
+    print(response.status_code, response.reason, response.json(), sep='\n')
+    assert(response.status_code == target_status_code)
+
+
+load_dotenv('test.env')
 
 
 class MongoTestConfig(MongoConfig):
     TESTING = True
-    MONGODB_DB = 'test'
+    MONGODB_DB = os.environ.get('MONGODB_DATABASE') or 'test'
+
+    TEST_HOST = os.environ.get('HOST') or '192.168.1.120'
+    TEST_PORT = int(os.environ.get('PORT') or '5000')
+
+    TEST_USERNAME = os.environ.get('USERNAME') or 'user1'
+    TEST_NEW_USERNAME = os.environ.get('NEW_USERNAME') or 'new_user_1'
+
+    TEST_EMAIL = os.environ.get('EMAIL') or 'abc@example.com'
+    TEST_NEW_EMAIL = os.environ.get('NEW_EMAIL') or 'def@example.com'
+
+    TEST_PASSWORD = os.environ.get('PASSWORD') or '1234?abcD'
+    TEST_NEW_PASSWORD = os.environ.get('NEW_PASSWORD') or '4321@Abcd'
+
+    TEST_WORKSPACE = os.environ.get('WORKSPACE') or 'wspace1'
 
 
 class MyTestCase(unittest.TestCase):
 
+    __DFL_DBNAME__ = MongoTestConfig.MONGODB_DB
     __INIT_COLLS__ = ['users', 'workspaces']
-    __base_url__ = 'http://127.0.0.1:5000'
 
-    __username_0__ = 'user1'
-    __username_1__ = 'user2'
+    __HOST__ = MongoTestConfig.TEST_HOST
+    __PORT__ = MongoTestConfig.TEST_PORT
 
-    __email_0__ = 'user1@example.com'
-    __email_1__ = 'user2@example.com'
+    __USERNAME__ = MongoTestConfig.TEST_USERNAME
+    __NEW_USERNAME__ = MongoTestConfig.TEST_NEW_USERNAME
+    __EMAIL__ = MongoTestConfig.TEST_EMAIL
+    __NEW_EMAIL__ = MongoTestConfig.TEST_NEW_EMAIL
+    __PASSWORD__ = MongoTestConfig.TEST_PASSWORD
+    __NEW_PASSWORD__ = MongoTestConfig.TEST_NEW_PASSWORD
 
-    def user_url(self, username: str = None):
-        base = f"{self.__base_url__}/users"
-        if username is not None:
-            return f"{base}/{username}"
-        else:
-            return base + "/"
+    __WORKSPACE__ = MongoTestConfig.TEST_WORKSPACE
 
-    def wspace_url(self, username: str, wname: str = None):
-        assert(username is not None)
-        base = f"{self.user_url(username)}/workspaces"
-        if wname is not None:
-            return f"{base}/{wname}"
-        else:
-            return base + "/"
+    def get_db(self):
+        return self.db.connection[self.dbname]
 
-    def init_db(self, dbname: str = None, cnames: t.Sequence[str] = None):
-        client = self.db.connection
-        dbase = client[dbname]
+    def init_db(self, cnames: t.Sequence[str] = None):
+        dbase = self.get_db()
         if cnames is not None:
             for cname in cnames:
-                coll: pymongo.collection.Collection = dbase[cname]
+                coll = dbase[cname]
                 coll.insert_one({}, bypass_document_validation=True)
                 coll.delete_one({})
 
-    def register(self, username: str, email: str, password: str):
-        return requests.post(
-            self.user_url(), json={
-                "username": username,
-                "email": email,
-                "password": password,
-            }
-        )
-
-    # TODO Completare!
+    def drop_db(self):
+        mongo_client = self.db.connection
+        mongo_client.drop_database(self.dbname)
 
     def setUp(self) -> None:
         self.db = db
         self.app = create_app(MongoTestConfig)
-        self.app_context = self.app.app_context()
-        self.app_context.push()
-        self.init_db(dbname='test', cnames=self.__INIT_COLLS__)
+        self.dbname = self.app.config['MONGODB_DB']
+
+        self.host = self.__HOST__
+        self.port = self.__PORT__
+
+        self.init_db(cnames=self.__INIT_COLLS__)
+        self.client = BaseClient(self.host, self.port)
 
     def tearDown(self) -> None:
-        client = self.db.connection
-        client.drop_database('test')
+        self.drop_db()
+        print('Test finished')
 
     def test_init_db(self):
-        client = db.connection
-        dbase = client['test']
+        dbase = self.get_db()
         colls = list(dbase.list_collections())
-        print(colls)
         assert(len(colls) == 2)
 
-    def test_user_workspace_operations(self):
-        pass
-
-    def test_populate(self):
-        user1 = User.create('user1')
-        assert(User.objects.count() == 1)
-        wspace1 = Workspace.create('wspace1', 'user1')
-        assert(Workspace.objects.count() == 1)
-        assert(wspace1.owner == user1)
-        assert(Workspace.get_by_owner(user1)[0] == wspace1)
+    def test_users(self):
+        handle_response(
+            self.client.register(self.__USERNAME__, self.__EMAIL__, self.__PASSWORD__), HTTPStatus.CREATED
+        )
+        handle_response(self.client.login(self.__USERNAME__, self.__PASSWORD__))
+        handle_response(self.client.get_user(self.__USERNAME__))
+        handle_response(self.client.edit_user(self.__USERNAME__, self.__NEW_EMAIL__))
+        handle_response(self.client.edit_password(self.__PASSWORD__, self.__NEW_PASSWORD__))
+        handle_response(self.client.delete_user())
+        print("Done!")
 
 
 if __name__ == '__main__':

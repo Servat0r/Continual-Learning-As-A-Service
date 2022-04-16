@@ -21,7 +21,11 @@ def check_token(token):
     :return: Corresponding user if present, None otherwise.
     """
     user = User.get_by_token(token)
-    return user if (user is not None) and (user.token_expiration >= datetime.utcnow()) else None
+    now = datetime.utcnow()
+    if (user is not None) and (user.token_expiration > now):
+        return user
+    else:
+        return None
 
 
 class UserMetadata(BaseMetadata):
@@ -52,7 +56,6 @@ class User(UserMixin, db.Document):
 
     def to_dict(self, include_email=False):
         data = {
-            'id': str(self.id),
             'username': self.username,
             'metadata': self.metadata.to_dict(),
         }
@@ -71,7 +74,7 @@ class User(UserMixin, db.Document):
 
     @classmethod
     def get_by_token(cls, token: str) -> User:
-        return cls.objects(token=token).first()
+        return User.objects(token=token).first()
 
     @classmethod
     def canonicalize(cls, obj: str | User) -> User:
@@ -106,7 +109,7 @@ class User(UserMixin, db.Document):
             token_expiration=now,
             metadata=UserMetadata(created=now, last_modified=now)
         )
-        user.get_token(expires_in=-1, save=False)
+        user.get_token(expires_in=3600, save=False)
         if save:
             user.save(force_insert=True)
             print(f"Created user '{username}' with id '{user.id}'")
@@ -191,6 +194,7 @@ class User(UserMixin, db.Document):
                 break
             except NotUniqueError:
                 continue
+        now = datetime.utcnow()
         self.token_expiration = now + timedelta(seconds=expires_in)
         self.metadata.update_last_modified()
         if save:

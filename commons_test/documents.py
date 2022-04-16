@@ -1,5 +1,4 @@
-from application.mongo_resources.mongo_base_configs import *
-from application.mongo_resources.commons_test.metadata import *
+from commons_test.metadata import *
 
 
 class MongoDummyDocument(MongoResourceConfig):

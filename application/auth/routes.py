@@ -14,8 +14,8 @@ from application.validation import *
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 
-@bp.route('/login', methods=[POST])
-@bp.route('/login/', methods=[POST])
+@bp.post('/login/')
+@bp.post('/login')
 def login():
     """
     Authentication token request (or retrieve).
@@ -66,8 +66,8 @@ def login():
     return make_success_kwargs(HTTPStatus.OK, 'Successful authentication.', token=token)
 
 
-@bp.route('/logout', methods=[POST])
-@bp.route('/logout/', methods=[POST])
+@bp.post('/logout/')
+@bp.post('/logout')
 @token_auth.login_required
 def logout():
     """

@@ -136,7 +136,6 @@ class Workspace(JSONSerializable, URIBasedResource, db.Document):
 
     def to_dict(self) -> TDesc:
         return {
-            'id': str(self.id),
             'name': self.name,
             'status': self.status,
             'uri': self.uri,

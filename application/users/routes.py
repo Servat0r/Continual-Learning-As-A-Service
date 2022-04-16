@@ -1,6 +1,7 @@
 """
 User handling routes.
 """
+from __future__ import annotations
 import os
 from flask import Blueprint, request
 from mongoengine import NotUniqueError
@@ -11,9 +12,18 @@ from application.errors import *
 from application.validation import *
 from http import HTTPStatus
 
-_CHECK_DNS = os.environ.get('EMAIL_VALIDATION_CHECK_DNS') or False
+_CHECK_DNS = bool(os.environ.get('EMAIL_VALIDATION_CHECK_DNS') or False)
 
 bp = Blueprint('users', __name__, url_prefix='/users')
+
+
+# Utils
+def check_ownership(username, msg: str = None, *args, **kwargs) -> tuple[bool, ServerResponseError | None]:
+    current_user = token_auth.current_user()
+    if current_user.username != username:
+        return False, ForbiddenOperation(msg.format(*args, **kwargs))
+    else:
+        return True, None
 
 
 @bp.app_errorhandler(HTTPStatus.INTERNAL_SERVER_ERROR)
@@ -28,8 +38,8 @@ def service_unavailable(error):
     return ServiceUnavailable(str(error))
 
 
-@bp.route('', methods=[POST])
-@bp.route('/', methods=[POST])
+@bp.post('/')
+@bp.post('')
 def register():
     """
     Registers a new user.
@@ -67,6 +77,10 @@ def register():
         if not result:
             return InvalidUsername(msg)
 
+        result, msg = validate_email(email, _CHECK_DNS)
+        if not result:
+            return InvalidEmail(msg)
+
         result, msg = validate_password(password)
         if not result:
             return InvalidPassword(msg)
@@ -80,10 +94,10 @@ def register():
             return make_success_kwargs(HTTPStatus.CREATED, f"User '{user.username}' correctly registered.")
 
 
-@bp.route('', methods=[GET])
-@bp.route('/', methods=[GET])
+@bp.get('/')
+@bp.get('')
 @token_auth.login_required
-def get_all_users():    # TODO Remove
+def get_all_users():
     """
     Retrieves all users.
 
@@ -111,8 +125,8 @@ def get_all_users():    # TODO Remove
         return make_success_kwargs(HTTPStatus.OK, **data)
 
 
-@bp.route('/<user:username>', methods=[GET])
-@bp.route('/<user:username>/', methods=[GET])
+@bp.get('/<user:username>/')
+@bp.get('/<user:username>')
 @token_auth.login_required
 def get_user(username):
     """
@@ -139,8 +153,8 @@ def get_user(username):
         return make_success_dict(HTTPStatus.OK, user.to_dict(include_email=include_email))
 
 
-@bp.route('/<user:username>', methods=[PATCH])
-@bp.route('/<user:username>/', methods=[PATCH])
+@bp.patch('/<user:username>/')
+@bp.patch('/<user:username>')
 @token_auth.login_required
 def edit_user(username):
     """
@@ -170,8 +184,9 @@ def edit_user(username):
     :return:
     """
 
+    print('Inia')
     data, error, opts, extras = checked_json(request, False, required=None, optionals={'username', 'email'})
-
+    print('Alala')
     if error:
         if data:
             return error(**data)
@@ -209,8 +224,8 @@ def edit_user(username):
             return ForbiddenOperation("Username or email are in use by another profile.")
 
 
-@bp.route('/<user:username>/password', methods=[PATCH])
-@bp.route('/<user:username>/password/', methods=[PATCH])
+@bp.patch('/<user:username>/password/')
+@bp.patch('/<user:username>/password')
 @token_auth.login_required
 def edit_password(username):
     """
@@ -230,6 +245,9 @@ def edit_password(username):
     :param username: Username.
     :return:
     """
+    result, error = check_ownership(username, "You cannot change another user's password!")
+    if not result:
+        return error
 
     data, error, opts, extras = checked_json(request, False, {'old_password', 'new_password'})
     if error:
@@ -250,9 +268,7 @@ def edit_password(username):
         if not result:
             return InvalidPassword(msg)
 
-        if current_user.username != username:
-            return ForbiddenOperation("You cannot change another user's password!")
-        elif not current_user.check_correct_password(old_password):
+        if not current_user.check_correct_password(old_password):
             return InvalidPassword(f"Old password is incorrect.")
         elif old_password == new_password:
             return make_success_kwargs(HTTPStatus.NOT_MODIFIED)
@@ -261,8 +277,8 @@ def edit_password(username):
             return make_success_kwargs(HTTPStatus.OK)
 
 
-@bp.route('/<user:username>', methods=[DELETE])
-@bp.route('/<user:username>/', methods=[DELETE])
+@bp.delete('/<user:username>/')
+@bp.delete('/<user:username>')
 @token_auth.login_required
 def delete_user(username):
     """
@@ -280,6 +296,9 @@ def delete_user(username):
     :param username:
     :return:
     """
+    result, error = check_ownership(username, "You don't have the permission to delete another user!")
+    if not result:
+        return error
 
     current_user = token_auth.current_user()
     if current_user.username == username:

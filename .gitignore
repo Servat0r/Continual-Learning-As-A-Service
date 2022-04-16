@@ -8,3 +8,4 @@ logs/
 docs/*.yml
 docs/json_examples/
 dbscripts/
+tests/*.env
