@@ -2,7 +2,7 @@ from application.resources import *
 
 
 @DataType.set_resource_type()
-class Dummy(ReferrableDataType):
+class Dummy(ReferrableDataType, ABC):
     """
     Dummy class for testing.
     """
@@ -17,7 +17,7 @@ class Dummy(ReferrableDataType):
 
 
 @DataType.set_resource_type()
-class SuperDummy(ReferrableDataType):
+class SuperDummy(ReferrableDataType, ABC):
     """
     "Super"-Dummy class for testing references.
     """

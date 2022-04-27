@@ -1,9 +1,19 @@
 from __future__ import annotations
-from commons_test.base_datatypes import *
+from application.mongo.resources import *
+from commons_test.resources.base_datatypes import *
+from commons_test.resources.documents import *
 
 
 @DataType.set_resource_type()
 class MongoDummy(Dummy):
+
+    @classmethod
+    def get_by_uri(cls, uri: str):
+        return cls.config_type().get_by_uri(uri)
+
+    @classmethod
+    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
+        return cls.config_type().dfl_uri_builder(context, name)
 
     @classmethod
     def canonical_typename(cls) -> str:
@@ -36,6 +46,14 @@ class MongoDummy(Dummy):
 
 @DataType.set_resource_type()
 class MongoSuperDummy(SuperDummy):
+
+    @classmethod
+    def get_by_uri(cls, uri: str):
+        return cls.config_type().get_by_uri(uri)
+
+    @classmethod
+    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
+        return cls.config_type().dfl_uri_builder(context, name)
 
     @classmethod
     def canonical_typename(cls) -> str:

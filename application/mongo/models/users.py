@@ -10,7 +10,7 @@ from application.mongo.mongo_base_metadata import BaseMetadata
 from application.validation import USERNAME_MAX_CHARS
 from application.database import db
 from application.resources import t, TDesc
-from application.models import User
+from application.models import User, Workspace
 
 
 class UserMetadata(BaseMetadata):
@@ -51,6 +51,9 @@ class MongoUser(User, db.Document):
 
     def get_metadata(self) -> TDesc:
         return self.metadata.to_dict()
+
+    def workspaces(self):
+        return Workspace.get_class().get_by_owner(self)
 
     def __repr__(self):
         return f"<User '{self.username}'>"

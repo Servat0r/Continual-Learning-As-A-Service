@@ -62,6 +62,10 @@ class User(UserMixin):
         pass
 
     @abstractmethod
+    def workspaces(self):
+        pass
+
+    @abstractmethod
     def to_dict(self, include_email=False) -> TDesc:
         pass
 

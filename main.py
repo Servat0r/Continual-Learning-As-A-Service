@@ -26,37 +26,11 @@ def return_exception(ex: Exception):
     return resp
 
 
-dummy_data = {
-    "name": "DummyTwo",
-    "description": "An example of dummy.",
-    "type": "Dummy",
-    "build": {
-        "name": "DummyGen",
-        "x": 9,
-        "y": "stringa",
-        "z": True,
-    }
-}
-
-superdummy_data = {
-    "name": "SuperDummyOne",
-    "description": "An example of super dummy.",
-    "type": "SuperDummy",
-    "build": {
-        "name": "SuperDummyGen",
-        "bname": "SuperDummyOne",
-        "desc": "...",
-        "dummy": "DummyOne",
-    }
-}
-
-
 @app.shell_context_processor
 def make_shell_context():
     return {
         # generals
-        'system': os.system, 'cls': cls, 'clear': clear,
-        'db': db, 'data': dummy_data, 'super_data': superdummy_data,
+        'system': os.system, 'cls': cls, 'clear': clear, 'db': db,
 
         # classes
         'User': User, 'DataType': DataType,

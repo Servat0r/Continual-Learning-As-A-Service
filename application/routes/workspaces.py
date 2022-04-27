@@ -174,7 +174,9 @@ def get_workspace_requirements(username, wname):    # TODO Completare!
     """
 
     current_user = token_auth.current_user()
-    workspace = Workspace.get_by_name(wname)
+    context = DictUserWorkspaceResourceContext(username, wname)
+    uri = Workspace.dfl_uri_builder(context)
+    workspace = Workspace.get_by_uri(uri)
 
     if not workspace:
         return ResourceNotFound(resource=wname)

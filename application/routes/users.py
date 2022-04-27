@@ -72,7 +72,7 @@ def register():
         username = data['username']
         email = data['email']
         password = data['password']
-        
+
         result, msg = validate_username(username)
         if not result:
             return InvalidUsername(msg)
@@ -91,7 +91,7 @@ def register():
             return InvalidParameterValue(msg=f"Email '{email}' already in use.")
         else:
             user = User.create(username, email, password)
-            return make_success_kwargs(HTTPStatus.CREATED, f"User '{user.username}' correctly registered.")
+            return make_success_kwargs(HTTPStatus.CREATED, f"User '{user.get_name()}' correctly registered.")
 
 
 @users_bp.get('/')
@@ -166,9 +166,9 @@ def edit_user(username):
         ["username": "<new_username>"],
         ["email": "<new_email>"]
     }
-    
+
     ResponseSyntax (on success):
-    
+
     {
         ["username": {
             "before": "<old_username>",
@@ -179,7 +179,7 @@ def edit_user(username):
             "after": "<after_email>"
         }]
     }
-    
+
     :param username:
     :return:
     """

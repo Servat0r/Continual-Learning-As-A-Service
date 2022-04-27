@@ -1,10 +1,5 @@
-from .base_datatypes import *
-from .metadata import *
-from .datatypes import *
-from .documents import *
-from .builds import *
+from .resources import *
 from application import *
-from .routes import bp as dummy_bp
 
 
 app = create_app()

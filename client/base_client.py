@@ -11,6 +11,16 @@ class BaseClient:
     WORKSPACES = "workspaces"
     RESOURCES = "resources"
 
+    __debug_urls__: bool = False
+
+    @staticmethod
+    def set_debug(on: bool = True):
+        BaseClient.__debug_urls__ = on
+
+    @staticmethod
+    def reset_debug():
+        BaseClient.set_debug(False)
+
     @property
     def base_url(self):
         return f"{self.scheme}://{self.host}:{self.port}"
@@ -54,6 +64,8 @@ class BaseClient:
             url = self.get_url(*url_items)
         else:
             raise TypeError()
+        if self.__debug_urls__:
+            print(f"Sending request ({method} @ {url}) ...")
         return requests.request(
             method, url,
             params=params, json=data, headers=headers,
@@ -102,13 +114,11 @@ class BaseClient:
             'password': password,
         }
         url = self.get_url(self.users_base)
-        print(url)
         resp = self.post(url, data, auth=False)
         return resp  # resp.status_code, resp.headers, resp.json()
 
     def login(self, username: str, password: str):
         url = self.get_url(self.auth_base, 'login')
-        print(url)
         data = {
             'username': username,
             'password': password,
@@ -144,7 +154,6 @@ class BaseClient:
                 'email': new_email,
             }
             url = self.get_url(self.users_base, self.username)
-            print(url)
             return self.patch(url, data)
 
     def edit_password(self, old_password, new_password):
@@ -201,7 +210,7 @@ class BaseClient:
                 workspace_name = self.workspace
         return self.delete([self.workspaces_base, workspace_name])
 
-    def add_generic_resource(self, name: str, typename: str, build_config_data: str, description: str = None):
+    def add_generic_resource(self, name: str, typename: str, build_config_data: dict, description: str = None):
         data = {
             'name': name,
             'type': typename,
