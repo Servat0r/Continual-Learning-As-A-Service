@@ -66,5 +66,5 @@ def make_shell_context():
 
 
 if __name__ == '__main__':
-    # print('DataType:\n', DataType.get_all_typenames(), '\n')
+    print('DataType:\n', DataType.get_all_typenames(), '\n')
     app.run('0.0.0.0')

@@ -1,5 +1,4 @@
 from .base_datatypes import *
-from .generators import *
 from .metadata import *
 from .datatypes import *
 from .documents import *

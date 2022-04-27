@@ -11,11 +11,11 @@ from .tokens import token_auth
 from application.validation import *
 
 
-bp = Blueprint('auth', __name__, url_prefix='/auth')
+auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 
-@bp.post('/login/')
-@bp.post('/login')
+@auth_bp.post('/login/')
+@auth_bp.post('/login')
 def login():
     """
     Authentication token request (or retrieve).
@@ -66,8 +66,8 @@ def login():
     return make_success_kwargs(HTTPStatus.OK, 'Successful authentication.', token=token)
 
 
-@bp.post('/logout/')
-@bp.post('/logout')
+@auth_bp.post('/logout/')
+@auth_bp.post('/logout')
 @token_auth.login_required
 def logout():
     """

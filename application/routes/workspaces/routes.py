@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-from application.auth import token_auth
+from application.routes.auth import token_auth
 from http import HTTPStatus
 from application.errors import *
 from application.utils import *
@@ -7,11 +7,11 @@ from application.mongo_resources.contexts import *
 from application.models import User, Workspace
 
 
-bp = Blueprint('workspaces', __name__, url_prefix='/users/<user:username>/workspaces')
+workspaces_bp = Blueprint('workspaces', __name__, url_prefix='/users/<user:username>/workspaces')
 
 
-@bp.post('/')
-@bp.post('')
+@workspaces_bp.post('/')
+@workspaces_bp.post('')
 @token_auth.login_required
 def create_workspace(username):
     """
@@ -46,8 +46,8 @@ def create_workspace(username):
     return make_success_dict(HTTPStatus.CREATED, data=workspace.to_dict())
 
 
-@bp.get('/<workspace:wname>/')
-@bp.get('/<workspace:wname>')
+@workspaces_bp.get('/<workspace:wname>/')
+@workspaces_bp.get('/<workspace:wname>')
 @token_auth.login_required
 def get_workspace(username, wname):
     user = User.get_by_name(username)
@@ -62,8 +62,8 @@ def get_workspace(username, wname):
         return make_success_dict(HTTPStatus.OK, data=data)
 
 
-@bp.get('/')
-@bp.get('')
+@workspaces_bp.get('/')
+@workspaces_bp.get('')
 @token_auth.login_required
 def get_workspaces(username):
     user = User.get_by_name(username)
@@ -75,8 +75,8 @@ def get_workspaces(username):
     return make_success_dict(HTTPStatus.OK, data=data)
 
 
-@bp.delete('/<workspace:wname>/')
-@bp.delete('/<workspace:wname>')
+@workspaces_bp.delete('/<workspace:wname>/')
+@workspaces_bp.delete('/<workspace:wname>')
 @token_auth.login_required
 def delete_workspace(username, wname):
 
@@ -95,8 +95,8 @@ def delete_workspace(username, wname):
     return make_success_dict()
 
 
-@bp.get('<workspace:wname>/status/')
-@bp.get('<workspace:wname>/status')
+@workspaces_bp.get('<workspace:wname>/status/')
+@workspaces_bp.get('<workspace:wname>/status')
 @token_auth.login_required
 def get_workspace_status(username, wname):
     user = User.get_by_name(username)
@@ -112,8 +112,8 @@ def get_workspace_status(username, wname):
     return {'status': workspace.status}
 
 
-@bp.patch('<workspace:wname>/status/')
-@bp.patch('<workspace:wname>/status')
+@workspaces_bp.patch('<workspace:wname>/status/')
+@workspaces_bp.patch('<workspace:wname>/status')
 @token_auth.login_required
 def set_workspace_status(username, wname):
     """
@@ -162,8 +162,8 @@ def set_workspace_status(username, wname):
     return make_success_dict(data={'status': workspace.status})
 
 
-@bp.get('/<workspace:wname>/requirements/')
-@bp.get('/<workspace:wname>/requirements')
+@workspaces_bp.get('/<workspace:wname>/requirements/')
+@workspaces_bp.get('/<workspace:wname>/requirements')
 @token_auth.login_required
 def get_workspace_requirements(username, wname):    # TODO Completare!
     """

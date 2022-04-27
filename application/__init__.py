@@ -28,13 +28,11 @@ def create_app(config_class=MongoConfig):
     app.url_map.converters['user'] = UsernameConverter
     app.url_map.converters['workspace'] = WorkspaceExperimentConverter
 
-    from application.users import bp as users_bp
-    from application.auth import bp as auth_bp
-    from application.workspaces import bp as workspace_bp
+    from application.routes import auth_bp, users_bp, workspaces_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(users_bp)
-    app.register_blueprint(workspace_bp)
+    app.register_blueprint(workspaces_bp)
 
     if not app.debug and not app.testing:
 

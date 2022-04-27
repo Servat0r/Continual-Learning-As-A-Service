@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from flask import Blueprint, request
 from mongoengine import NotUniqueError
-from application.auth import token_auth
+from application.routes.auth import token_auth
 from application.utils import *
 from application.models import *
 from application.errors import *
@@ -14,7 +14,7 @@ from http import HTTPStatus
 
 _CHECK_DNS = bool(os.environ.get('EMAIL_VALIDATION_CHECK_DNS') or False)
 
-bp = Blueprint('users', __name__, url_prefix='/users')
+users_bp = Blueprint('users', __name__, url_prefix='/users')
 
 
 # Utils
@@ -26,20 +26,20 @@ def check_ownership(username, msg: str = None, *args, **kwargs) -> tuple[bool, S
         return True, None
 
 
-@bp.app_errorhandler(HTTPStatus.INTERNAL_SERVER_ERROR)
+@users_bp.app_errorhandler(HTTPStatus.INTERNAL_SERVER_ERROR)
 def internal_server_error(error):
     print(type(error))
     return InternalFailure(str(error))
 
 
-@bp.app_errorhandler(HTTPStatus.SERVICE_UNAVAILABLE)
+@users_bp.app_errorhandler(HTTPStatus.SERVICE_UNAVAILABLE)
 def service_unavailable(error):
     print(type(error))
     return ServiceUnavailable(str(error))
 
 
-@bp.post('/')
-@bp.post('')
+@users_bp.post('/')
+@users_bp.post('')
 def register():
     """
     Registers a new user.
@@ -94,8 +94,8 @@ def register():
             return make_success_kwargs(HTTPStatus.CREATED, f"User '{user.username}' correctly registered.")
 
 
-@bp.get('/')
-@bp.get('')
+@users_bp.get('/')
+@users_bp.get('')
 @token_auth.login_required
 def get_all_users():
     """
@@ -125,8 +125,8 @@ def get_all_users():
         return make_success_kwargs(HTTPStatus.OK, **data)
 
 
-@bp.get('/<user:username>/')
-@bp.get('/<user:username>')
+@users_bp.get('/<user:username>/')
+@users_bp.get('/<user:username>')
 @token_auth.login_required
 def get_user(username):
     """
@@ -153,8 +153,8 @@ def get_user(username):
         return make_success_dict(HTTPStatus.OK, user.to_dict(include_email=include_email))
 
 
-@bp.patch('/<user:username>/')
-@bp.patch('/<user:username>')
+@users_bp.patch('/<user:username>/')
+@users_bp.patch('/<user:username>')
 @token_auth.login_required
 def edit_user(username):
     """
@@ -184,9 +184,7 @@ def edit_user(username):
     :return:
     """
 
-    print('Inia')
     data, error, opts, extras = checked_json(request, False, required=None, optionals={'username', 'email'})
-    print('Alala')
     if error:
         if data:
             return error(**data)
@@ -224,8 +222,8 @@ def edit_user(username):
             return ForbiddenOperation("Username or email are in use by another profile.")
 
 
-@bp.patch('/<user:username>/password/')
-@bp.patch('/<user:username>/password')
+@users_bp.patch('/<user:username>/password/')
+@users_bp.patch('/<user:username>/password')
 @token_auth.login_required
 def edit_password(username):
     """
@@ -277,8 +275,8 @@ def edit_password(username):
             return make_success_kwargs(HTTPStatus.OK)
 
 
-@bp.delete('/<user:username>/')
-@bp.delete('/<user:username>')
+@users_bp.delete('/<user:username>/')
+@users_bp.delete('/<user:username>')
 @token_auth.login_required
 def delete_user(username):
     """
