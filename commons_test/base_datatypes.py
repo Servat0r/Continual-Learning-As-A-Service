@@ -1,4 +1,4 @@
-from resources import *
+from application.resources import *
 
 
 @DataType.set_resource_type()

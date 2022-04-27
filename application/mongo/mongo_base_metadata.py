@@ -1,6 +1,6 @@
 from datetime import datetime
 from application.database import db
-from resources import *
+from application.resources import *
 
 
 class BaseMetadata(JSONSerializable, db.EmbeddedDocument):

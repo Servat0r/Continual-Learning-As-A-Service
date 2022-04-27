@@ -1,5 +1,5 @@
 from __future__ import annotations
-from resources import *
+from application.resources import *
 
 
 class DictUserResourceContext(UserResourceContext):

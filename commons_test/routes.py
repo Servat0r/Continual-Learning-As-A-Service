@@ -1,5 +1,6 @@
 from http import HTTPStatus
-from application.mongo_resources import *
+from application.resources.contexts import *
+from application.mongo.resources import *
 from commons_test.builds import *
 from flask import Blueprint, request, jsonify
 

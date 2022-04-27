@@ -1,4 +1,4 @@
-from application.mongo_resources.mongo_base_metadata import *
+from application.mongo.resources import *
 
 
 class DummyMetadata(BaseMetadata):

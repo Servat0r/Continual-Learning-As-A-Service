@@ -3,16 +3,15 @@ application package init.
 """
 from __future__ import annotations
 import logging
-import os
 from logging.handlers import SMTPHandler
 from flask import Flask
-from config import *
+from .config import *
 from .database import db
 from .utils import *
 from .log import *
 from .converters import *
-from .mongo_resources import *
 from .models import *
+from .mongo import *
 
 
 _NAME = os.environ.get('SERVER_NAME') or 'SERVER'

@@ -1,7 +1,7 @@
 # Validation and Build contexts (user, workspace etc.)
 from __future__ import annotations
 
-from resources.utils import *
+from application.resources.utils import *
 
 
 class ResourceContext:

@@ -25,7 +25,7 @@ class SimpleConfig(object):
         's.correnti@studenti.unipi.it',
     ]
 
-    STD_FILESAVE_DIR = os.environ.get("FILESAVE_DIR") or os.path.join(basedir, 'files')
+    STD_FILESAVE_DIR = os.environ.get("FILESAVE_DIR") or os.path.join(basedir, '../files')
 
 
 # Configuration class for using a SQL database (e.g. PostgreSQL)

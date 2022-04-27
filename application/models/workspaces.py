@@ -1,18 +1,12 @@
 from __future__ import annotations
 import os
-from datetime import datetime
-from application.mongo_resources.mongo_base_metadata import BaseMetadata
-from application.mongo_resources.contexts import *
-from application.models.users import User
-from mongoengine import NotUniqueError
-from resources import *
-from application.validation import *
-from application.database import db
 from application.utils import *
+from application.models.users import User
+from application.resources import *
 
 
-def _default_create_func(workspace: Workspace) -> tuple[bool, str | None]:
-    wdir = os.path.join(os.getcwd(), 'files', 'workspaces', workspace.owner.username, workspace.name)
+def default_create_func(workspace: Workspace) -> tuple[bool, str | None]:
+    wdir = os.path.join(os.getcwd(), 'files', 'workspaces', workspace.get_owner().get_name(), workspace.get_name())
     print(f"wdir = {wdir}")
     try:
         os.makedirs(wdir, exist_ok=True)
@@ -23,31 +17,35 @@ def _default_create_func(workspace: Workspace) -> tuple[bool, str | None]:
     return True, None
 
 
-class WorkspaceMetadata(BaseMetadata):
-
-    def to_dict(self) -> TDesc:
-        result = super().to_dict()
-        return result
-
-    @classmethod
-    def from_dict(cls, data: TDesc) -> t.Any:
-        raise NotImplementedError
-
-
-class Workspace(JSONSerializable, URIBasedResource, db.Document):
+class Workspace(JSONSerializable, URIBasedResource):
 
     OPEN = 'OPEN'
     CLOSED = 'CLOSED'
 
-    name = db.StringField(max_length=WORKSPACE_EXPERIMENT_MAX_CHARS, unique=True)
-    uri = db.StringField(unique=True)
-    status = db.StringField(max_length=8)
-    owner = db.ReferenceField(User)
-    metadata = db.EmbeddedDocumentField(WorkspaceMetadata)
+    __workspace_class__: t.Type[Workspace] = None
+
+    @staticmethod
+    def set_class(cls):
+        if Workspace.__workspace_class__ is None:
+            Workspace.__workspace_class__ = cls
+        return cls
+
+    @staticmethod
+    def get_class():
+        return Workspace.__workspace_class__
+
+    @abstractmethod
+    def get_name(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_owner(self) -> User:
+        pass
 
     @classmethod
+    @abstractmethod
     def get_by_uri(cls, uri: str):
-        return Workspace.objects(uri=uri).first()
+        return Workspace.get_class().get_by_uri(uri)
 
     @classmethod
     def dfl_uri_builder(cls, context: UserWorkspaceResourceContext) -> str:
@@ -66,82 +64,47 @@ class Workspace(JSONSerializable, URIBasedResource, db.Document):
         else:
             raise TypeError(f"Unknown type: '{type(obj)}'.")
 
-    def __repr__(self):
-        return f"Workspace <{self.name}> [uri = {self.uri}]"
-
     def __str__(self):
         return self.__repr__()
 
     @classmethod
+    @abstractmethod
     def get_by_owner(cls, owner: str | User):
-        owner = User.canonicalize(owner)
-        return Workspace.objects(owner=owner).all()
+        return Workspace.get_class().get_by_owner(owner)
 
     @classmethod
-    def create(cls, name: str, owner: str | User, create_func: t.Callable = _default_create_func,
-               save: bool = True, open_on_create: bool = True):
+    @abstractmethod
+    def create(cls, name: str, owner: str | User, create_func: t.Callable = default_create_func,
+               save: bool = True, open_on_create: bool = True) -> Workspace:
+        return Workspace.get_class().create(name, owner, create_func, save, open_on_create)
 
-        result, msg = validate_workspace_experiment(name)
-        if not result:
-            raise ValueError(msg)
-
-        owner = User.canonicalize(owner)
-        context = DictUserWorkspaceResourceContext(owner.username, name)
-        uri = cls.dfl_uri_builder(context)
-        now = datetime.utcnow()
-        # noinspection PyArgumentList
-        workspace = Workspace(
-            name=name,
-            uri=uri,
-            status=Workspace.OPEN if open_on_create else Workspace.CLOSED,
-            owner=owner,
-            metadata=WorkspaceMetadata(created=now, last_modified=now),
-        )
-        result, msg = create_func(workspace)
-        if not result:
-            raise ValueError(msg)
-        elif save:
-            workspace.save(force_insert=True)
-        return workspace
-
+    @abstractmethod
     def delete(self):
-        if self.is_open():
-            raise RuntimeError(f"Workspace '{self.name}' is still open!")
-        else:
-            db.Document.delete(self)
+        pass
 
+    @abstractmethod
     def open(self, save: bool = True):
-        self.status = Workspace.OPEN
-        self.metadata.update_last_modified()
-        if save:
-            self.save()
+        pass
 
+    @abstractmethod
     def close(self, save: bool = True):
-        self.status = Workspace.CLOSED
-        self.metadata.update_last_modified()
-        if save:
-            self.save()
+        pass
 
+    @abstractmethod
     def update_last_modified(self, save: bool = True):
-        self.metadata.update_last_modified()  
-        if save:
-            self.save()
+        pass
 
+    @abstractmethod
     def is_open(self):
-        return self.status == Workspace.OPEN
+        pass
 
     @classmethod
     def from_dict(cls, data: TDesc) -> t.Any:
         raise NotImplementedError
 
+    @abstractmethod
     def to_dict(self) -> TDesc:
-        return {
-            'name': self.name,
-            'status': self.status,
-            'uri': self.uri,
-            'owner': self.owner.to_dict(),
-            'metadata': self.metadata.to_dict(),
-        }
+        pass
 
 
 __all__ = [
@@ -149,5 +112,5 @@ __all__ = [
     'make_uri',
     'split_uri',
     'Workspace',
-    'WorkspaceMetadata',
+    'default_create_func',
 ]

@@ -1,11 +1,6 @@
-import os
 import unittest
 from dotenv import load_dotenv
-from http import HTTPStatus
-from config import *
-from resources import *
 from application import *
-import requests
 from client import *
 
 

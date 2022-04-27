@@ -1,7 +1,6 @@
 # Base datatypes.
 from __future__ import annotations
-from resources.utils import *
-from resources.base_contexts import *
+from application.resources.base_contexts import *
 
 
 class DataType:

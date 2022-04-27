@@ -1,37 +1,20 @@
 from __future__ import annotations
-from resources.base_datatypes import *
+from application.models import *
+from application.resources import *
+from application.mongo import *
 
 
-class BuildConfig(NameBasedResource):
+class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
 
-    __CONFIGS__: TDesc = {}
-
-    @staticmethod
-    def register_build_config(name: str = None):
-        def registerer(cls):
-            nonlocal name
-            if name is None:
-                name = cls.__name__
-            BuildConfig.__CONFIGS__[name] = cls
-            return cls
-
-        return registerer
+    meta = {
+        'abstract': True,
+        'allow_inheritance': True,
+    }
 
     @staticmethod
     @abstractmethod
     def target_type() -> t.Type[DataType]:
         pass
-
-    @classmethod
-    def get_by_name(cls, name: str | TDesc):
-        if isinstance(name, str):
-            return cls.__CONFIGS__.get(name)
-        elif isinstance(name, dict):
-            cname = name.get('name')
-            if cname is None:
-                raise ValueError('Missing name')
-            else:
-                return cls.__CONFIGS__.get(cname)
 
     @classmethod
     @abstractmethod
@@ -56,7 +39,20 @@ class BuildConfig(NameBasedResource):
         pass
 
 
-class ResourceConfig(URIBasedResource):
+class MongoResourceConfig(db.Document, ResourceConfig):
+
+    meta = {
+        'abstract': True,
+        'allow_inheritance': True,
+    }
+
+    name = db.StringField(required=True)
+    uri = db.StringField(required=True, unique=True)
+    description = db.StringField(required=False)
+    build_config = db.EmbeddedDocumentField(MongoBuildConfig)
+    metadata = db.EmbeddedDocumentField(BaseMetadata)
+    owner = db.ReferenceField(User.user_class())
+    workspace = db.ReferenceField(Workspace.get_class())
 
     @classmethod
     @abstractmethod
@@ -91,6 +87,8 @@ class ResourceConfig(URIBasedResource):
     def update(self, data, context):
         pass
 
-    @abstractmethod
     def delete(self, context):
-        pass
+        db.Document.delete(self)
+
+    def __init__(self, *args, **values):
+        db.Document.__init__(self, *args, **values)
