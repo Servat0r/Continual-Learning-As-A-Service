@@ -1,0 +1,1155 @@
+API description format:
+	# General format for describing API (apart from Common, which has subsections of this format).
+	<API blueprint>: <base_url>
+		<api_func>:
+			<method> <relativeUrl>
+
+			Desc:
+				<description>
+
+			# When omitted, the request has no body (or is different from JSON, e.g. when transferring files).
+			RequestSyntax:
+				<request syntax>
+
+			# We show only success response syntax, because errors are self-defined (CLaaS API Errors.pdf).
+			ResponseSyntax:
+				<success response syntax>
+
+			# List of possible errors (apart from the ones common to all requests)
+			Errors:
+				<errors>
+
+
+# Common errors
+CommonErrors:
+
+	ToAllRequests:
+		InvalidToken
+		MissingToken
+		BadJSONSyntax
+		BadRequestSyntax
+		InternalFailure
+		ServiceUnavailable
+
+	Others:
+		MalformedQueryString
+		MissingParameter
+		InvalidParameterValue
+		InvalidParameter
+		InvalidQueryParameter
+		PermissionDenied
+		ForbiddenOperation
+		InvalidUsername
+		InvalidEmail
+		InvalidPassword
+		InvalidParameterCombination
+		NotExistingUser
+		ExistingUser
+		ResourceNotFound
+
+
+# User Bearer token authentication
+Authentication: <base>/auth
+	login:
+		PATCH /login
+
+		Desc:
+			Logins the user by creating a new authentication (bearer) token if absent or expired, otherwise retrieves
+			the current one.
+
+		RequestSyntax:
+			{
+				"username": "<username>",
+				"password": "<password>"
+			}
+
+		ResponseSyntax:
+			status: 201 Created
+			{
+				"token": "<token value>"
+			}
+
+		Errors:
+			...
+
+	logout:
+		PATCH /logout
+
+		Desc:
+			Logouts the user by deleting current token.
+
+		ResponseSyntax:
+			status: 200 OK
+
+		Errors:
+			...
+
+# Users handling
+Users: <base>/users
+	register:
+		POST /
+
+		Desc:
+			Registers a new user.
+
+		RequestSyntax:
+			{
+				"username": "<username>",
+				"email": "<email>",
+				"password": "<password>"
+			}
+
+		ResponseSyntax:
+			status: 201 Created
+			{
+				"username": <username>,
+				"email": <email>
+			}
+
+		Errors:
+			...
+
+
+	get_user:
+		GET /<username>
+
+		Desc:
+			Shows profile for any user (hiding private info for another user).
+
+		ResponseSyntax:
+			status: 200 OK
+			<user_json_data>
+
+		Errors:
+			...
+
+
+	edit_user:
+		PATCH /<username>
+
+		Desc:
+			Changes username or email.
+
+		RequestSyntax:
+			{
+				"username": "<new_username>",		# optional
+				"email": "<new_email>"				# optional
+				# At least one of them must be present.
+			}
+
+		ResponseSyntax:
+			status: 200 OK
+			{
+				"username": {	# If username modified
+					"before": "<username>",
+					"after": "<new_username>"
+				},
+				"email": {	# If email modified
+					"before": "<email>",
+					"after": "<new_email>"
+				}
+			}
+
+		Errors:
+			...
+
+
+	edit_password:
+		PATCH /<username>/password
+
+		Desc:
+			Modifies the password for the current user.
+			NOTE: This is NOT a password-reset!
+
+		RequestSyntax:
+			{
+				"old_password": "<old_password>",
+				"new_password": "<new_password>"
+			}
+
+		ResponseSyntax:
+			status: 200 OK
+
+		Errors:
+			...
+
+
+	delete_user:
+		DELETE /<username>
+
+		Desc:
+			Deletes a user account.
+
+		ResponseSyntax:
+			status: 200 OK
+
+		Errors:
+			...
+
+
+# Workspaces handling
+Workspaces: <base>/users/<username>/workspaces
+	create_workspace:
+		POST /
+
+		Desc:
+			Creates a new empty workspace.
+
+		RequestSyntax:
+			{
+				"name": "<workspace_name>"
+			}
+
+		ResponseSyntax:
+			status: 201 Created
+			{
+				"name": "<workspace_name>"
+			}
+
+		Errors:
+			...
+
+	get_workspaces:
+		GET /
+
+		Desc:
+			Retrieves a description of all workspaces owned by the user (meta.json + directories metadata).
+
+		ResponseSyntax:
+			status: 200 OK
+			{
+				"<workspace_name>": <workspace_desc>,	# For all workspaces
+				...
+			}
+
+		Errors:
+			...
+
+	get_workspace:
+		GET /<workspace>
+
+		Desc:
+			Retrieves a description of the given workspace if owned by the user (meta.json + directories metadata).
+
+		ResponseSyntax:
+			status: 200 OK
+			<workspace_json_data>
+
+		Errors:
+			...
+
+	delete_workspace:
+		DELETE /<workspace>
+
+		Desc:
+			Deletes given workspace.
+			NOTE: Workspace MUST be closed, otherwise there would be an error.
+
+		ResponseSyntax:
+			status: 200 OK
+
+		Errors:
+			...
+
+	set_workspace_status:
+		PATCH /<workspace>/status
+
+		Desc:
+			Sets a workspace status to 'OPEN' or 'CLOSED'.
+			NOTE: If closing, all workspace in-memory resources (except for background jobs) must be freed.
+
+		RequestSyntax:
+			{
+				"status": OPEN | CLOSED
+			}
+
+		ResponseSyntax:
+			status: 200 OK
+			{
+				"status": OPEN | CLOSED
+			}
+
+		Errors:
+			...
+
+	get_workspace_status:
+		GET /<workspace>/status
+
+		Desc:
+			Retrieves workspace current status (OPEN/CLOSED).
+
+		ResponseSyntax:
+			status: 200 OK
+			{
+				"status": OPEN | CLOSED
+			}
+
+		Errors:
+			...
+
+
+Common: <base>/common
+	Benchmarks:
+		# classic benchmarks as defined in avalanche.benchmarks.classic
+		get_classic_benchmarks:	# benchmarks description
+			GET /benchmarks
+
+			Desc:
+				Retrieves all the benchmarks defined in avalanche.benchmarks.classic by their benchmark_name.
+				benchmark_name is a unique name for the benchmark to define it within the whole system.
+
+			ResponseSyntax:
+				status: 200 OK
+				{
+					"<benchmark_name>": <benchmark_data>,	# for all benchmarks (defined in classic_benchmark.json)
+					...
+				}
+
+			Errors:
+				...
+
+		get_classic_benchmark:	# benchmark description
+			GET /benchmarks/<benchmark>
+			Desc:
+				Retrieves the classic benchmark identified by 'benchmark_name'.
+				benchmark_name is a unique name for the benchmark to define it within the whole system.
+				The JSON description contains name and parameters description for instantiating a new one
+				based on their Avalanche implementation.
+
+			ResponseSyntax:
+				status: 200 OK
+				<benchmark_data>
+
+			Errors:
+				...
+
+		get_benchmarks_generators:	# NewClasses, NewInstances, DatasetBenchmark, FilelistBenchmark, ...
+			GET /benchmarks/generators
+
+			Desc:
+				Retrieves the JSON description of all available common benchmark generators.
+
+			ResponseSyntax:
+				status: 200 OK
+				{
+					"<generator_name>": <generator_data>,	# for all generators
+					...
+				}
+
+			Errors:
+				...
+
+		get_benchmarks_generator:
+			GET /benchmarks/generators/<generator>
+
+			Desc:
+				Retrieves a JSON description of the specified common benchmark generator. A benchmark generator
+				represents a function / class that is used in Avalanche to generate a benchmark.
+				AvailableGenerators:
+					- NewClasses (based on nc_benchmark);
+					- NewInstances (based on ni_benchmark);
+					- FilelistBenchmark (based on filelist_benchmark).
+
+			ResponseSyntax:
+				status: 200 OK
+				<generator_json_data>
+
+			Errors:
+				...
+
+
+	Datasets:
+		get_classic_datasets:
+			GET /datasets
+
+			Desc:
+				Retrieves all the classic datasets as defined in avalanche.benchmarks.datasets or any from which
+				a classic benchmark (avalanche.benchmarks.classic) is built.
+
+			ResponseSyntax:
+				status: 200 OK
+				{
+					"<dataset_name>": <dataset_data>,	# for all datasets
+					...
+				}
+
+			Errors:
+				...
+
+
+		get_classic_dataset:
+			GET /datasets/<dataset>
+
+			Desc:
+				Retrieves a classic dataset as defined in avalanche.benchmarks.datasets or any from which
+				a classic benchmark (avalanche.benchmarks.classic) is built.
+
+			ResponseSyntax:
+				status: 200 OK
+				{
+					"data": <dataset_description>,
+					"train_count": <num_of_train_examples>,
+					"test_count": <num_of_test_examples>
+				}
+
+
+	Metrics:
+		get_classic_metrics:	# description of classic metrics
+			GET /metrics
+
+			Desc:
+				Retrieves a description for all predefined metrics sets.
+
+			ResponseSyntax:
+				status: 200 OK
+				{
+					"<metricsets_name>": <metricsets_description>,	# for all metric sets
+					...
+				}
+
+			Errors:
+				...
+
+		get_classic_metric:		# description of classic metric
+			GET metrics/<metric>
+
+			Desc:
+				Retrieves a description for the given predefined metric set.
+
+			ResponseSyntax:
+				status: 200 OK
+				{
+					"name": <metricset_name>,
+					"description": <metricset_description>
+				}
+
+			Errors:
+				...
+
+
+	Models:
+		get_model:
+			GET /models/all/<model_name>
+
+			Desc:
+				Retrieves a model descriptive file for the specified name. Available models are the ones defined
+				in avalanche.models.
+
+			ResponseSyntax:
+				status: 200 OK
+				<model_json_description>
+
+			Errors:
+				...
+
+		get_dynamic_models:
+			GET /models/dynamic
+
+			Desc:
+				Retrieves a list of all available dynamic models (as defined in Avalanche).
+
+			ResponseSyntax:
+				status: 200 OK
+				{
+					"<model_name>": <model_json_description>,	# for all models
+					...
+				}
+
+		get_common_models:
+			GET /models/common
+
+			Desc:
+				Retrieves a list of all available common (non-dynamic) models (as defined in Avalanche).
+
+			ResponseSyntax:
+				status: 200 OK
+				{
+					"<model_name>": <model_json_description>,	# for all models
+					...
+				}
+
+		get_models:
+			GET /models/all
+
+			Desc:
+				Retrieves a list of all available models (as defined in Avalanche).
+
+			ResponseSyntax:
+				status: 200 OK
+				{
+					"<model_name>": <model_json_description>,	# for all models
+					...
+				}
+
+
+	Training:
+		get_common_strategies:
+			GET /strategies
+
+			Desc:
+				Retrieves all the common strategies as defined in Avalanche.
+
+			ResponseSyntax:
+				status: 200 OK
+				{
+					"<strategy_name>": <strategy_description>,	# for all strategies
+					...
+				}
+
+		get_common_strategy:
+			GET /strategies/<strategy>
+
+			Desc:
+				Retrieves a common strategy description (as defined in Avalanche).
+
+			ResponseSyntax:
+				status: 200 OK
+				<strategy_description>
+
+			Errors:
+				...
+
+		get_common_buffers:
+			GET /buffers
+
+			...	# replay buffers
+
+		get_common_buffer:
+			GET /buffer
+
+			... # replay buffers
+
+		get_common_strategy_plugins:
+			GET /strategyplugins
+
+			... # plugins
+
+		get_common_strategy_plugin:
+			GET /strategyplugins/<plugin>
+
+			... # plugins
+
+
+	Transform:
+		# Common transforms
+		get_common_tranforms:
+			GET /transforms
+
+			... # datasets transforms
+
+		get_common_transform:
+			GET /transforms/<transform>
+
+			...	# datasets transforms
+
+	Losses:
+		get_common_losses:
+			...
+		get_common_loss:
+			...
+
+	Optimizers:
+		get_common_optimizers:
+			...
+		get_common_optimizer:
+			...
+
+
+# (Raw) Data handling.
+Data: <base>/users/<username>/workspaces/<workspace>/data
+	create_data_repo:
+		POST /repo
+
+		Desc:
+			Creates a new data "repository", i.e. allocates a directory for storing data. Repository name must
+			be unique w.r.t. all other ones. A repository may contain subrepos (e.g. for distinction between
+			train and test data).
+			NOTE: Data in a repository must be of the same type (filelist/csv/files).
+
+		RequestSyntax:
+			{
+				"name": <data_repo_name>,
+				"description": <textual_description>,	# optional
+				"type": "FILELIST/SINGLE_FILE/DOUBLE_FILE"
+				# FILELIST: Each dataset item is a single file with an associated (class) label and an (eventual)
+				# task label. When sending data to this dataset, data must be provided as a list of named files together
+				# with a Caffe-style textual file that describes the mapping {filename -> class(, task)}.
+				# SINGLE_FILE: The dataset is contained in a single .csv file where the last column contains the
+				# labels.
+				# DOUBLE_FILE: The dataset is provided in two separate files (of any format), one that contains
+				# the data and the other that contains the labels. This is done for compatibility with MNIST-like
+				# datasets that come in a compressed format.
+			}
+
+		ResponseSyntax:
+			status: 201 Created
+
+		Errors:
+			...
+
+	add_subrepo:
+		POST /repo/<name>
+
+		Desc:
+			Adds a subrepo to the current data repository (e.g., a folder). To access a subrepo, use dot syntax.
+
+		RequestSyntax:
+			{
+				"name": <subrepo_name>,
+				"description": <textual_description>	# optional
+			}
+
+		ResponseSyntax:
+			status: 201 Created
+
+		Errors:
+			...
+
+	remove_subrepo:
+		DELETE /repo/<repo_name>/<subrepo_name>
+
+		Desc:
+			Deletes a subrepo and all data that it contains.
+			NOTE: If repo or subrepo are in use by any experiment, deletion will fail.
+
+		ResponseSyntax:
+			status: 200 OK
+
+		Errors:
+			...
+
+	remove_repo:
+		DELETE /repo/<name>
+
+		Desc:
+			Removes a repository with all data that it contains.
+			NOTE: If repository of any of its subrepos is in use by any experiment, deletion will fail.
+
+		ResponseSyntax:
+			status: 200 OK
+
+		Errors:
+			...
+
+	"move_subrepo":
+		PATCH /repo/<repo_name>/<subrepo_name>
+
+		Desc:
+			Moves a subrepo into either another subrepo or another repo. If the destination subrepo is itself,
+			nothing is done.
+			NOTE: If any of the source/dest repo/subrepo is in use by a running experiment, the operation cannot
+			be performed.
+
+		RequestSyntax:
+			{
+				"dest_repo": <dest_repo_name>,		# required
+				"dest_subrepo": <dest_subrepo_name>	# optional
+			}
+
+		ResponseSyntax:
+			status:
+				200 OK (if modified)
+				304 Not modified (else)
+			{
+				"n_files_moved": <number_of_moved_files>
+			}
+
+		Errors:
+			...
+
+	get_data_repo_desc:
+		GET /repo/<name>/desc
+
+		Desc:
+			Retrieves a description of the current data repo. A description is a JSON file that contains textual
+			description (if given) and repository metadata (creation time, last modified, subrepos, experiment
+			configurations that are using it or any of its subrepos, ...).
+
+		ResponseSyntax:
+			status: 200 OK
+			{
+				"@data": <repo_description>
+			}
+
+		Errors:
+			...
+
+	get_data_subrepo_desc:
+		GET /repo/<repo_name>/<subrepo_name>/desc
+
+		Desc:
+			Same as 'get_data_repo_desc', but for a subrepo.
+
+		ResponseSyntax:
+			status: 200 OK
+			{
+				"@data": <description>
+			}
+
+		Errors:
+			...
+
+	create_stream_data_configuration:	# includes new data location and accepting
+		POST /configs/stream
+
+		Desc:
+			Creates a new stream data configuration for experiments. A stream data configuration describes a stream
+			to be used when executing an experiment in terms of source data from an existing repo/subrepo, and (eventual)
+			subrepo that can receive extra data when running the experiment.
+
+		RequestSyntax:
+			{
+				"name": <config_name>,
+				"@data": <config_data>
+			}
+
+		ResponseSyntax:
+			status: 201 Created
+
+		Errors:
+			...
+
+	create_benchmark_datasets_configuration:
+		POST /configs/benchmark
+
+		Desc:
+			Create a new benchmark data configuration. A benchmark data configuration is a JSON description of
+			the dataset(s) to be used for creating a benchmark with any of the standard generators (NewClasses,
+			NewInstances, Filelist).
+
+		RequestSyntax:
+			{
+				"name": <configuration_name>,
+				"streams": {
+					"<stream_name>": <stream_configuration_name>,	# train, test, ... (~parameters)
+					...
+				}
+				"generator": <generator_name>,
+				"parameters": {
+					"<param_name>": "<param_value>"
+				}
+			}
+
+		ResponseSyntax:
+			status: 201 created
+
+		Errors:
+			...
+
+	send_data_to_subrepo:
+		PATCH /repo/<repo_name>/<subrepo_name>
+
+		Desc:
+			Sends data to a data subrepo. Visibility of the data within running experiments is affected by
+			stream data configurations.
+			NOTE: Data is sent as a list of files (form-data).
+
+		ResponseSyntax:
+			status: 200 OK
+			{
+				"files_received": "<number_of_received_files>"
+			}
+
+		Errors:
+			...
+
+
+MetricsSets: <base>/users/<username>/workspaces/<workspace>/metricsets
+	create_metric_set:	# a std metrics set
+		POST /
+
+		Desc:
+			Creates a metric set. A metric set is a description of how to configure Avalanche builtin metrics
+			for use by any experiment.
+
+		RequestSyntax:
+			{
+				"name": "<metricset_name>",
+				"<metrics_name>": [	# Keywords for describing metrics granularity as defined by metrics helper functions.
+					"experience",
+					"stream",
+				],
+				...		# Similar for any Avalanche builtin metric
+			}
+
+		ResponseSyntax:
+			status: 201 created
+
+	edit_metric_set:
+		PATCH /<set>
+
+		Desc:
+			Modifies a metric set by indicating "granularity" (minibatch, epoch, ...) for each standard metric.
+			Request body must provide only the standard metrics that are about to change.
+
+		RequestSyntax:
+			{
+				"<metrics_name>": [	# for all metrics to change
+					"minibatch",	# indicate the resulting values set to True for these metrics
+					"epoch",
+					...
+				]
+			}
+
+		ResponseSyntax:
+			status: 200 OK
+			{
+				"changed_metrics": [
+					# lists all the changed metrics
+				]
+			}
+
+		Errors:
+			...
+
+	get_metrics_sets:	# as descriptive file
+		GET /
+
+		Desc:
+			Retrieves JSON description for all metric sets defined by the user.
+
+		ResponseSyntax:
+			status: 200 OK
+			{
+				"<metricset_name>": <metricset_json>,
+				...	# For all metricsets
+			}
+
+		Errors:
+			...
+
+	get_metric_set:
+		GET /<metric>
+
+		Desc:
+			Retrieves a JSON descriptive file for this metric set.
+
+		ResponseSyntax:
+			status: 200 OK
+			<metricset_json>
+
+		Errors:
+			...
+
+	delete_metric_set:
+		DELETE /<metric>
+
+		Desc:
+			Deletes a metric set.
+			NOTE: If bound to any experiment, deletion fails.
+
+		ResponseSyntax:
+			status: 200 OK
+
+		Errors:
+			...
+
+
+Benchmarks: <base>/users/<username>/workspaces/<workspace>/benchmarks
+	create_benchmark:	# Creates ONLY a benchmark configuration to be sent to an avalanche benchmark constructor!
+							# (As we saw, by now serialization is not available)
+		POST /
+
+		Desc:
+			Creates a new benchmark configuration file, i.e. a JSON file that defines how to build a benchmark
+			basing on a classic (predefined) one within Avalanche, or one of the generators functions (NewClasses,
+			NewInstances, Filelists).
+			This configuration file can be bound to any experiment and is used to build an Avalanche benchmark
+			every time any of these experiments is setup or for new data incoming.
+			NOTE: There could be at most ONE file for experiment!
+
+		RequestSyntax:
+			{
+				"name": <benchmark_name>,			# to identify it within current workspace
+				"generator": {
+					"name": <benchmark_generator>,    # either a classic name or a generator name
+					"parameters": {
+						"<parameter_name>": <parameter_value>,    # for each parameter
+									  ...
+					}
+				}
+			}
+
+		ResponseSyntax:
+			status: 201 created
+
+		Errors:
+			...
+
+	get_benchmarks:
+		GET /
+
+		Desc:
+			Retrieves all the benchmarks configurations.
+
+		ResponseSyntax:
+			status: 200 OK
+			{
+				"<benchmark_name>": <benchmark_json>	# for all retrieved benchmarks
+			}
+
+		Errors:
+			...
+
+	get_benchmark:		# Specified benchmark description
+		GET /<benchmark>
+
+		Desc:
+			Retrieves this benchmark configuration.
+
+		ResponseSyntax:
+			status: 200 OK
+			<benchmark_json>
+
+		Errors:
+			...
+
+	delete_benchmark:
+		DELETE /<benchmark>
+
+		Desc:
+			Deletes a benchmark configuration.
+			NOTE: If this benchmark is bound to any experiment, deletion fails.
+
+		ResponseSyntax:
+			status: 200 OK
+
+		Errors:
+			...
+
+
+# TODO COMPLETE!
+Models: <base>/users/<username>/workspaces/<workspace>/models
+	create_model:
+		POST /
+
+		Desc:
+			Creates a model configuration from a predefined one (in avalanche.models).
+
+		RequestSyntax:
+			{
+				"name": <model_config_name>,
+				"description": <model_config_textual_description>,
+				"generator": {
+					"name": <generator_name>,
+					"parameters": <generator_parameters>
+				}
+			}
+
+		ResponseSyntax:
+			status: 201 created
+
+		Errors:
+			...
+
+	get_models:
+		...
+	get_model:
+		...
+	delete_model:
+		...
+
+
+# TODO COMPLETE!
+Strategies: <base>/users/<username>/workspaces/<workspace>/strategies
+	create_strategy:
+		...
+
+	get_strategies:
+		...
+
+	get_strategy:
+		...
+
+	delete_strategy:
+		...
+
+
+# TODO COMPLETE!
+Optimizers: <base>/users/<username>/workspaces/<workspace>/optimizers
+	create_optimizer:
+		...
+	get_optimizers:
+		...
+	get_optimizer:
+		...
+	delete_optimizer:
+		...
+
+
+# TODO COMPLETE!
+Losses: <base>/users/<username>/workspaces/<workspace>/losses
+	create_loss:
+		...
+	get_losses:
+		...
+	get_loss:
+		...
+	delete_loss:
+		...
+
+
+Experiments: <base>/users/<username>/workspaces/<workspace>/experiments
+	create_experiment:
+		POST /
+
+		Desc:
+			Creates a new experiment by defining name and description.
+
+		RequestSyntax:
+			{
+				"name": <experiment_name>,
+				"description": <textual_description>	# optional
+			}
+
+		ResponseSyntax:
+			status: 201 created
+
+		Errors:
+			...
+
+	setup_experiment:
+		PATCH /<experiment>
+
+		Desc:
+			Setups an experiment, i.e. sets all configuration needed to run the experiment.
+			In particular, setup must indicate
+				1. name of the benchmark (as defined before) with its parameters;
+				2. name of the strategy (as defined before) with its parameters;
+				3. name of the metric set (as defined before);
+				4. evaluation parameters (as defined in avalanche::EvaluationPlugin constructor).
+
+		RequestSyntax:
+			{
+				"benchmark": <benchmark_name>,
+				"strategy": <strategy_name>,
+				"metricset": <metricset_name>,
+				"fixed_experiences": true/false,	# enable/disable the possibility to upload data dynamically
+			}
+
+		ResponseSyntax:
+			status: 200 OK
+
+		Errors:
+			...
+
+	start_experiment:
+		PATCH /<experiment>/status
+
+		Desc:
+			Starts an experiment.
+			NOTE: The experiment must be already setup and there cannot be another instance of the same experiment
+			already running.
+
+		RequestSyntax:
+			{
+				"action": "START"
+			}
+
+		ResponseSyntax:
+			status: 200 OK
+
+		Errors:
+			...
+
+	stop_experiment:
+		PATCH /<experiment>/status
+
+		Desc:
+			Stops a running experiment. Stop can happen as
+				- soft_stop, in which there cannot be given any more data but the experiment runs until completion
+					of all the recorded experiences;
+				- normal_stop, in which the experiment completes the current experience and then exits;
+				- hard_stop, in which the experiment aborts without completing the experience.
+
+		RequestSyntax:
+			{
+				"type": soft_stop | normal_stop | hard_stop
+			}
+
+		ResponseSyntax:
+			status: 200 OK
+
+	get_experiment_settings:
+		GET /<experiment>/settings
+
+		Desc:
+			Retrieves the experiment settings as given in 'setup_experiment'.
+
+		ResponseSyntax:
+			status: 200 OK
+
+		Errors:
+			...
+
+	get_experiment_status:
+		GET /<experiment>/status
+
+		Desc:
+			Retrieves the status of the current experience, which can be
+				- CREATED (between creation and setup);
+				- READY (between setup and start);
+				- RUNNING (between start and stop);
+				- ENDED (after stop, results available).
+
+		ResponseSyntax:
+			status: 200 OK
+
+		Errors:
+			...
+
+	get_experiment_models:
+		GET /<experiment>/models
+
+		Desc:
+			Retrieves all models versions (start and after each experience).
+
+		ResponseSyntax:
+			status: 200 OK
+			# A list of file (form-data) named 0.pt, 1.pt, ...
+
+		Errors:
+			...
+
+	get_experiment_model:
+		GET /<experiment>/models/<exp_id>
+
+		Desc:
+			Retrieves the model after the specified experience.
+
+		ResponseSyntax:
+			status: 200 OK
+			# A file named <exp_id>.pt
+
+		Errors:
+			...
+
+	get_experiment_metricsset:
+		GET /<experiment>/settings/metrics
+
+		Desc:
+			Retrieves the experiment metrics.
+
+		...
+
+	get_experiment_csv_results:
+		GET /<experiment>/results/csv
+
+		Desc:
+			Retrieves the results of the experiment as .csv file as created by the logger.
+			In the body, it can be specified whether to get even a single file for each experience, and
+			in that case, there would be <stream_name>_<exp_id>.csv for each experience for each stream.
+
+		ResponseSyntax:
+			status: 200 OK
+			# One or more files (form-data) as described above.
+
+	delete_experiment:
+		DELETE /<experiment>
+
+		Desc:
+			Deletes an experiment.
+			NOTE: If experiment is RUNNING, deletion will fail.
+
+		ResponseSyntax:
+			status: 200 OK

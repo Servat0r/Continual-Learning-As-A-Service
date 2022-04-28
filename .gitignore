@@ -5,7 +5,7 @@ files/
 logs/
 *.bat
 .env
-docs/*.yml
+docs/ignore/
 docs/json_examples/
 dbscripts/
 tests/*.env
