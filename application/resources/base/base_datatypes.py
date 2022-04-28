@@ -1,6 +1,9 @@
 # Base datatypes.
 from __future__ import annotations
-from application.resources.base_contexts import *
+
+from abc import ABC
+
+from application.resources.base.base_contexts import *
 
 
 class DataType:
@@ -126,3 +129,7 @@ class ReferrableDataType(DataType, URIBasedResource):
         uri = cfg_type.dfl_uri_builder(context, name)
         resource_config = cfg_type.get_by_uri(uri)
         return resource_config.build(context) if resource_config is not None else None
+
+
+class WrapperReferrableDataType(WrapperDataType, ReferrableDataType, ABC):
+    pass

@@ -10,6 +10,7 @@ class BaseClient:
     USERS = "users"
     WORKSPACES = "workspaces"
     RESOURCES = "resources"
+    BENCHMARKS = "benchmarks"
 
     __debug_urls__: bool = False
 
@@ -52,6 +53,10 @@ class BaseClient:
     @property
     def resources_base(self):
         return f"{self.base_url}/{self.RESOURCES}"
+
+    @property
+    def benchmarks_base(self):
+        return f"{self.workspaces_base}/{self.workspace}/{self.BENCHMARKS}"
 
     @staticmethod
     def get_url(*args):
@@ -210,6 +215,7 @@ class BaseClient:
                 workspace_name = self.workspace
         return self.delete([self.workspaces_base, workspace_name])
 
+    # Generic Resources TODO Modificare!
     def add_generic_resource(self, name: str, typename: str, build_config_data: dict, description: str = None):
         data = {
             'name': name,
@@ -225,3 +231,19 @@ class BaseClient:
 
     def delete_generic_resource(self, name: str, typename: str):
         return self.delete([self.resources_base, self.username, self.workspace, typename, name])
+
+    # Benchmarks
+    def create_benchmark(self, name: str, build_config_data: dict, description: str = None):
+        data = {
+            'name': name,
+            'build': build_config_data,
+        }
+        if description is not None:
+            data['description'] = description
+        return self.post(self.benchmarks_base, data=data)
+
+    def build_benchmark(self, name: str):
+        return self.get([self.benchmarks_base, name])
+
+    def delete_benchmark(self, name: str):
+        return self.delete([self.benchmarks_base, name])

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from application.resources.base_datatypes import *
+from application.resources.base.base_datatypes import *
 
 
 class BuildConfig(NameBasedResource):

@@ -118,9 +118,9 @@ InvalidEmail = ServerResponseError(
 InvalidPassword = ServerResponseError(
     HTTPStatus.BAD_REQUEST,
     'InvalidPassword',
-    f"Password must be of at least 8 characters and contain at least" \
-    + f" a digit, a lowercase character, an uppercase character and a special character" \
-    + f" among '$', '%', '&', '?', '@' and '#'.",
+    f"Password must be of at least 8 characters and contain at least" +
+    f" a digit, a lowercase character, an uppercase character and a special character" +
+    f" among '$', '%', '&', '?', '@' and '#'.",
 )
 
 InvalidParameterCombination = ServerResponseError(

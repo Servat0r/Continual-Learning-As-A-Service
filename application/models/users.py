@@ -25,6 +25,10 @@ class User(UserMixin):
     __user_class__: t.Type[User] = None
 
     @staticmethod
+    def check_ownership(username: str, user: User):
+        return user.get_name() == username
+
+    @staticmethod
     def set_user_class(cls: t.Type[User]):
         if User.__user_class__ is None:
             User.__user_class__ = cls
