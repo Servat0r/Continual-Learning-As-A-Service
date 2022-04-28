@@ -33,7 +33,7 @@ class SplitMNISTBuildConfig(MongoBuildConfig):
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
         if not all(fname in data for fname in cls.__required__):
-            raise ValueError()
+            return False, "Missing one or more required parameter(s)."
         n_experiences = data['n_experiences']
         return_task_id = data.get('return_task_id') or False
         seed = data.get('seed')

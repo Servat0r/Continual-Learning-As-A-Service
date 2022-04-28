@@ -11,15 +11,28 @@ benchmark_build = {
     "n_experiences": 5,
 }
 
+metricset_name = "AccuracyAndLossOne"
+metricset_type = "StandardMetricSet"
+metricset_desc = "..."
+metricset_build = {
+    'name': "StandardMetricSet",
+    'accuracy': {
+        'minibatch': True,
+        'epoch': False,
+        'experience': True,
+        'stream': True,
+    }
+}
+
 
 if __name__ == '__main__':
 
     _SEP_ = '################################################'
 
-    _COLLS_ = {'u', 'w', 'b'}
+    _COLLS_ = {'u', 'w', 'b', 'm'}
     # options
-    _UW_ONLY_ = '--only_[[u][w][b]]'    # only operate on users (u), workspaces (w), benchmarks (b)
-    _NO_DEL_ = '--nodel_[[u][w][b]]'   # do not delete users (u), workspaces (w), benchmarks (b)
+    _UW_ONLY_ = '--only_[[u][w][b][m]]'     # only operate on users (u), workspaces (w), benchmarks (b), metricsets (m)
+    _NO_DEL_ = '--nodel_[[u][w][b][m]]'     # do not delete users (u), workspaces (w), benchmarks (b), metricsets (m)
 
     __only__ = set()
     __nodel__ = set()
@@ -79,11 +92,21 @@ if __name__ == '__main__':
         print_response(cl.get_workspace('wspace1'))
 
     if 'b' in __only__:
-        # create, build, delete benchmarks
+        # create and build benchmarks
         print_response(cl.create_benchmark(benchmark_name, benchmark_build, benchmark_desc))
         print_response(cl.build_benchmark(benchmark_name))
 
+    if 'm' in __only__:
+        # create and build metricsets
+        print_response(cl.create_metric_set(metricset_name, metricset_build, metricset_desc))
+        print_response(cl.build_metric_set(metricset_name))
+
+    if 'm' not in __nodel__:
+        # delete metricsets
+        print_response(cl.delete_metric_set(metricset_name))
+
     if 'b' not in __nodel__:
+        # delete benchmarks
         print_response(cl.delete_benchmark(benchmark_name))
 
     if 'w' not in __nodel__:
