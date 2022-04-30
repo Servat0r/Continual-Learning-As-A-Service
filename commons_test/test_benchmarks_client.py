@@ -38,10 +38,23 @@ if __name__ == '__main__':
 
     _SEP_ = '################################################'
 
-    _COLLS_ = {'u', 'w', 'b', 'm'}
+    __users__ = 'users'
+    __workspaces__ = 'workspaces'
+    __benchmarks__ = 'benchmarks'
+    __metric_sets__ = 'metric_sets'
+    __models__ = 'models'
+    
+    _COLLS_ = {
+        __users__: 'u',
+        __workspaces__: 'w',
+        __benchmarks__: 'b',
+        __metric_sets__: 'ms',
+        __models__: 'm',
+    }
+
     # options
-    _UW_ONLY_ = '--only_[[u][w][b][m]]'     # only operate on users (u), workspaces (w), benchmarks (b), metricsets (m)
-    _NO_DEL_ = '--nodel_[[u][w][b][m]]'     # do not delete users (u), workspaces (w), benchmarks (b), metricsets (m)
+    _UW_ONLY_ = '--only_'     # only operate on given collections (u,w,b,...)
+    _NO_DEL_ = '--nodel_'     # do not delete given collections (u,w,b,...)
 
     __only__ = set()
     __nodel__ = set()
@@ -49,28 +62,28 @@ if __name__ == '__main__':
 
     if len(argv) > 1:
         for i in range(1, len(argv)):
-            if argv[i].startswith('--only_'):
+            if argv[i].startswith(_UW_ONLY_):
                 _only_set = True
-                onlies = argv[i].split('--only_')[-1]
+                onlies = argv[i].split(_UW_ONLY_, 1)[1].split('_')
                 for opt in onlies:
                     for c in _COLLS_:
                         if opt == c:
                             __only__.add(c)
                             break
-            elif argv[i].startswith('--nodel_'):
-                nodels = argv[i].split('--nodel_')[-1]
+            elif argv[i].startswith(_NO_DEL_):
+                nodels = argv[i].split(_NO_DEL_, 1)[1].split('_')
                 for j in range(len(nodels)):
                     opt = nodels[j]
                     print(opt)
                     for c in _COLLS_:
-                        if opt == c:
+                        if opt == _COLLS_[c]:
                             __nodel__.add(c)
                             break
             else:
                 raise ValueError("Provide a correct cmdline argument!")
 
     if not _only_set:
-        __only__ = __only__.union(_COLLS_)
+        __only__ = __only__.union(_COLLS_.keys())
 
     def print_response(response):
         print(response.status_code, response.reason, response.json(), _SEP_, sep='\n')
@@ -85,7 +98,7 @@ if __name__ == '__main__':
     new_email = 'def@example.com'
     new_password = '4321?abcD'
 
-    if 'u' in __only__:
+    if __users__ in __only__:
         # register and login
         print_response(cl.register(username, email, password))
         print_response(cl.login(username, password))
@@ -95,42 +108,44 @@ if __name__ == '__main__':
         print_response(cl.edit_user(username, new_email))
         print_response(cl.edit_password(password, new_password))
 
-    if 'w' in __only__:
+    if __workspaces__ in __only__:
         # create and get workspaces
         print_response(cl.create_workspace('wspace1'))
         print_response(cl.get_workspace('wspace1'))
 
-    if 'b' in __only__:
+    if __benchmarks__ in __only__:
         # create and build benchmarks
         print_response(cl.create_benchmark(benchmark_name, benchmark_build, benchmark_desc))
         print_response(cl.build_benchmark(benchmark_name))
 
-    if 'm' in __only__:
+    if __metric_sets__ in __only__:
         # create and build metricsets
         print_response(cl.create_metric_set(metricset_name, metricset_build, metricset_desc))
         print_response(cl.build_metric_set(metricset_name))
 
-    # create and build models
-    print_response(cl.create_model(model_name, model_build, model_desc))
-    print_response(cl.build_model(model_name))
+    if __models__ in __only__:
+        # create and build models
+        print_response(cl.create_model(model_name, model_build, model_desc))
+        print_response(cl.build_model(model_name))
 
-    # delete models
-    print_response(cl.delete_model(model_name))
+    if __models__ not in __nodel__:
+        # delete models
+        print_response(cl.delete_model(model_name))
 
-    if 'm' not in __nodel__:
+    if __metric_sets__ not in __nodel__:
         # delete metricsets
         print_response(cl.delete_metric_set(metricset_name))
 
-    if 'b' not in __nodel__:
+    if __benchmarks__ not in __nodel__:
         # delete benchmarks
         print_response(cl.delete_benchmark(benchmark_name))
 
-    if 'w' not in __nodel__:
+    if __workspaces__ not in __nodel__:
         # workspace close and deletions
         print_response(cl.close_workspace('wspace1'))
         print_response(cl.delete_workspace('wspace1'))
 
-    if 'u' not in __nodel__:
+    if __users__ not in __nodel__:
         print_response(cl.delete_user())
 
     print("Done!")

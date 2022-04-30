@@ -106,11 +106,15 @@ class ReferrableDataType(DataType, URIBasedResource):
 
     @abstractmethod
     def set_metadata(self, **kwargs):
-        pass
+        for item in kwargs.items():
+            self.metadata[item[0]] = item[1]
 
     @abstractmethod
     def get_metadata(self, key: str | None = None) -> TDesc | t.Any:
-        pass
+        if key is None:
+            return self.metadata.copy()
+        else:
+            return self.metadata[key]
 
     @classmethod
     def validate_data(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
@@ -130,6 +134,12 @@ class ReferrableDataType(DataType, URIBasedResource):
         resource_config = cfg_type.get_by_uri(uri)
         return resource_config.build(context) if resource_config is not None else None
 
+    def __init__(self):
+        self.metadata: TDesc = {}
+
 
 class WrapperReferrableDataType(WrapperDataType, ReferrableDataType, ABC):
-    pass
+
+    def __init__(self, value):
+        WrapperDataType.__init__(self, value)
+        ReferrableDataType.__init__(self)

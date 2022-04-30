@@ -17,20 +17,27 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
     hidden_layers = db.IntField(default=1)
     drop_rate = db.IntField(default=0.5)
 
-    __required__ = []
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return set()
 
-    __optionals__ = [
-        'num_classes',
-        'input_size',
-        'hidden_size',
-        'hidden_layers',
-        'drop_rate',
-    ]
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return {
+            'num_classes',
+            'input_size',
+            'hidden_size',
+            'hidden_layers',
+            'drop_rate',
+        }
 
-    @staticmethod
-    def names():
-        return SimpleMLPBuildConfig.__required__ + \
-               SimpleMLPBuildConfig.__optionals__
+    @classmethod
+    def has_extras(cls) -> bool:
+        return False
+
+    @classmethod
+    def nullables(cls) -> set[str]:
+        return set()
 
     @staticmethod
     def target_type() -> t.Type[DataType]:
@@ -38,8 +45,10 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        if not all(fname in data for fname in cls.__required__):
-            return False, "Missing one or more required parameter(s)."
+        result, msg = super().validate_input(data, dtype, context)
+        if not result:
+            return result, msg
+        # TODO Sostituire con la validazione sul dict preso dal context!
         actuals: TDesc = {}
         for name in cls.names():
             val = data.get(name)
@@ -51,15 +60,7 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
-        if not cls.validate_input(data, tp, context):
-            raise ValueError()
-        actuals: TDesc = {}
-        for name in cls.names():
-            val = data.get(name)
-            if val is not None:
-                actuals[name] = val
-        # noinspection PyArgumentList
-        return cls(**actuals)
+        return super().create(data, tp, context, save)
 
     def build(self, context: ResourceContext):
         model = SimpleMLP(

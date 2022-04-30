@@ -45,6 +45,13 @@ class ResourceContext:
             result[item[0]] = (self.types().get(item[0]), item[1])
         return result
 
+    # TODO Completare! E sistemare i ResourceContext in modo più razionale (e.g. rispetto ai tipi!)
+    def push(self, name: str, value):
+        ...
+
+    def pop(self, name: str):
+        ...
+
 
 class UserResourceContext(ResourceContext, ABC):
 

@@ -39,33 +39,6 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
         labels_repartition_metrics
         mean_scores_metrics
     """
-    
-    __required__ = []
-    __optionals__ = [
-        'accuracy',
-        'loss',
-        'bwt', 
-        'forgetting', 
-        'forward_transfer', 
-        'confusion_matrix', 
-        'cpu_usage', 
-        'disk_usage', 
-        'gpu_usage', 
-        'ram_usage', 
-        'timing', 
-        'MAC', 
-        'labels_repartition', 
-        'mean_scores', 
-    ]
-    __values__ = {
-        'minibatch',
-        'epoch',
-        'epoch_running',
-        'experience',
-        'stream',
-        'trained_experience',
-    }
-
     accuracy = db.MapField(db.BooleanField(), validation=std_name_validate)
     loss = db.MapField(db.BooleanField(), validation=std_name_validate)
     bwt = db.MapField(db.BooleanField(), validation=std_name_validate)
@@ -81,19 +54,57 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
     labels_repartition = db.MapField(db.BooleanField(), validation=std_name_validate)
     mean_scores = db.MapField(db.BooleanField(), validation=std_name_validate)
 
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return set()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return {
+            'accuracy',
+            'loss',
+            'bwt',
+            'forgetting',
+            'forward_transfer',
+            'confusion_matrix',
+            'cpu_usage',
+            'disk_usage',
+            'gpu_usage',
+            'ram_usage',
+            'timing',
+            'MAC',
+            'labels_repartition',
+            'mean_scores',
+        }
+
+    @classmethod
+    def has_extras(cls) -> bool:
+        return False
+
+    @classmethod
+    def nullables(cls) -> set[str]:
+        return set()
+
+    __values__ = {
+        'minibatch',
+        'epoch',
+        'epoch_running',
+        'experience',
+        'stream',
+        'trained_experience',
+    }
+
     @staticmethod
     def get_metrics_helper_name(name: str):
-        if name in StandardMetricSetBuildConfig.__required__ or \
-                name in StandardMetricSetBuildConfig.__optionals__:
+        if name in StandardMetricSetBuildConfig.names():
             return f"{name}_metrics"
         else:
             raise ValueError("Unknown metrics helper function.")
 
     @staticmethod
     def get_all_metrics_helper_names():
-        names = StandardMetricSetBuildConfig.__required__ + StandardMetricSetBuildConfig.__optionals__
         result = []
-        for name in names:
+        for name in StandardMetricSetBuildConfig.names():
             result.append(f"{name}_metrics")
         return result
 
@@ -103,11 +114,12 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        if not all(fname in data for fname in cls.__required__):
-            raise ValueError("Missing one or more required parameter(s).")
-        names = StandardMetricSetBuildConfig.__required__ + StandardMetricSetBuildConfig.__optionals__
+        result, msg = super().validate_input(data, dtype, context)
+        if not result:
+            return result, msg
+        # TODO Sostituire con la validazione sul dict preso dal context!
         actuals: TDesc = {}
-        for name in names:
+        for name in cls.names():
             val = data.get(name)
             if val is not None:
                 checked = True
@@ -125,19 +137,11 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
-        if not cls.validate_input(data, tp, context):
-            raise ValueError()
-        names = StandardMetricSetBuildConfig.__required__ + StandardMetricSetBuildConfig.__optionals__
-        actuals: TDesc = {}
-        for name in names:
-            actuals[name] = data.get(name)
-            # noinspection PyArgumentList
-            return cls(**actuals)
+        return super().create(data, tp, context, save)
 
     def build(self, context: ResourceContext):
         metrics = []
-        names = StandardMetricSetBuildConfig.__required__ + StandardMetricSetBuildConfig.__optionals__
-        for name in names:
+        for name in self.names():
             vals = dict(eval(f"self.{name}") or {})
             if len(vals) > 0:
                 ms = eval(f"{self.get_metrics_helper_name(name)}")(**vals)

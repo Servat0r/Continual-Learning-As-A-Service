@@ -11,20 +11,119 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         'allow_inheritance': True,
     }
 
+    @classmethod
+    @abstractmethod
+    def get_required(cls) -> set[str]:
+        """
+        Required parameters for this build config.
+        :return:
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_optionals(cls) -> set[str]:
+        """
+        Optional parameters for this build config.
+        :return:
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def has_extras(cls) -> bool:
+        """
+        Checks whether this build config admits "extra" parameters
+        (like keyword arguments in Python).
+        :return:
+        """
+        return False    # By default, no extra arguments
+
+    @classmethod
+    @abstractmethod
+    def nullables(cls) -> set[str]:
+        pass
+
+    @classmethod
+    def is_nullable(cls, name: str):
+        return name in cls.nullables()
+
     @staticmethod
     @abstractmethod
     def target_type() -> t.Type[DataType]:
         pass
 
     @classmethod
+    def names(cls) -> set[str]:
+        return (cls.get_required() or set()).union(cls.get_optionals() or set())
+
+    @classmethod
+    def _filter_data(cls, data: TDesc) -> tuple[bool, TDesc, TDesc]:
+        """
+        Filters data in a given build config to given required, optionals and extras parameters passed.
+        :param data:
+        :return:
+        """
+        result: TDesc = {}
+        data_copy = data.copy()
+        # TODO Refactor to 'name' and 'data' fields and analyze 'data' subdict!
+        data_copy.pop('name')
+
+        for name in cls.get_required():
+            val = data.get(name)
+            if (val is not None) or cls.is_nullable(name):
+                result[name] = val
+                data_copy.pop(name)
+            else:
+                return False, {}, {}
+
+        for name in cls.get_optionals():
+            val = data.get(name)
+            if (val is not None) or cls.is_nullable(name):
+                result[name] = val
+                data_copy.pop(name)
+        return True, result, data_copy
+
+    @classmethod
     @abstractmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        pass
+        """
+        Base implementation of input validation where each parameter is accepted.
+        :param data:
+        :param dtype:
+        :param context:
+        :return:
+        """
+        ok, params, extras = cls._filter_data(data)
+        if not ok:
+            return False, "Missing one or more required parameter(s)."
+        if len(extras) > 0 and not cls.has_extras():
+            return False, "Unexpected extra arguments."
+        # TODO Passare result, extras al context!
+        return True, None
 
     @classmethod
     @abstractmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
-        pass
+        """
+        Default implementation that assumes that ALL field names are equal to
+        the corresponding ones in the JSON config sent by the client.
+        :param data:
+        :param tp:
+        :param context:
+        :param save:
+        :return:
+        """
+        result, msg = cls.validate_input(data, tp, context)
+        if not result:
+            raise ValueError(f"Input validation error: '{msg}'.")
+        actuals: TDesc = {}
+        for name in cls.names():
+            val = data.get(name)
+            if (val is not None) or cls.is_nullable(name):
+                actuals[name] = val
+        # noinspection PyArgumentList
+        return cls(**actuals)
 
     @abstractmethod
     def build(self, context: ResourceContext):
