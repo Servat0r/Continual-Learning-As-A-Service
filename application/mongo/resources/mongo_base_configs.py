@@ -101,7 +101,7 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
             return False, "Missing one or more required parameter(s)."
         if len(extras) > 0 and not cls.has_extras():
             return False, "Unexpected extra arguments."
-        # TODO Passare result, extras al context!
+        context.push('args', {'params': params, 'extras': extras})
         return True, None
 
     @classmethod
@@ -119,11 +119,13 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         result, msg = cls.validate_input(data, tp, context)
         if not result:
             raise ValueError(f"Input validation error: '{msg}'.")
-        actuals: TDesc = {}
-        for name in cls.names():
-            val = data.get(name)
-            if (val is not None) or cls.is_nullable(name):
-                actuals[name] = val
+
+        _, values = context.pop()
+        actuals: TDesc = values['params']
+        if cls.has_extras():
+            extras: TDesc = values['extras']
+            for item in extras.items():
+                actuals[item[0]] = item[1]
         # noinspection PyArgumentList
         return cls(**actuals)
 

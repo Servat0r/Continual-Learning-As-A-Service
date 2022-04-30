@@ -39,12 +39,21 @@ class ResourceContext:
         if set_type:
             self.types_dict[obj] = type_name if type_name is not None else type(obj).__name__
 
-    def pop(self, check_type_name=False, type_name=None) -> TDesc:
+    def pop(self, check_type_name=False, type_name=None) -> tuple[str, t.Any]:
         if check_type_name and (type_name is not None):
             tp = type(self.stack[-1])
             if not self.types_dict.get(tp) == type_name:
                 raise TypeError(f"Incorrect typename for last element: '{tp.__name__}' against '{type_name}'.")
-        return self.stack.pop()
+        result = self.stack.pop()
+        return list(result.keys())[0], list(result.values())[0]
+
+    def head(self, check_type_name=False, type_name=None) -> tuple[str, t.Any]:
+        if check_type_name and (type_name is not None):
+            tp = type(self.stack[-1])
+            if not self.types_dict.get(tp) == type_name:
+                raise TypeError(f"Incorrect typename for last element: '{tp.__name__}' against '{type_name}'.")
+        result = self.stack[-1]
+        return list(result.keys())[0], list(result.values())[0]
 
     def __init__(self):
         self.stack = []

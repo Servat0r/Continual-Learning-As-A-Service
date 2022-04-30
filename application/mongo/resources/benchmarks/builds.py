@@ -39,19 +39,11 @@ class SplitMNISTBuildConfig(MongoBuildConfig):
         result, msg = super().validate_input(data, dtype, context)
         if not result:
             return result, msg
-        # TODO Sostituire con la validazione sul dict preso dal context!
-        n_experiences = data['n_experiences']
-        return_task_id = data.get('return_task_id') or False
-        seed = data.get('seed')
-        fixed_class_order = data.get('fixed_class_order')
-        shuffle = data.get('shuffle') or True
-        dataset_root = data.get('dataset_root')
-        result = isinstance(n_experiences, int) and \
-            isinstance(return_task_id, bool) and \
-            (isinstance(seed, int) or seed is None) and \
-            (isinstance(fixed_class_order, list) or fixed_class_order is None) and \
-            isinstance(shuffle, bool) and \
-            (isinstance(dataset_root, str) or dataset_root is None)
+        _, values = context.head()
+        params = values['params']
+        result = all(isinstance(val, int) for val in params.values())
+        if not result:
+            context.pop()
         return result, None if result else "One or more parameter(s) is/are incorrect."
 
     @classmethod

@@ -20,6 +20,7 @@ def return_exception(ex: Exception):
     print(ex)
     msgs = [str(arg) for arg in ex.args]
     resp = jsonify({
+        'exc_type': type(ex).__name__,
         'error': msgs,
     })
     resp.status_code = 500

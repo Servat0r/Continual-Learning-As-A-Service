@@ -109,22 +109,21 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
         result, msg = super().validate_input(data, dtype, context)
         if not result:
             return result, msg
-        # TODO Sostituire con la validazione sul dict preso dal context!
-        actuals: TDesc = {}
-        for name in cls.names():
-            val = data.get(name)
-            if val is not None:
-                checked = True
-                if not isinstance(val, dict):
-                    checked = False
-                else:
-                    for item in val.items():
-                        if not isinstance(item[0], str) or not isinstance(item[1], bool):
-                            checked = False
-                if not checked:
-                    return False, "One or more metrics type are not in {<bool>: <string>} dict type."
-                else:
-                    actuals[name] = val
+        _, values = context.head()
+        params = values['params']
+        print(params)
+        for param in params.values():
+            checked = True
+            if not isinstance(param, dict):
+                checked = False
+            else:
+                for item in param.items():
+                    if not isinstance(item[0], str) or not isinstance(item[1], bool):
+                        checked = False
+                        break
+            if not checked:
+                context.pop()
+                return False, "One or more metrics type are not in {<bool>: <string>} dict type."
         return True, None
 
     @classmethod

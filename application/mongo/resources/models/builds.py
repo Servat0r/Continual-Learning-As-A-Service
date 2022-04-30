@@ -40,15 +40,13 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
         result, msg = super().validate_input(data, dtype, context)
         if not result:
             return result, msg
-        # TODO Sostituire con la validazione sul dict preso dal context!
-        actuals: TDesc = {}
-        for name in cls.names():
-            val = data.get(name)
-            if val is not None:
-                if not isinstance(val, int):
-                    return False, "One or more parameter(s) are not in the correct type."
-                actuals[name] = val
-            return True, None
+        _, values = context.head()
+        params: TDesc = values['params']
+        for param in params.values():
+            if not isinstance(param, int):
+                context.pop()
+                return False, "One or more parameter(s) are not in the correct type."
+        return True, None
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
