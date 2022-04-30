@@ -72,6 +72,10 @@ class MongoWorkspace(Workspace, db.Document):
         return cls.objects(owner=owner).all()
 
     @classmethod
+    def all(cls):
+        return cls.objects({}).all()
+
+    @classmethod
     @abstractmethod
     def create(cls, name: str, owner: str | User, create_func: t.Callable = default_create_func,
                save: bool = True, open_on_create: bool = True):
@@ -95,6 +99,21 @@ class MongoWorkspace(Workspace, db.Document):
         elif save:
             workspace.save(force_insert=True)
         return workspace
+
+    @abstractmethod
+    def rename(self, old_name: str, new_name: str) -> TBoolStr:
+        if not self.is_open():
+            return False, f"Workspace '{self.name}' is closed!"
+        elif self.name != old_name:
+            return False, "Old names are not equals!"
+        else:
+            self.name = new_name
+            try:
+                self.save()
+                self.update_last_modified()
+                return True, None
+            except Exception as ex:
+                return False, ex.args[0]
 
     @abstractmethod
     def delete(self):

@@ -5,6 +5,7 @@ from application.errors import *
 from application.utils import *
 from application.resources.base import *
 from application.models import User, Workspace
+from .auth import check_current_user_ownership
 
 
 workspaces_bp = Blueprint('workspaces', __name__, url_prefix='/users/<user:username>/workspaces')
@@ -73,6 +74,40 @@ def get_workspaces(username):
     for workspace in Workspace.get_by_owner(t.cast(User, user)):
         data[workspace.name] = workspace.to_dict()
     return make_success_dict(HTTPStatus.OK, data=data)
+
+
+@workspaces_bp.patch('/<workspace:wname>/name/')
+@workspaces_bp.patch('/<workspace:wname>/name')
+@token_auth.login_required
+def rename_workspace(username, wname):
+    """
+    RequestSyntax:
+    {
+        "new_name": <new_name>
+    }
+    :param username:
+    :param wname:
+    :return:
+    """
+    if not check_current_user_ownership(username):
+        return ForbiddenOperation(f"You cannot rename another user ({username}) workspace ({wname}).")
+
+    data, error, opts, extras = checked_json(request, False, {'new_name'})
+    if error:
+        if data:
+            return error(**data)
+        else:
+            return error()
+    else:
+        context = UserWorkspaceResourceContext(username, wname)
+        uri = Workspace.dfl_uri_builder(context)
+        workspace = Workspace.get_by_uri(uri)
+        new_name = data['new_name']
+        result, msg = workspace.rename(wname, new_name)
+        if not result:
+            return InternalFailure(msg=msg)
+        else:
+            return make_success_dict(data={'old_name': wname, 'new_name': new_name})
 
 
 @workspaces_bp.delete('/<workspace:wname>/')

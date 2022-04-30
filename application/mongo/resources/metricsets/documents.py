@@ -25,8 +25,5 @@ class MongoStandardMetricSetConfig(MongoResourceConfig):
     def meta_type() -> t.Type[BaseMetadata]:
         return StandardMetricSetMetadata
 
-    def update(self, data, context):
-        pass
-
     def __init__(self, *args, **values):
         super().__init__(*args, **values)

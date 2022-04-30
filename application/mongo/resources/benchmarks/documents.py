@@ -25,8 +25,5 @@ class MongoBenchmarkConfig(MongoResourceConfig):
     def target_type() -> t.Type[DataType]:
         return DataType.get_type("Benchmark")
 
-    def update(self, data, context):
-        pass
-
     def __init__(self, *args, **values):
         super().__init__(*args, **values)

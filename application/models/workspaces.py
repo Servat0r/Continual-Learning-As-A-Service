@@ -79,9 +79,18 @@ class Workspace(JSONSerializable, URIBasedResource):
 
     @classmethod
     @abstractmethod
+    def all(cls):
+        return Workspace.get_class().all()
+
+    @classmethod
+    @abstractmethod
     def create(cls, name: str, owner: str | User, create_func: t.Callable = default_create_func,
                save: bool = True, open_on_create: bool = True) -> Workspace:
         return Workspace.get_class().create(name, owner, create_func, save, open_on_create)
+
+    @abstractmethod
+    def rename(self, old_name: str, new_name: str) -> TBoolStr:
+        return Workspace.get_class().rename(self, old_name, new_name)
 
     @abstractmethod
     def delete(self):

@@ -25,8 +25,5 @@ class MongoModelConfig(MongoResourceConfig):
     def meta_type() -> t.Type[BaseMetadata]:
         return ModelMetadata
 
-    def update(self, data, context):
-        pass
-
     def __init__(self, *args, **values):
         super().__init__(*args, **values)

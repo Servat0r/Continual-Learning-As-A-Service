@@ -133,9 +133,13 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
     def build(self, context: ResourceContext):
         pass
 
-    @abstractmethod
-    def update(self, data, context: ResourceContext):
-        pass
+    def update(self, data, context: ResourceContext) -> TBoolStr:
+        try:
+            db.EmbeddedDocument.update(**data)
+            self.save()
+            return True, None
+        except Exception as ex:
+            return False, f"When updating build config: an error occurred: '{type(ex).__name__}': {ex.args[0]}."
 
     def delete(self, context: ResourceContext):
         """
@@ -245,9 +249,55 @@ class MongoResourceConfig(db.Document, ResourceConfig):
         )
         return obj
 
-    @abstractmethod
+    def update_last_modified(self, save: bool = True):
+        self.metadata.update_last_modified(save)
+
+    def rename(self, old_name: str, new_name: str) -> TBoolStr:
+        """
+        Renames object.
+        :param old_name:
+        :param new_name:
+        :return:
+        """
+        if not self.name == old_name:
+            return False, "When updating name: old name and given one are not equal!"
+        else:
+            self.name = new_name
+            try:
+                self.save()
+                self.update_last_modified()
+                return True, None
+            except Exception as ex:
+                return False, ex.args[0]
+
     def update(self, data, context):
-        pass
+        new_name = data.get('name')
+        new_desc = data.get('description')
+        new_build_config = data.get('build')
+
+        if new_name is not None:
+            data.pop('name')
+            result, msg = self.rename(self.name, new_name)
+            if not result:
+                return result, f"When updating name: {msg}."
+
+        if new_desc is not None:
+            data.pop('description')
+            if not isinstance(new_desc, str):
+                return False, f"When updating description: must provide a string!"
+            else:
+                self.description = new_desc
+                try:
+                    self.save()
+                except Exception as ex:
+                    return False,\
+                           f"When updating description: an exception occurred: '{type(ex).__name__}': '{ex.args[0]}'."
+
+        if new_build_config is not None:
+            data.pop('build')
+            return self.build_config.update(data, context)
+
+        return True, None
 
     def delete(self, context):
         db.Document.delete(self)
