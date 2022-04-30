@@ -1,5 +1,4 @@
 from __future__ import annotations
-from datetime import datetime
 
 from application.resources import *
 from application.validation import *
@@ -25,16 +24,35 @@ class MongoWorkspace(Workspace, db.Document):
     OPEN = 'OPEN'
     CLOSED = 'CLOSED'
 
-    name = db.StringField(max_length=WORKSPACE_EXPERIMENT_MAX_CHARS, unique=True)
-    uri = db.StringField(unique=True)
-    status = db.StringField(max_length=8)
+    meta = {
+        'indexes': [
+            {'fields': ('owner', 'name'), 'unique': True}
+        ]
+    }
+
     owner = db.ReferenceField(User.user_class())
+    name = db.StringField(max_length=WORKSPACE_EXPERIMENT_MAX_CHARS)
+    status = db.StringField(max_length=8)
     metadata = db.EmbeddedDocumentField(WorkspaceMetadata)
+
+    @property
+    def uri(self):
+        context = UserWorkspaceResourceContext(self.owner.get_name(), self.name)
+        return self.dfl_uri_builder(context)
 
     @classmethod
     @abstractmethod
     def get_by_uri(cls, uri: str):
-        return cls.objects(uri=uri).first()
+        """
+        uri is of the form "workspace::<username>::<wname>"
+        :param uri:
+        :return:
+        """
+        s = uri.split(cls.uri_separator())
+        print(s)
+        user = User.canonicalize(s[1])
+        workspace = s[2]
+        return cls.objects(owner=user, name=workspace).first()
 
     def __repr__(self):
         return f"Workspace <{self.name}> [uri = {self.uri}]"
@@ -63,18 +81,14 @@ class MongoWorkspace(Workspace, db.Document):
             raise ValueError(msg)
 
         owner = User.canonicalize(owner)
-        context = UserWorkspaceResourceContext(owner.get_name(), name)
-        uri = cls.dfl_uri_builder(context)
         now = datetime.utcnow()
         # noinspection PyArgumentList
         workspace = cls(
             name=name,
-            uri=uri,
             status=Workspace.OPEN if open_on_create else Workspace.CLOSED,
             owner=owner,
             metadata=WorkspaceMetadata(created=now, last_modified=now),
         )
-        print(workspace.to_dict())
         result, msg = create_func(workspace)
         if not result:
             raise ValueError(msg)
@@ -122,7 +136,6 @@ class MongoWorkspace(Workspace, db.Document):
         return {
             'name': self.name,
             'status': self.status,
-            'uri': self.uri,
             'owner': self.owner.to_dict(),
             'metadata': self.metadata.to_dict(),
         }

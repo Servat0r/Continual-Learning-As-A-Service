@@ -11,6 +11,12 @@ class ModelMetadata(MongoBaseMetadata):
 
 class MongoModelConfig(MongoResourceConfig):
 
+    meta = {
+        'indexes': [
+            {'fields': ('owner', 'workspace', 'name'), 'unique': True}
+        ]
+    }
+
     @staticmethod
     def target_type() -> t.Type[DataType]:
         return DataType.get_type("Model")

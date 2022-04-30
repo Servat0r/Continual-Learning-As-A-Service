@@ -11,6 +11,12 @@ class BenchmarkMetadata(MongoBaseMetadata):
 
 class MongoBenchmarkConfig(MongoResourceConfig):
 
+    meta = {
+        'indexes': [
+            {'fields': ('owner', 'workspace', 'name'), 'unique': True}
+        ]
+    }
+
     @staticmethod
     def meta_type() -> t.Type[BaseMetadata]:
         return BenchmarkMetadata

@@ -1,5 +1,7 @@
+from http import HTTPStatus
+
+from application.errors import *
 from application import *
-from mongoengine import NotUniqueError
 from flask import jsonify
 
 
@@ -12,6 +14,16 @@ def clear():
     os.system("clear")
 
 
+def drop_db(name: str = DFL_DATABASE_NAME):
+    db.connection.drop_database(name)
+
+
+def drop_collections(db_name: str = DFL_DATABASE_NAME, names: list[str] = None):
+    dbase = db.connection[db_name]
+    for name in names:
+        dbase[name].drop()
+
+
 app = create_app()
 
 
@@ -19,11 +31,11 @@ app = create_app()
 def return_exception(ex: Exception):
     print(ex)
     msgs = [str(arg) for arg in ex.args]
-    resp = jsonify({
-        'exc_type': type(ex).__name__,
-        'error': msgs,
-    })
-    resp.status_code = 500
+    resp = make_error(
+        HTTPStatus.INTERNAL_SERVER_ERROR,
+        msg=f"Unhandled exception '{type(ex).__name__}'.",
+        err_type='InternalFailure', errors=msgs,
+    )
     return resp
 
 
@@ -31,12 +43,15 @@ def return_exception(ex: Exception):
 def make_shell_context():
     return {
         # generals
-        'system': os.system, 'cls': cls, 'clear': clear, 'db': db,
+        'system': os.system, 'cls': cls, 'clear': clear,
+        'db': db, 'drop_db': drop_db, 'drop_coll': drop_collections,
 
         # classes
-        'User': User, 'DataType': DataType,
+        'User': User, 'Workspace': Workspace,
         'Context': UserWorkspaceResourceContext,
-        'NotUniqueError': NotUniqueError,
+        'DataType': DataType, 'Benchmark': MongoBenchmark,
+        'MetricSet': MongoStandardMetricSet,
+        'Model': MongoModel,
     }
 
 

@@ -97,6 +97,10 @@ class ReferrableDataType(DataType, URIBasedResource):
     """
     "Interface-mixin" for referrable resources that rely on external storage.
     """
+    @property
+    def uri(self):
+        return self.config_type().uri
+
     @staticmethod
     @abstractmethod
     def config_type():

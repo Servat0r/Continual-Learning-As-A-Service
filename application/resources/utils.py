@@ -38,6 +38,11 @@ class NameBasedResource:
 
 class URIBasedResource:
 
+    @property
+    @abstractmethod
+    def uri(self):
+        pass
+
     @classmethod
     @abstractmethod
     def get_by_uri(cls, uri: str):

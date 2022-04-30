@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 basedir = os.path.abspath(os.getcwd())
 load_dotenv(os.path.join(basedir, '.env'))
 
+DFL_DATABASE_NAME = 'test_database'
+
 
 # Base configuration class for Flask app
 class SimpleConfig(object):
@@ -39,7 +41,7 @@ class SQLConfig(SimpleConfig):
 # Configuration for using MongoDB with MongoEngine
 class MongoConfig(SimpleConfig):
 
-    MONGODB_DB = os.environ.get("MONGODB_DATABASE") or 'test_database'
+    MONGODB_DB = os.environ.get("MONGODB_DATABASE") or DFL_DATABASE_NAME
     MONGODB_HOST = os.environ.get("MONGODB_HOST") or 'localhost'
     MONGODB_PORT = os.environ.get("MONGODB_PORT") or 27017
     MONGODB_CONNECT = os.environ.get("MONGODB_CONNECT") or True  # TODO Change to False for "multi-service" Docker app!
@@ -49,4 +51,5 @@ __all__ = [
     'SimpleConfig',
     'SQLConfig',
     'MongoConfig',
+    'DFL_DATABASE_NAME',
 ]

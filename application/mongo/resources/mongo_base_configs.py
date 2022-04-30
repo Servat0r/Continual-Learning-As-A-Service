@@ -153,17 +153,26 @@ class MongoResourceConfig(db.Document, ResourceConfig):
         'allow_inheritance': True,
     }
 
+    owner = db.ReferenceField(User.user_class())
+    workspace = db.ReferenceField(Workspace.get_class())
     name = db.StringField(required=True)
-    uri = db.StringField(required=True, unique=True)
     description = db.StringField(required=False)
     build_config = db.EmbeddedDocumentField(MongoBuildConfig)
     metadata = db.EmbeddedDocumentField(MongoBaseMetadata)
-    owner = db.ReferenceField(User.user_class())
-    workspace = db.ReferenceField(Workspace.get_class())
+
+    @property
+    def uri(self):
+        context = UserWorkspaceResourceContext(self.owner.get_name(), self.workspace.name)
+        return type(self).dfl_uri_builder(context, self.name)
 
     @classmethod
     def get_by_uri(cls, uri: str):
-        return cls.objects(uri=uri).first()
+        s = uri.split(cls.uri_separator())
+        context = UserWorkspaceResourceContext(s[1], s[2])
+        owner = User.canonicalize(s[1])
+        workspace = Workspace.canonicalize(context)
+        name = s[3]
+        return cls.objects(owner=owner, workspace=workspace, name=name).first()
 
     @classmethod
     def dfl_uri_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
@@ -195,7 +204,6 @@ class MongoResourceConfig(db.Document, ResourceConfig):
                 raise ValueError(f"Unknown build config: '{data['build']}'")
 
             build_config = t.cast(MongoBuildConfig, config).create(data['build'], cls.target_type(), context, save)
-            uri = cls.dfl_uri_builder(context, name)
             owner = User.canonicalize(context.get_username())
             workspace = Workspace.canonicalize(context)
             now = datetime.utcnow()
@@ -209,7 +217,6 @@ class MongoResourceConfig(db.Document, ResourceConfig):
             obj = cls(
                 name=name,
                 description=description,
-                uri=uri,
                 build_config=build_config,
                 owner=owner,
                 workspace=workspace,
@@ -232,7 +239,6 @@ class MongoResourceConfig(db.Document, ResourceConfig):
         obj = self.build_config.build(context)
         obj.set_metadata(
             name=self.name,
-            uri=self.uri,
             owner=self.owner.username,
             workspace=self.workspace.name,
             extra=self.metadata.to_dict()

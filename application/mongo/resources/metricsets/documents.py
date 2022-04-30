@@ -11,6 +11,12 @@ class StandardMetricSetMetadata(MongoBaseMetadata):
 
 class MongoStandardMetricSetConfig(MongoResourceConfig):
 
+    meta = {
+        'indexes': [
+            {'fields': ('owner', 'workspace', 'name'), 'unique': True}
+        ]
+    }
+
     @staticmethod
     def target_type() -> t.Type[DataType]:
         return DataType.get_type("StandardMetricSet")

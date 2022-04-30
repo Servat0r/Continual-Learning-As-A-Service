@@ -42,6 +42,11 @@ class Workspace(JSONSerializable, URIBasedResource):
     def get_owner(self) -> User:
         pass
 
+    @property
+    @abstractmethod
+    def uri(self):
+        pass
+
     @classmethod
     @abstractmethod
     def get_by_uri(cls, uri: str):
