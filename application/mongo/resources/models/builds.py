@@ -31,14 +31,6 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
             'drop_rate',
         }
 
-    @classmethod
-    def has_extras(cls) -> bool:
-        return False
-
-    @classmethod
-    def nullables(cls) -> set[str]:
-        return set()
-
     @staticmethod
     def target_type() -> t.Type[DataType]:
         return DataType.get_type('Model')
@@ -75,6 +67,3 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
 
     def update(self, data, context: ResourceContext):
         pass
-
-    def delete(self, context: ResourceContext):
-        super().delete(context)

@@ -6,6 +6,7 @@ from application.resources.utils import *
 
 class ResourceContext:
 
+    # type aliases (alias -> type (class))
     __TYPES__: TDesc = {}
 
     @staticmethod
@@ -31,6 +32,8 @@ class ResourceContext:
         return set(
             filter(lambda key: tps[key] == tp, tps.keys())
         )
+
+    # ... #
 
     def check_names(self, names: dict[str, str]):
         return set(self.types().keys()).issubset(set(names.keys()))

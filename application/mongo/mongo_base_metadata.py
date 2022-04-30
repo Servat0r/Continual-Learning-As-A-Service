@@ -3,7 +3,7 @@ from application.database import db
 from application.resources import *
 
 
-class BaseMetadata(JSONSerializable, db.EmbeddedDocument):
+class MongoBaseMetadata(BaseMetadata, db.EmbeddedDocument):
 
     meta = {
         'abstract': True,
@@ -13,17 +13,19 @@ class BaseMetadata(JSONSerializable, db.EmbeddedDocument):
     created = db.DateTimeField(required=True)
     last_modified = db.DateTimeField(required=True)
 
-    def to_dict(self) -> TDesc:
-        return {
-            'created': self.created,
-            'last_modified': self.last_modified,
-        }
-
     @classmethod
     def from_dict(cls, data: TDesc) -> t.Any:
         raise NotImplementedError
 
-    def update_last_modified(self, time=None):
-        if time is None:
-            time = datetime.utcnow()
+    def get_created(self):
+        return self.created
+
+    def get_last_modified(self):
+        return self.last_modified
+
+    def set_last_modified(self, time):
         self.last_modified = time
+
+    def __init__(self, *args, **kwargs):
+        BaseMetadata.__init__(self)
+        db.EmbeddedDocument.__init__(self, *args, **kwargs)

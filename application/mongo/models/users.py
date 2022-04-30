@@ -6,14 +6,14 @@ from hashlib import md5
 from werkzeug.security import check_password_hash
 from mongoengine import NotUniqueError
 
-from application.mongo.mongo_base_metadata import BaseMetadata
+from application.mongo.mongo_base_metadata import MongoBaseMetadata
 from application.validation import USERNAME_MAX_CHARS
 from application.database import db
 from application.resources import t, TDesc
 from application.models import User, Workspace
 
 
-class UserMetadata(BaseMetadata):
+class UserMetadata(MongoBaseMetadata):
 
     def to_dict(self) -> TDesc:
         result = super().to_dict()

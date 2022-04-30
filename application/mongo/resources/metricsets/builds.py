@@ -77,14 +77,6 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
             'mean_scores',
         }
 
-    @classmethod
-    def has_extras(cls) -> bool:
-        return False
-
-    @classmethod
-    def nullables(cls) -> set[str]:
-        return set()
-
     __values__ = {
         'minibatch',
         'epoch',
@@ -152,6 +144,3 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
 
     def update(self, data, context: ResourceContext):
         pass
-
-    def delete(self, context: ResourceContext):
-        super().delete(context)

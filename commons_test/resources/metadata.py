@@ -1,7 +1,7 @@
 from application.mongo.resources import *
 
 
-class DummyMetadata(BaseMetadata):
+class DummyMetadata(MongoBaseMetadata):
 
     @classmethod
     def from_dict(cls, data: TDesc) -> t.Any:
@@ -12,7 +12,7 @@ class DummyMetadata(BaseMetadata):
         return result
 
 
-class SuperDummyMetadata(BaseMetadata):
+class SuperDummyMetadata(MongoBaseMetadata):
 
     @classmethod
     def from_dict(cls, data: TDesc) -> t.Any:

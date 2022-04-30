@@ -1,5 +1,38 @@
 from __future__ import annotations
+from datetime import datetime
+
 from application.resources.base.base_datatypes import *
+
+
+class BaseMetadata(JSONSerializable):
+
+    def to_dict(self) -> TDesc:
+        return {
+            'created': self.get_created(),
+            'last_modified': self.get_last_modified(),
+        }
+
+    @classmethod
+    @abstractmethod
+    def from_dict(cls, data: TDesc) -> t.Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_created(self):
+        pass
+
+    @abstractmethod
+    def get_last_modified(self):
+        pass
+
+    @abstractmethod
+    def set_last_modified(self, time):
+        pass
+
+    def update_last_modified(self, time=None):
+        if time is None:
+            time = datetime.utcnow()
+        self.set_last_modified(time)
 
 
 class BuildConfig(NameBasedResource):
@@ -73,9 +106,14 @@ class ResourceConfig(URIBasedResource):
     def target_type() -> t.Type[DataType]:
         pass
 
+    @staticmethod
+    @abstractmethod
+    def meta_type() -> t.Type[BaseMetadata]:
+        pass
+
     @classmethod
     @abstractmethod
-    def create(cls, data, context: ResourceContext, save: bool = True):
+    def create(cls, data, context: ResourceContext, save: bool = True, **metadata):
         pass
 
     @classmethod

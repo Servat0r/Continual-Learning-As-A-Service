@@ -5,10 +5,10 @@ from application.resources import *
 from application.validation import *
 from application.database import db
 from application.models import User, Workspace, default_create_func
-from application.mongo.mongo_base_metadata import BaseMetadata
+from application.mongo.mongo_base_metadata import MongoBaseMetadata
 
 
-class WorkspaceMetadata(BaseMetadata):
+class WorkspaceMetadata(MongoBaseMetadata):
 
     def to_dict(self) -> TDesc:
         result = super().to_dict()

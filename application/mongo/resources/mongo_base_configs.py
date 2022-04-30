@@ -30,7 +30,6 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         pass
 
     @classmethod
-    @abstractmethod
     def has_extras(cls) -> bool:
         """
         Checks whether this build config admits "extra" parameters
@@ -40,9 +39,12 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         return False    # By default, no extra arguments
 
     @classmethod
-    @abstractmethod
     def nullables(cls) -> set[str]:
-        pass
+        """
+        Default implementation.
+        :return:
+        """
+        return set()
 
     @classmethod
     def is_nullable(cls, name: str):
@@ -133,9 +135,13 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
     def update(self, data, context: ResourceContext):
         pass
 
-    @abstractmethod
     def delete(self, context: ResourceContext):
-        pass
+        """
+        Default implementation.
+        :param context:
+        :return:
+        """
+        db.EmbeddedDocument.delete(self)
 
 
 class MongoResourceConfig(db.Document, ResourceConfig):
@@ -149,38 +155,87 @@ class MongoResourceConfig(db.Document, ResourceConfig):
     uri = db.StringField(required=True, unique=True)
     description = db.StringField(required=False)
     build_config = db.EmbeddedDocumentField(MongoBuildConfig)
-    metadata = db.EmbeddedDocumentField(BaseMetadata)
+    metadata = db.EmbeddedDocumentField(MongoBaseMetadata)
     owner = db.ReferenceField(User.user_class())
     workspace = db.ReferenceField(Workspace.get_class())
 
     @classmethod
-    @abstractmethod
     def get_by_uri(cls, uri: str):
-        pass
+        return cls.objects(uri=uri).first()
 
     @classmethod
-    @abstractmethod
-    def dfl_uri_builder(cls, *args, **kwargs) -> str:
-        pass
+    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
+        username = context.get_username()
+        workspace = context.get_workspace()
+        typename = cls.target_type().canonical_typename()
+        return cls.uri_separator().join([typename, username, workspace, name])
 
     @staticmethod
     @abstractmethod
     def target_type() -> t.Type[DataType]:
         pass
 
-    @classmethod
+    @staticmethod
     @abstractmethod
-    def create(cls, data, context: ResourceContext, save: bool = True):
+    def meta_type() -> t.Type[BaseMetadata]:
         pass
 
     @classmethod
-    @abstractmethod
+    def create(cls, data, context: UserWorkspaceResourceContext, save: bool = True, **metadata):
+        result, msg = cls.validate_input(data, context)
+        if not result:
+            raise ValueError(msg)
+        else:
+            name = data['name']
+            description = data['description'] or ''
+            config = MongoBuildConfig.get_by_name(data['build'])
+            if config is None:
+                raise ValueError(f"Unknown build config: '{data['build']}'")
+
+            build_config = t.cast(MongoBuildConfig, config).create(data['build'], cls.target_type(), context, save)
+            uri = cls.dfl_uri_builder(context, name)
+            owner = User.canonicalize(context.get_username())
+            workspace = Workspace.canonicalize(context)
+            now = datetime.utcnow()
+
+            if metadata is None:
+                metadata = {}
+            metadata['created'] = now
+            metadata['last_modified'] = now
+
+            # noinspection PyArgumentList
+            obj = cls(
+                name=name,
+                description=description,
+                uri=uri,
+                build_config=build_config,
+                owner=owner,
+                workspace=workspace,
+                metadata=cls.meta_type()(**metadata),
+            )
+            if save:
+                obj.save(force_insert=True)
+            return obj
+
+    @classmethod
     def validate_input(cls, data, context: ResourceContext) -> TBoolStr:
-        pass
+        required = ['name', 'build']
+        if not all(fname in data for fname in required):
+            return False, 'Missing parameter(s).'
+        else:
+            config = MongoBuildConfig.get_by_name(data['build'])
+            return t.cast(MongoBuildConfig, config).validate_input(data['build'], cls.target_type(), context)
 
-    @abstractmethod
     def build(self, context: ResourceContext):
-        pass
+        obj = self.build_config.build(context)
+        obj.set_metadata(
+            name=self.name,
+            uri=self.uri,
+            owner=self.owner.username,
+            workspace=self.workspace.name,
+            extra=self.metadata.to_dict()
+        )
+        return obj
 
     @abstractmethod
     def update(self, data, context):
@@ -191,3 +246,9 @@ class MongoResourceConfig(db.Document, ResourceConfig):
 
     def __init__(self, *args, **values):
         db.Document.__init__(self, *args, **values)
+
+    def __repr__(self):
+        return f"{type(self).__name__} <{self.name}>[id = {self.id}, uri = {self.uri}]"
+
+    def __str__(self):
+        return self.__repr__()
