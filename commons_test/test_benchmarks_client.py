@@ -24,6 +24,15 @@ metricset_build = {
     }
 }
 
+model_name = "SimpleMLPOne"
+model_type = "Model"
+model_desc = "..."
+model_build = {
+    'name': 'SimpleMLP',
+    'num_classes': 10,
+    'input_size': 28 * 28,
+}
+
 
 if __name__ == '__main__':
 
@@ -100,6 +109,13 @@ if __name__ == '__main__':
         # create and build metricsets
         print_response(cl.create_metric_set(metricset_name, metricset_build, metricset_desc))
         print_response(cl.build_metric_set(metricset_name))
+
+    # create and build models
+    print_response(cl.create_model(model_name, model_build, model_desc))
+    print_response(cl.build_model(model_name))
+
+    # delete models
+    print_response(cl.delete_model(model_name))
 
     if 'm' not in __nodel__:
         # delete metricsets

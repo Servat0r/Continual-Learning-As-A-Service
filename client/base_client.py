@@ -12,6 +12,7 @@ class BaseClient:
     RESOURCES = "resources"
     BENCHMARKS = "benchmarks"
     METRICSETS = "metricsets"
+    MODELS = "models"
 
     __debug_urls__: bool = False
 
@@ -62,6 +63,10 @@ class BaseClient:
     @property
     def metricsets_base(self):
         return f"{self.workspaces_base}/{self.workspace}/{self.METRICSETS}"
+
+    @property
+    def models_base(self):
+        return f"{self.workspaces_base}/{self.workspace}/{self.MODELS}"
 
     @staticmethod
     def get_url(*args):
@@ -268,3 +273,19 @@ class BaseClient:
 
     def delete_metric_set(self, name: str):
         return self.delete([self.metricsets_base, name])
+
+    # Models
+    def create_model(self, name: str, build_config_data: dict, description: str = None):
+        data = {
+            'name': name,
+            'build': build_config_data,
+        }
+        if description is not None:
+            data['description'] = description
+        return self.post(self.models_base, data=data)
+
+    def build_model(self, name: str):
+        return self.get([self.models_base, name])
+
+    def delete_model(self, name: str):
+        return self.delete([self.models_base, name])
