@@ -2,6 +2,6 @@
 Resources.
 """
 from .utils import *
-from .base import *
 from .contexts import *
+from .base import *
 from .datatypes import *

@@ -3,7 +3,7 @@ from application.routes.auth import token_auth
 from http import HTTPStatus
 from application.errors import *
 from application.utils import *
-from application.resources.contexts import *
+from application.resources.base import *
 from application.models import User, Workspace
 
 
@@ -53,7 +53,7 @@ def get_workspace(username, wname):
     user = User.get_by_name(username)
     if not user:
         return NotExistingUser(user=username)
-    context = DictUserWorkspaceResourceContext(username, wname)
+    context = UserWorkspaceResourceContext(username, wname)
     uri = Workspace.dfl_uri_builder(context)
     data = Workspace.get_by_uri(uri).to_dict()
     if data is None:
@@ -81,7 +81,7 @@ def get_workspaces(username):
 def delete_workspace(username, wname):
 
     current_user = token_auth.current_user()
-    context = DictUserWorkspaceResourceContext(username, wname)
+    context = UserWorkspaceResourceContext(username, wname)
     uri = Workspace.dfl_uri_builder(context)
     workspace = Workspace.get_by_uri(uri)
 
@@ -103,7 +103,7 @@ def get_workspace_status(username, wname):
     if not user:
         return NotExistingUser(user=username)
 
-    context = DictUserWorkspaceResourceContext(username, wname)
+    context = UserWorkspaceResourceContext(username, wname)
     uri = Workspace.dfl_uri_builder(context)
     workspace = Workspace.get_by_uri(uri)
     if not workspace:
@@ -142,7 +142,7 @@ def set_workspace_status(username, wname):
             return error()
 
     current_user = token_auth.current_user()
-    context = DictUserWorkspaceResourceContext(username, wname)
+    context = UserWorkspaceResourceContext(username, wname)
     uri = Workspace.dfl_uri_builder(context)
     workspace = Workspace.get_by_uri(uri)
 
@@ -174,7 +174,7 @@ def get_workspace_requirements(username, wname):    # TODO Completare!
     """
 
     current_user = token_auth.current_user()
-    context = DictUserWorkspaceResourceContext(username, wname)
+    context = UserWorkspaceResourceContext(username, wname)
     uri = Workspace.dfl_uri_builder(context)
     workspace = Workspace.get_by_uri(uri)
 

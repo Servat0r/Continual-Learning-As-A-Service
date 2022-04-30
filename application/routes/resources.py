@@ -7,7 +7,7 @@ from flask import request
 
 from application.utils import *
 from application.errors import *
-from application.resources.contexts import *
+from application.resources import *
 from application.mongo.resources import MongoResourceConfig
 from .auth import check_current_user_ownership
 
@@ -40,7 +40,7 @@ def add_new_resource(username, workspace, typename):
         else:
             return error()
     else:
-        context = DictUserWorkspaceResourceContext(username, workspace)
+        context = UserWorkspaceResourceContext(username, workspace)
 
         dtype = DataType.get_type(typename)
         if dtype is None:
@@ -74,7 +74,7 @@ def build_resource(username, workspace, typename, name):
     if not check_current_user_ownership(username):
         return ForbiddenOperation(f"You cannot add a new {typename} for another user ({username}).")
 
-    context = DictUserWorkspaceResourceContext(username, workspace)
+    context = UserWorkspaceResourceContext(username, workspace)
 
     dtype = DataType.get_type(typename)
     if dtype is None:
@@ -118,7 +118,7 @@ def delete_resource(username, workspace, typename, name):
     if not check_current_user_ownership(username):
         return ForbiddenOperation(f"You cannot add a new {typename} for another user ({username}).")
 
-    context = DictUserWorkspaceResourceContext(username, workspace)
+    context = UserWorkspaceResourceContext(username, workspace)
 
     dtype = DataType.get_type(typename)
     if dtype is None:

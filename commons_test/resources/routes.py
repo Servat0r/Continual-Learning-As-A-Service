@@ -8,7 +8,7 @@ dummy_bp = Blueprint('dbresource', __name__, url_prefix='/resources')
 @dummy_bp.post('/<username>/<wname>/')
 @dummy_bp.post('/<username>/<wname>')
 def add_new_resource(username, wname):
-    resource_ctx = DictUserWorkspaceResourceContext(
+    resource_ctx = UserWorkspaceResourceContext(
         username, wname,
         region='eu_south_1', country='Italy'
     )
@@ -29,7 +29,7 @@ def build_resource(username, wname, typename, name):
     :param name:
     :return:
     """
-    resource_ctx = DictUserWorkspaceResourceContext(
+    resource_ctx = UserWorkspaceResourceContext(
         username, wname,
         region='eu_south_1', country='Italy'
     )
@@ -53,7 +53,7 @@ def delete_resource(username, wname, typename, name):
     :param name:
     :return:
     """
-    resource_ctx = DictUserWorkspaceResourceContext(
+    resource_ctx = UserWorkspaceResourceContext(
         username, wname,
         region='eu_south_1', country='Italy'
     )

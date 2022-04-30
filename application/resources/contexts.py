@@ -1,30 +1,107 @@
+# Validation and Build contexts (user, workspace etc.)
 from __future__ import annotations
-from application.resources import *
+import threading
+
+from application.resources.utils import *
 
 
-class DictUserResourceContext(UserResourceContext):
+class ResourceContext:
 
-    def names_dict(self) -> dict[str, str]:
-        return self._names
+    def types(self) -> dict[type, str]:
+        """
+        Retrieves all registered types for this context.
+        :return:
+        """
+        return self.types_dict.copy()
 
-    def __init__(self, username: str, **kwargs: str):
-        kwargs[self._DFL_USER_NAME] = username
-        if not self.check_names(kwargs):
-            raise ValueError('Missing one or more context parameters.')
-        else:
-            self._names = kwargs
-            self._username = username
+    def register_type(self, name: str):
+        def registerer(cls: type):
+            self.types_dict[cls] = name
+            return cls
+        return registerer
 
-    def get_user_type(self) -> nbr_type | None:
-        return self.get_type(self._DFL_USER_NAME)
+    def get_type_name(self, tp: type) -> str | None:
+        return self.types_dict.get(tp)
+
+    def get_types(self, name: str) -> set[type]:
+        tps = self.types()
+        return set(
+            filter(lambda key: tps[key] == name, tps.keys())
+        )
+
+    # TODO Eliminare!
+    def check_names(self, names: dict[str, str]):
+        return set(self.types().keys()).issubset(set(names.keys()))
+
+    # TODO Completare! E sistemare i ResourceContext in modo più razionale (e.g. rispetto ai tipi!)
+    def push(self, name: str, obj, set_type=False, type_name=None):
+        self.stack.append({name: obj})
+        if set_type:
+            self.types_dict[obj] = type_name if type_name is not None else type(obj).__name__
+
+    def pop(self, check_type_name=False, type_name=None) -> TDesc:
+        if check_type_name and (type_name is not None):
+            tp = type(self.stack[-1])
+            if not self.types_dict.get(tp) == type_name:
+                raise TypeError(f"Incorrect typename for last element: '{tp.__name__}' against '{type_name}'.")
+        return self.stack.pop()
+
+    def __init__(self):
+        self.stack = []
+        self.types_dict: dict[type, str] = {}
 
 
-class DictUserWorkspaceResourceContext(DictUserResourceContext, UserWorkspaceResourceContext):
+class UserResourceContext(ResourceContext):
 
-    def __init__(self, username: str, workspace: str, **kwargs: str):
-        kwargs[self.dfl_wname()] = workspace
-        super().__init__(username, **kwargs)
-        self._workspace = workspace
+    _DFL_USER_NAME = 'User'
 
-    def get_workspace_type(self) -> nbr_type | None:
-        return self.get_type(self._DFL_WORKSPACE_NAME)
+    @staticmethod
+    def dfl_username() -> str:
+        return UserResourceContext._DFL_USER_NAME
+
+    def register_user_type(self):
+        return self.register_type(self._DFL_USER_NAME)
+
+    def get_user_types(self) -> set[type]:
+        return self.get_types(self.dfl_username())
+
+    def get_username(self):
+        return self.username
+
+    def __init__(self, username: str, user_type: type = None, **kwargs):
+        super().__init__()
+        self.username = username
+
+        if user_type is not None:
+            self.register_user_type()(user_type)
+
+        if kwargs is not None:
+            self.stack.append({'kwargs': kwargs})
+
+
+class UserWorkspaceResourceContext(UserResourceContext):
+
+    _DFL_WORKSPACE_NAME = 'Workspace'
+
+    @staticmethod
+    def dfl_wname() -> str:
+        return UserWorkspaceResourceContext._DFL_WORKSPACE_NAME
+
+    def register_workspace_type(self):
+        return self.register_type(self._DFL_WORKSPACE_NAME)
+
+    def get_workspace_types(self) -> set[type]:
+        return self.get_types(self.dfl_wname())
+
+    def get_workspace(self):
+        return self.workspace
+
+    def __init__(self, username: str, workspace: str, user_type: type = None, workspace_type: type = None, **kwargs):
+        super().__init__(username, user_type)
+        self.workspace = workspace
+
+        if workspace_type is not None:
+            self.register_workspace_type()(workspace_type)
+
+        if kwargs is not None:
+            self.stack.append({'kwargs': kwargs})

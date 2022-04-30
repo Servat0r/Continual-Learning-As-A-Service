@@ -63,7 +63,7 @@ class MongoWorkspace(Workspace, db.Document):
             raise ValueError(msg)
 
         owner = User.canonicalize(owner)
-        context = DictUserWorkspaceResourceContext(owner.get_name(), name)
+        context = UserWorkspaceResourceContext(owner.get_name(), name)
         uri = cls.dfl_uri_builder(context)
         now = datetime.utcnow()
         # noinspection PyArgumentList

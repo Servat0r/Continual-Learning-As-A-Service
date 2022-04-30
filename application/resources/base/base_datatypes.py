@@ -1,9 +1,7 @@
 # Base datatypes.
 from __future__ import annotations
 
-from abc import ABC
-
-from application.resources.base.base_contexts import *
+from application.resources.contexts import *
 
 
 class DataType:

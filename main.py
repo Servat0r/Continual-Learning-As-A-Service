@@ -34,7 +34,7 @@ def make_shell_context():
 
         # classes
         'User': User, 'DataType': DataType,
-        'Context': DictUserWorkspaceResourceContext,
+        'Context': UserWorkspaceResourceContext,
         'NotUniqueError': NotUniqueError,
     }
 
