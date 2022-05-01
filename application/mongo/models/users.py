@@ -9,7 +9,7 @@ from mongoengine import NotUniqueError
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
 from application.validation import USERNAME_MAX_CHARS
 from application.database import db
-from application.resources import t, TDesc
+from application.resources import t, TDesc, TBoolExc
 from application.models import User, Workspace
 
 
@@ -86,7 +86,8 @@ class MongoUser(User, db.Document):
         return data
 
     @classmethod
-    def create(cls, username: str, email: str = 'abc@example.com', password: str = '12345678', save: bool = True):
+    def create(cls, username: str, email: str, password: str, save: bool = True,
+               before_args: TDesc = None, after_args: TDesc = None):
         now = datetime.utcnow()
         # noinspection PyArgumentList
         user = cls(
@@ -99,7 +100,7 @@ class MongoUser(User, db.Document):
         )
         user.get_token(expires_in=3600, save=False)
         if save:
-            user.save(force_insert=True)
+            user.save(create=True)
             print(f"Created user '{username}' with id '{user.id}'")
         return user
 
@@ -129,8 +130,16 @@ class MongoUser(User, db.Document):
             self.save()
         return result
 
-    def delete(self):
-        db.Document.delete(self)
+    def save(self, create=False):
+        db.Document.save(self, force_insert=create)
+
+    @classmethod
+    def delete(cls, user: User, before_args: TDesc = None, after_args: TDesc = None) -> TBoolExc:
+        try:
+            db.Document.delete(user)
+            return True, None
+        except Exception as ex:
+            return False, ex
 
     def check_correct_password(self, password):
         """

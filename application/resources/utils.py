@@ -3,6 +3,7 @@ import typing as t
 from abc import *
 
 TBoolStr = t.TypeVar('TBoolStr', bound=tuple[bool, t.Optional[str]])
+TBoolExc = t.TypeVar('TBoolExc', bound=tuple[bool, t.Optional[Exception]])
 TBoolAny = t.TypeVar('TBoolAny', bound=tuple[bool, t.Any])
 TDesc = t.TypeVar('TDesc', bound=dict[str, t.Any])
 

@@ -5,18 +5,6 @@ from application.models.users import User
 from application.resources import *
 
 
-def default_create_func(workspace: Workspace) -> tuple[bool, str | None]:
-    wdir = os.path.join(os.getcwd(), 'files', 'workspaces', workspace.get_owner().get_name(), workspace.get_name())
-    print(f"wdir = {wdir}")
-    try:
-        os.makedirs(wdir, exist_ok=True)
-    except FileExistsError:
-        return False, 'Workspace already existing!'
-    with open(os.path.join(wdir, 'meta.json'), 'w') as f:
-        f.write(r'{}')
-    return True, None
-
-
 class Workspace(JSONSerializable, URIBasedResource):
 
     OPEN = 'OPEN'
@@ -33,6 +21,21 @@ class Workspace(JSONSerializable, URIBasedResource):
     @staticmethod
     def get_class():
         return Workspace.__workspace_class__
+
+    # ....................... #
+    __data_manager__ = None
+
+    @staticmethod
+    def set_data_manager(manager) -> bool:
+        if Workspace.__data_manager__ is None:
+            Workspace.__data_manager__ = manager
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def get_data_manager():
+        return Workspace.__data_manager__
 
     # ....................... #
     @classmethod
@@ -96,6 +99,10 @@ class Workspace(JSONSerializable, URIBasedResource):
     # ....................... #
 
     @abstractmethod
+    def get_id(self):
+        pass
+
+    @abstractmethod
     def get_name(self) -> str:
         pass
 
@@ -108,17 +115,59 @@ class Workspace(JSONSerializable, URIBasedResource):
 
     @classmethod
     @abstractmethod
-    def create(cls, name: str, owner: str | User, create_func: t.Callable = default_create_func,
-               save: bool = True, open_on_create: bool = True) -> Workspace:
-        return Workspace.get_class().create(name, owner, create_func, save, open_on_create)
+    def create(cls, name: str, owner: str | User, save: bool = True, open_on_create: bool = True,
+               before_args: TDesc = None, after_args: TDesc = None) -> Workspace:
+        
+        if before_args is None:
+            before_args = {}
+
+        if after_args is None:
+            after_args = {}
+
+        result, exc = cls.get_data_manager().before_create_workspace(**before_args)
+        if not result:
+            raise exc
+
+        workspace = Workspace.get_class().create(name, owner, save, open_on_create)
+
+        if workspace is not None:
+            result, exc = cls.get_data_manager().after_create_workspace(workspace, **after_args)
+            if not result:
+                Workspace.delete(workspace)
+                raise exc
+
+        return workspace
 
     @abstractmethod
     def rename(self, old_name: str, new_name: str) -> TBoolStr:
         return Workspace.get_class().rename(self, old_name, new_name)
 
     @abstractmethod
-    def delete(self):
+    def save(self, create=False):
         pass
+
+    @classmethod
+    @abstractmethod
+    def delete(cls, workspace: Workspace, before_args: TDesc = None, after_args: TDesc = None) -> TBoolExc:
+
+        if before_args is None:
+            before_args = {}
+
+        if after_args is None:
+            after_args = {}
+
+        result, exc = cls.get_data_manager().before_delete_workspace(workspace, **before_args)
+        if not result:
+            raise exc
+
+        result, exc = Workspace.get_class().delete(workspace)
+        if not result:
+            raise exc
+        else:
+            result, exc = cls.get_data_manager().after_delete_workspace(workspace, **after_args)
+            if not result:
+                raise exc
+            return True, None
 
     @abstractmethod
     def open(self, save: bool = True):
@@ -150,5 +199,4 @@ __all__ = [
     'make_uri',
     'split_uri',
     'Workspace',
-    'default_create_func',
 ]

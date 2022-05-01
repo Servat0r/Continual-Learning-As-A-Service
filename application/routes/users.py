@@ -91,7 +91,10 @@ def register():
             return InvalidParameterValue(msg=f"Email '{email}' already in use.")
         else:
             user = User.create(username, email, password)
-            return make_success_kwargs(HTTPStatus.CREATED, f"User '{user.get_name()}' correctly registered.")
+            if user:
+                return make_success_kwargs(HTTPStatus.CREATED, f"User '{user.get_name()}' correctly registered.")
+            else:
+                return InternalFailure(f"Error when registering user.")
 
 
 @users_bp.get('/')
@@ -300,7 +303,10 @@ def delete_user(username):
 
     current_user = token_auth.current_user()
     if current_user.username == username:
-        current_user.delete()
-        return make_success_kwargs(HTTPStatus.OK, msg=f"User '{username}' successfully deleted.", username=username)
+        result, msg = User.delete(current_user)
+        if not result:
+            return InternalFailure(msg=msg)
+        else:
+            return make_success_kwargs(HTTPStatus.OK, msg=f"User '{username}' successfully deleted.", username=username)
     else:
         return ForbiddenOperation("You don't have the permission to delete another user!")

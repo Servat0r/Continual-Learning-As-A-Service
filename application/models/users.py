@@ -3,7 +3,7 @@ from abc import abstractmethod
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash
-from application.resources import t, TDesc
+from application.resources import t, TDesc, TBoolExc
 
 
 def check_token(token):
@@ -37,6 +37,21 @@ class User(UserMixin):
     @staticmethod
     def user_class() -> t.Type[User] | None:
         return User.__user_class__
+
+    # ....................... #
+    __data_manager__ = None
+
+    @staticmethod
+    def set_data_manager(manager) -> bool:
+        if User.__data_manager__ is None:
+            User.__data_manager__ = manager
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def get_data_manager():
+        return User.__data_manager__
 
     # ....................... #
     @classmethod
@@ -106,17 +121,59 @@ class User(UserMixin):
 
     @classmethod
     @abstractmethod
-    def create(cls, username: str, email: str = 'abc@example.com',
-               password: str = '12345678', save: bool = True) -> User:
-        return User.user_class().create(username, email, password, save)
+    def create(cls, username: str, email: str, password: str, save: bool = True,
+               before_args: TDesc = None, after_args: TDesc = None) -> User:
+
+        if before_args is None:
+            before_args = {}
+
+        if after_args is None:
+            after_args = {}
+
+        result, exc = cls.get_data_manager().before_create_user(**before_args)
+        if not result:
+            raise exc
+
+        user = User.user_class().create(username, email, password)
+
+        if user is not None:
+            result, exc = cls.get_data_manager().after_create_user(user, **after_args)
+            if not result:
+                User.delete(user)
+                raise exc
+
+        return user
 
     @abstractmethod
     def edit(self, data: dict, save: bool = True) -> dict[str, dict[str, str]]:
         pass
 
     @abstractmethod
-    def delete(self):
+    def save(self, create=False):
         pass
+
+    @classmethod
+    @abstractmethod
+    def delete(cls, user: User, before_args: TDesc = None, after_args: TDesc = None) -> TBoolExc:
+
+        if before_args is None:
+            before_args = {}
+
+        if after_args is None:
+            after_args = {}
+
+        result, exc = cls.get_data_manager().before_delete_user(user, **before_args)
+        if not result:
+            raise exc
+
+        result, exc = User.user_class().delete(user)
+        if not result:
+            raise exc
+        else:
+            result, exc = cls.get_data_manager().after_delete_user(user, **after_args)
+            if not result:
+                raise exc
+            return True, None
 
     @abstractmethod
     def set_password(self, password: str, save: bool = True):

@@ -10,11 +10,16 @@ from .database import db
 from .utils import *
 from .log import *
 from .converters import *
+from .data_managing import *
 from .models import *
 from .mongo import *
 
 
 _NAME = os.environ.get('SERVER_NAME') or 'SERVER'
+
+manager = BaseDataManager.create()
+User.set_data_manager(manager)
+Workspace.set_data_manager(manager)
 
 
 def create_app(config_class=MongoConfig):
@@ -52,11 +57,6 @@ def create_app(config_class=MongoConfig):
                 credentials=auth, secure=secure)
             mail_handler.setLevel(logging.ERROR)
             app.logger.addHandler(mail_handler)
-
-        if app.config['STD_FILESAVE_DIR']:
-            os.makedirs(app.config['STD_FILESAVE_DIR'], exist_ok=True)
-
-        os.makedirs('files', exist_ok=True)
 
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)

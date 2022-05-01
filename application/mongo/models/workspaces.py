@@ -3,7 +3,7 @@ from __future__ import annotations
 from application.resources import *
 from application.validation import *
 from application.database import db
-from application.models import User, Workspace, default_create_func
+from application.models import User, Workspace
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
 
 
@@ -81,6 +81,9 @@ class MongoWorkspace(Workspace, db.Document):
     def __repr__(self):
         return f"Workspace <{self.name}> [uri = {self.uri}]"
 
+    def get_id(self):
+        return self.id
+
     @abstractmethod
     def get_name(self) -> str:
         return self.name
@@ -91,8 +94,8 @@ class MongoWorkspace(Workspace, db.Document):
 
     @classmethod
     @abstractmethod
-    def create(cls, name: str, owner: str | User, create_func: t.Callable = default_create_func,
-               save: bool = True, open_on_create: bool = True):
+    def create(cls, name: str, owner: str | User, save: bool = True, open_on_create: bool = True,
+               before_args: TDesc = None, after_args: TDesc = None) -> Workspace:
 
         result, msg = validate_workspace_experiment(name)
         if not result:
@@ -107,12 +110,13 @@ class MongoWorkspace(Workspace, db.Document):
             owner=owner,
             metadata=WorkspaceMetadata(created=now, last_modified=now),
         )
-        result, msg = create_func(workspace)
-        if not result:
-            raise ValueError(msg)
-        elif save:
-            workspace.save(force_insert=True)
+        if save:
+            workspace.save(create=True)
+            print(f"Created workspace '{workspace}' with id '{workspace.id}'.")
         return workspace
+
+    def save(self, create=False):
+        db.Document.save(self, force_insert=create)
 
     @abstractmethod
     def rename(self, old_name: str, new_name: str) -> TBoolStr:
@@ -129,12 +133,13 @@ class MongoWorkspace(Workspace, db.Document):
             except Exception as ex:
                 return False, ex.args[0]
 
-    @abstractmethod
-    def delete(self):
-        if self.is_open():
-            raise RuntimeError(f"Workspace '{self.name}' is still open!")
+    @classmethod
+    def delete(cls, workspace: Workspace, before_args: TDesc = None, after_args: TDesc = None):
+        if workspace.is_open():
+            return False, RuntimeError(f"Workspace '{workspace.get_name()}' is still open!")
         else:
-            db.Document.delete(self)
+            db.Document.delete(workspace)
+            return True, None
 
     @abstractmethod
     def open(self, save: bool = True):
