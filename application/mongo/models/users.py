@@ -124,11 +124,16 @@ class MongoUser(User, db.Document):
 
         if modified:
             print(f"User {self.username} modified")
-            self.metadata.update_last_modified()
+            self.update_last_modified(save=save)
 
         if save:
             self.save()
         return result
+
+    def update_last_modified(self, time: datetime = None, save: bool = True):
+        self.metadata.update_last_modified(time)
+        if save:
+            self.save()
 
     def save(self, create=False):
         db.Document.save(self, force_insert=create)
@@ -157,7 +162,7 @@ class MongoUser(User, db.Document):
         :return:
         """
         self.password_hash = self.get_password_hash(password)
-        self.metadata.update_last_modified()
+        self.update_last_modified(save=save)
         if save:
             self.save()
 
@@ -189,7 +194,7 @@ class MongoUser(User, db.Document):
                 continue
         now = datetime.utcnow()
         self.token_expiration = now + timedelta(seconds=expires_in)
-        self.metadata.update_last_modified()
+        self.update_last_modified(save=save)
         if save:
             self.save()
         return self.token

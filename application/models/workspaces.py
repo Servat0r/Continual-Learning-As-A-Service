@@ -178,7 +178,7 @@ class Workspace(JSONSerializable, URIBasedResource):
         pass
 
     @abstractmethod
-    def update_last_modified(self, save: bool = True):
+    def update_last_modified(self, time: datetime = None, save: bool = True):
         pass
 
     @abstractmethod

@@ -272,8 +272,10 @@ class MongoResourceConfig(db.Document, ResourceConfig):
         )
         return obj
 
-    def update_last_modified(self):
-        self.metadata.update_last_modified()
+    def update_last_modified(self, time: datetime = None, save: bool = True):
+        self.metadata.update_last_modified(time)
+        if save:
+            self.save()
 
     def rename(self, old_name: str, new_name: str) -> TBoolStr:
         """

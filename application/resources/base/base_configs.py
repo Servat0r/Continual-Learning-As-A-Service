@@ -26,7 +26,7 @@ class BaseMetadata(JSONSerializable):
         pass
 
     @abstractmethod
-    def update_last_modified(self, time=datetime.utcnow()):
+    def update_last_modified(self, time: datetime = None):
         pass
 
 

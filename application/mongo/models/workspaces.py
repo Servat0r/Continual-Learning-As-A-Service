@@ -144,20 +144,16 @@ class MongoWorkspace(Workspace, db.Document):
     @abstractmethod
     def open(self, save: bool = True):
         self.status = Workspace.OPEN
-        self.metadata.update_last_modified()
-        if save:
-            self.save()
+        self.update_last_modified(save=save)
 
     @abstractmethod
     def close(self, save: bool = True):
         self.status = Workspace.CLOSED
-        self.metadata.update_last_modified()
-        if save:
-            self.save()
+        self.update_last_modified(save=save)
 
     @abstractmethod
-    def update_last_modified(self, save: bool = True):
-        self.metadata.update_last_modified()
+    def update_last_modified(self, time: datetime = None, save: bool = True):
+        self.metadata.update_last_modified(time)
         if save:
             self.save()
 

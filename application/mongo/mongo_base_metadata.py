@@ -23,7 +23,9 @@ class MongoBaseMetadata(BaseMetadata, db.EmbeddedDocument):
     def get_last_modified(self):
         return self.last_modified
 
-    def update_last_modified(self, time=datetime.utcnow()):
+    def update_last_modified(self, time: datetime = None):
+        if time is None:
+            time = datetime.utcnow()
         self.last_modified = time
 
     def __init__(self, *args, **kwargs):
