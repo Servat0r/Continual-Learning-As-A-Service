@@ -255,6 +255,12 @@ class BaseClient:
     def build_benchmark(self, name: str):
         return self.get([self.benchmarks_base, name])
 
+    def rename_benchmark(self, name: str, new_name: str):
+        return self.update_benchmark(name, {'name': new_name})
+
+    def update_benchmark(self, name: str, updata: dict):
+        return self.patch([self.benchmarks_base, name], data=updata)
+
     def delete_benchmark(self, name: str):
         return self.delete([self.benchmarks_base, name])
 
@@ -271,6 +277,12 @@ class BaseClient:
     def build_metric_set(self, name: str):
         return self.get([self.metricsets_base, name])
 
+    def rename_metric_set(self, name: str, new_name: str):
+        return self.update_metric_set(name, {'name': new_name})
+
+    def update_metric_set(self, name: str, updata: dict):
+        return self.patch([self.metricsets_base, name], data=updata)
+
     def delete_metric_set(self, name: str):
         return self.delete([self.metricsets_base, name])
 
@@ -286,6 +298,12 @@ class BaseClient:
 
     def build_model(self, name: str):
         return self.get([self.models_base, name])
+
+    def rename_model(self, name: str, new_name: str):
+        return self.update_model(name, {'name': new_name})
+
+    def update_model(self, name: str, updata: dict):
+        return self.patch([self.models_base, name], data=updata)
 
     def delete_model(self, name: str):
         return self.delete([self.models_base, name])

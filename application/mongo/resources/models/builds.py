@@ -62,6 +62,3 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
         )
         # noinspection PyArgumentList
         return self.target_type()(model)
-
-    def update(self, data, context: ResourceContext):
-        pass

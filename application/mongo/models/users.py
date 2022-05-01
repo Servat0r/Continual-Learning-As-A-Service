@@ -34,6 +34,24 @@ class MongoUser(User, db.Document):
     token_expiration = db.DateTimeField()
     metadata = db.EmbeddedDocumentField(UserMetadata)
 
+    # ....................... #
+    @classmethod
+    def all(cls):
+        return list(cls.objects({}).all())
+
+    @classmethod
+    def get_by_name(cls, name: str) -> User:
+        return cls.objects(username=name).first()
+
+    @classmethod
+    def get_by_email(cls, email: str) -> User:
+        return cls.objects(email=email).first()
+
+    @classmethod
+    def get_by_token(cls, token: str) -> User:
+        return cls.objects(token=token).first()
+    # ....................... #
+
     def get_name(self):
         return self.username
 
@@ -66,22 +84,6 @@ class MongoUser(User, db.Document):
         if include_email:
             data['email'] = self.email
         return data
-
-    @classmethod
-    def get_by_token(cls, token: str) -> User:
-        return cls.objects(token=token).first()
-
-    @classmethod
-    def get_by_name(cls, name: str) -> User:
-        return cls.objects(username=name).first()
-
-    @classmethod
-    def get_by_email(cls, email: str) -> User:
-        return cls.objects(email=email).first()
-
-    @classmethod
-    def all(cls):
-        return cls.objects({}).all()
 
     @classmethod
     def create(cls, username: str, email: str = 'abc@example.com', password: str = '12345678', save: bool = True):

@@ -34,18 +34,33 @@ class Workspace(JSONSerializable, URIBasedResource):
     def get_class():
         return Workspace.__workspace_class__
 
-    @abstractmethod
-    def get_name(self) -> str:
-        pass
-
-    @abstractmethod
-    def get_owner(self) -> User:
-        pass
-
-    @property
-    @abstractmethod
-    def uri(self):
-        pass
+    # ....................... #
+    @classmethod
+    def canonicalize(cls, obj: UserWorkspaceResourceContext | Workspace | tuple[str | User, str | Workspace]):
+        if isinstance(obj, Workspace):
+            return obj
+        elif isinstance(obj, UserWorkspaceResourceContext):
+            owner = obj.get_username()
+            wname = obj.get_workspace()
+            ws = Workspace.get(owner, wname)
+            if ws is None or len(ws) < 1:
+                raise ValueError(f"Such workspace (name = {wname}, owner = {owner}) does not exist!")
+            else:
+                return ws[0]
+        elif isinstance(obj, tuple):
+            if len(obj) != 2:
+                raise ValueError(f"Incorrect tuple length for workspace canonicalize!")
+            if isinstance(obj[1], Workspace):
+                return obj[1]
+            owner = obj[0]
+            wname = obj[1]
+            ws = Workspace.get(owner, wname)
+            if ws is None or len(ws) < 1:
+                raise ValueError(f"Such workspace (name = {wname}, owner = {owner}) does not exist!")
+            else:
+                return ws[0]
+        else:
+            raise TypeError(f"Unknown type: '{type(obj)}'.")
 
     @classmethod
     @abstractmethod
@@ -53,24 +68,9 @@ class Workspace(JSONSerializable, URIBasedResource):
         return Workspace.get_class().get_by_uri(uri)
 
     @classmethod
-    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext) -> str:
-        username = context.get_username()
-        workspace = context.get_workspace()
-        return cls.uri_separator().join(['workspace', username, workspace])
-
-    @classmethod
-    def canonicalize(cls, obj: UserWorkspaceResourceContext | Workspace):
-        if isinstance(obj, UserWorkspaceResourceContext):
-            context = obj
-            uri = Workspace.dfl_uri_builder(context)
-            return Workspace.get_by_uri(uri)
-        elif isinstance(obj, Workspace):
-            return obj
-        else:
-            raise TypeError(f"Unknown type: '{type(obj)}'.")
-
-    def __str__(self):
-        return self.__repr__()
+    @abstractmethod
+    def get(cls, owner: str | User = None, name: str = None) -> list[Workspace]:
+        return Workspace.get_class().get(owner, name)
 
     @classmethod
     @abstractmethod
@@ -81,6 +81,30 @@ class Workspace(JSONSerializable, URIBasedResource):
     @abstractmethod
     def all(cls):
         return Workspace.get_class().all()
+    # ....................... #
+
+    @property
+    @abstractmethod
+    def uri(self):
+        pass
+
+    @classmethod
+    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext) -> str:
+        username = context.get_username()
+        workspace = context.get_workspace()
+        return cls.uri_separator().join(['workspace', username, workspace])
+    # ....................... #
+
+    @abstractmethod
+    def get_name(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_owner(self) -> User:
+        pass
+
+    def __str__(self):
+        return self.__repr__()
 
     @classmethod
     @abstractmethod

@@ -22,7 +22,7 @@ UnknownResourceType = ServerResponseError(
 )
 
 
-def add_new_resource(username, workspace, typename):
+def add_new_resource(username, workspace, typename) -> Response:
     """
     Base method for adding a new "generic" resource.
     :param username:
@@ -60,7 +60,7 @@ def add_new_resource(username, workspace, typename):
         return make_success_dict(msg=f"Successfully created resource of type '{typename}'!")
 
 
-def build_resource(username, workspace, typename, name):
+def build_resource(username, workspace, typename, name) -> Response:
     """
     Base method for building a "generic" resource.
     TODO NO JSON!
@@ -86,8 +86,6 @@ def build_resource(username, workspace, typename, name):
 
     uri = ctp.dfl_uri_builder(context, name)
     resource_document = ctp.get_by_uri(uri)
-    if __DEBUG:
-        print(uri, resource_document, sep='\n')
 
     if resource_document is None:
         return InternalFailure(
@@ -105,7 +103,48 @@ def build_resource(username, workspace, typename, name):
         return InternalFailure(msg=f"Failed to build resource '{name}'.")
 
 
-def delete_resource(username, workspace, typename, name):
+def update_resource(username, workspace, typename, name, updata) -> Response:
+    """
+    Updates a resource.
+    :param username:
+    :param workspace:
+    :param typename:
+    :param name:
+    :param updata:
+    :return:
+    """
+    if not check_current_user_ownership(username):
+        return ForbiddenOperation(f"You cannot add a new {typename} for another user ({username}).")
+
+    dtype = DataType.get_type(typename)
+    if dtype is None:
+        return UnknownResourceType(type=typename)
+
+    ctp: t.Type[MongoResourceConfig] = t.cast(ReferrableDataType, dtype).config_type()
+    if ctp is None:
+        return InternalFailure(msg=f"Unknown config type '{typename}' for building resource.")
+
+    context = UserWorkspaceResourceContext(username, workspace)
+
+    resource_document = ctp.get_by(username, workspace, name)
+
+    if resource_document is None or len(resource_document) != 1:
+        return InternalFailure(
+            msg=f"Failed to retrieve resource document for resource '{name}' of type {typename}."
+        )
+    elif __DEBUG:
+        print(resource_document)
+
+    resource_document = resource_document[0]
+    print(f"updata = {updata}, context = {context}")
+    result, msg = resource_document.update(updata, context)
+    if not result:
+        return InternalFailure(msg=msg)
+    else:
+        return make_success_dict()
+
+
+def delete_resource(username, workspace, typename, name) -> Response:
     """
     TODO NO JSON!
     TODO All parameters must be retrieved from URL!

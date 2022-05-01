@@ -26,13 +26,8 @@ class BaseMetadata(JSONSerializable):
         pass
 
     @abstractmethod
-    def set_last_modified(self, time):
+    def update_last_modified(self, time=datetime.utcnow()):
         pass
-
-    def update_last_modified(self, time=None):
-        if time is None:
-            time = datetime.utcnow()
-        self.set_last_modified(time)
 
 
 class BuildConfig(NameBasedResource):
@@ -91,9 +86,10 @@ class BuildConfig(NameBasedResource):
 
 class ResourceConfig(URIBasedResource):
 
-    @property
+    # .................... #
+    @classmethod
     @abstractmethod
-    def uri(self):
+    def get_by(cls, owner, workspace, name: str = None) -> list[ResourceConfig]:
         pass
 
     @classmethod
@@ -103,8 +99,20 @@ class ResourceConfig(URIBasedResource):
 
     @classmethod
     @abstractmethod
+    def all(cls):
+        pass
+    # .................... #
+
+    @property
+    @abstractmethod
+    def uri(self):
+        pass
+
+    @classmethod
+    @abstractmethod
     def dfl_uri_builder(cls, *args, **kwargs) -> str:
         pass
+    # .................... #
 
     @staticmethod
     @abstractmethod

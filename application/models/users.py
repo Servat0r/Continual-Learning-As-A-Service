@@ -38,6 +38,37 @@ class User(UserMixin):
     def user_class() -> t.Type[User] | None:
         return User.__user_class__
 
+    # ....................... #
+    @classmethod
+    def canonicalize(cls, obj: str | User) -> User:
+        if isinstance(obj, str):
+            return cls.get_by_name(obj)
+        elif isinstance(obj, User):
+            return obj
+        else:
+            raise TypeError(f"Unsupported type: '{type(obj)}'.")
+
+    @classmethod
+    @abstractmethod
+    def all(cls):
+        return User.user_class().all()
+
+    @classmethod
+    @abstractmethod
+    def get_by_name(cls, name: str) -> User:
+        return User.user_class().get_by_name(name)
+
+    @classmethod
+    @abstractmethod
+    def get_by_email(cls, email: str) -> User:
+        return User.user_class().get_by_email(email)
+
+    @classmethod
+    @abstractmethod
+    def get_by_token(cls, token: str) -> User:
+        return User.user_class().get_by_token(token)
+    # ....................... #
+
     def __str__(self):
         return self.__repr__()
 
@@ -72,35 +103,6 @@ class User(UserMixin):
     @abstractmethod
     def to_dict(self, include_email=False) -> TDesc:
         pass
-
-    @classmethod
-    @abstractmethod
-    def get_by_token(cls, token: str) -> User:
-        return User.user_class().get_by_token(token)
-
-    @classmethod
-    def canonicalize(cls, obj: str | User) -> User:
-        if isinstance(obj, str):
-            return cls.get_by_name(obj)
-        elif isinstance(obj, User):
-            return obj
-        else:
-            raise TypeError(f"Unsupported type: '{type(obj)}'.")
-
-    @classmethod
-    @abstractmethod
-    def get_by_name(cls, name: str) -> User:
-        return User.user_class().get_by_name(name)
-
-    @classmethod
-    @abstractmethod
-    def get_by_email(cls, email: str) -> User:
-        return User.user_class().get_by_email(email)
-
-    @classmethod
-    @abstractmethod
-    def all(cls):
-        return User.user_class().all()
 
     @classmethod
     @abstractmethod

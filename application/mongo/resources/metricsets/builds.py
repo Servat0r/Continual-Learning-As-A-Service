@@ -140,6 +140,3 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
         metrics = tuple(metrics)
         # noinspection PyArgumentList
         return self.target_type()(*metrics)
-
-    def update(self, data, context: ResourceContext):
-        pass

@@ -35,11 +35,7 @@ class MongoWorkspace(Workspace, db.Document):
     status = db.StringField(max_length=8)
     metadata = db.EmbeddedDocumentField(WorkspaceMetadata)
 
-    @property
-    def uri(self):
-        context = UserWorkspaceResourceContext(self.owner.get_name(), self.name)
-        return self.dfl_uri_builder(context)
-
+    # ....................... #
     @classmethod
     @abstractmethod
     def get_by_uri(cls, uri: str):
@@ -54,6 +50,34 @@ class MongoWorkspace(Workspace, db.Document):
         workspace = s[2]
         return cls.objects(owner=user, name=workspace).first()
 
+    @classmethod
+    @abstractmethod
+    def get(cls, owner: str | User = None, name: str = None) -> t.Sequence[Workspace]:
+        args = {}
+        if owner is not None:
+            owner = User.canonicalize(owner)
+            args['owner'] = owner
+        if name is not None:
+            args['name'] = name
+        return list(cls.objects(**args).all())
+
+    @classmethod
+    @abstractmethod
+    def get_by_owner(cls, owner: str | User):
+        owner = User.canonicalize(owner)
+        return list(cls.objects(owner=owner).all())
+
+    @classmethod
+    def all(cls):
+        return list(cls.objects({}).all())
+    # ....................... #
+
+    @property
+    def uri(self):
+        context = UserWorkspaceResourceContext(self.owner.get_name(), self.name)
+        return self.dfl_uri_builder(context)
+    # ....................... #
+
     def __repr__(self):
         return f"Workspace <{self.name}> [uri = {self.uri}]"
 
@@ -64,16 +88,6 @@ class MongoWorkspace(Workspace, db.Document):
     @abstractmethod
     def get_owner(self) -> User:
         return self.owner
-
-    @classmethod
-    @abstractmethod
-    def get_by_owner(cls, owner: str | User):
-        owner = User.canonicalize(owner)
-        return cls.objects(owner=owner).all()
-
-    @classmethod
-    def all(cls):
-        return cls.objects({}).all()
 
     @classmethod
     @abstractmethod

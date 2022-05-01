@@ -36,7 +36,7 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         (like keyword arguments in Python).
         :return:
         """
-        return False    # By default, no extra arguments
+        return False  # By default, no extra arguments
 
     @classmethod
     def nullables(cls) -> set[str]:
@@ -60,7 +60,7 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         return (cls.get_required() or set()).union(cls.get_optionals() or set())
 
     @classmethod
-    def _filter_data(cls, data: TDesc) -> tuple[bool, TDesc, TDesc]:
+    def _filter_data(cls, data: TDesc) -> tuple[bool, str, TDesc, TDesc]:
         """
         Filters data in a given build config to given required, optionals and extras parameters passed.
         :param data:
@@ -69,7 +69,10 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         result: TDesc = {}
         data_copy = data.copy()
         # TODO Refactor to 'name' and 'data' fields and analyze 'data' subdict!
-        data_copy.pop('name')
+
+        bc_name = data_copy.get('name')
+        if bc_name is not None:
+            data_copy.pop('name')
 
         for name in cls.get_required():
             val = data.get(name)
@@ -77,14 +80,14 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
                 result[name] = val
                 data_copy.pop(name)
             else:
-                return False, {}, {}
+                return False, bc_name, {}, {}
 
         for name in cls.get_optionals():
             val = data.get(name)
             if (val is not None) or cls.is_nullable(name):
                 result[name] = val
                 data_copy.pop(name)
-        return True, result, data_copy
+        return True, bc_name, result, data_copy
 
     @classmethod
     @abstractmethod
@@ -96,12 +99,12 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         :param context:
         :return:
         """
-        ok, params, extras = cls._filter_data(data)
+        ok, bc_name, params, extras = cls._filter_data(data)
         if not ok:
             return False, "Missing one or more required parameter(s)."
         if len(extras) > 0 and not cls.has_extras():
             return False, "Unexpected extra arguments."
-        context.push('args', {'params': params, 'extras': extras})
+        context.push('args', {'name': bc_name, 'params': params, 'extras': extras})
         return True, None
 
     @classmethod
@@ -135,8 +138,9 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
 
     def update(self, data, context: ResourceContext) -> TBoolStr:
         try:
-            db.EmbeddedDocument.update(**data)
-            self.save()
+            if data is not None:
+                for item in data.items():
+                    exec(f"self.{item[0]} = {item[1]}")
             return True, None
         except Exception as ex:
             return False, f"When updating build config: an error occurred: '{type(ex).__name__}': {ex.args[0]}."
@@ -151,7 +155,6 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
 
 
 class MongoResourceConfig(db.Document, ResourceConfig):
-
     meta = {
         'abstract': True,
         'allow_inheritance': True,
@@ -164,19 +167,37 @@ class MongoResourceConfig(db.Document, ResourceConfig):
     build_config = db.EmbeddedDocumentField(MongoBuildConfig)
     metadata = db.EmbeddedDocumentField(MongoBaseMetadata)
 
-    @property
-    def uri(self):
-        context = UserWorkspaceResourceContext(self.owner.get_name(), self.workspace.name)
-        return type(self).dfl_uri_builder(context, self.name)
+    # .................... #
+    @classmethod
+    def get_by(cls, owner: str | User, workspace: str | Workspace, name: str = None) -> list[MongoResourceConfig]:
+        args = {}
+        owner = User.canonicalize(owner)
+        args['owner'] = owner
+        if isinstance(workspace, str):
+            workspace = Workspace.canonicalize((owner, workspace))
+        args['workspace'] = workspace
+        if name is not None:
+            args['name'] = name
+        return list(cls.objects(**args).all())
 
     @classmethod
     def get_by_uri(cls, uri: str):
         s = uri.split(cls.uri_separator())
-        context = UserWorkspaceResourceContext(s[1], s[2])
         owner = User.canonicalize(s[1])
-        workspace = Workspace.canonicalize(context)
+        workspace = Workspace.canonicalize((s[1], s[2]))
         name = s[3]
         return cls.objects(owner=owner, workspace=workspace, name=name).first()
+
+    @classmethod
+    def all(cls):
+        return list(cls.objects({}).all())
+
+    # .................... #
+
+    @property
+    def uri(self):
+        context = UserWorkspaceResourceContext(self.owner.get_name(), self.workspace.name)
+        return type(self).dfl_uri_builder(context, self.name)
 
     @classmethod
     def dfl_uri_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
@@ -184,6 +205,8 @@ class MongoResourceConfig(db.Document, ResourceConfig):
         workspace = context.get_workspace()
         typename = cls.target_type().canonical_typename()
         return cls.uri_separator().join([typename, username, workspace, name])
+
+    # .................... #
 
     @staticmethod
     @abstractmethod
@@ -249,8 +272,8 @@ class MongoResourceConfig(db.Document, ResourceConfig):
         )
         return obj
 
-    def update_last_modified(self, save: bool = True):
-        self.metadata.update_last_modified(save)
+    def update_last_modified(self):
+        self.metadata.update_last_modified()
 
     def rename(self, old_name: str, new_name: str) -> TBoolStr:
         """
@@ -270,7 +293,7 @@ class MongoResourceConfig(db.Document, ResourceConfig):
             except Exception as ex:
                 return False, ex.args[0]
 
-    def update(self, data, context):
+    def update(self, data, context) -> TBoolStr:
         new_name = data.get('name')
         new_desc = data.get('description')
         new_build_config = data.get('build')
@@ -289,8 +312,10 @@ class MongoResourceConfig(db.Document, ResourceConfig):
                 self.description = new_desc
                 try:
                     self.save()
+                    self.update_last_modified()
                 except Exception as ex:
-                    return False,\
+                    print(ex)
+                    return False, \
                            f"When updating description: an exception occurred: '{type(ex).__name__}': '{ex.args[0]}'."
 
         if new_build_config is not None:

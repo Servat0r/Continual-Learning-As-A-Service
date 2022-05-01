@@ -117,6 +117,19 @@ if __name__ == '__main__':
         # create and build benchmarks
         print_response(cl.create_benchmark(benchmark_name, benchmark_build, benchmark_desc))
         print_response(cl.build_benchmark(benchmark_name))
+        print_response(cl.rename_benchmark(benchmark_name, f"New_{benchmark_name}"))
+        print_response(
+            cl.update_benchmark(
+                f"New_{benchmark_name}", {
+                    'name': benchmark_name,
+                    'description': 'Description.',
+                    'build': {
+                        'n_experiences': 4,
+                        'shuffle': False,
+                    }
+                }
+            )
+        )
 
     if __metric_sets__ in __only__:
         # create and build metricsets

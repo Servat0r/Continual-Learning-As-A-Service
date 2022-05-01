@@ -31,6 +31,26 @@ def build_benchmark(username, wname, name):
     return build_resource(username, wname, _DFL_BENCHMARK_NAME_, name)
 
 
+@benchmarks_bp.patch('/<name>/')
+@benchmarks_bp.patch('/<name>/')
+@token_auth.login_required
+def update_benchmark(username, wname, name):
+    """
+    :param username:
+    :param wname:
+    :param name:
+    :return:
+    """
+    data, error, opts, extras = checked_json(request, True)
+    if error:
+        if data:
+            return error(**data)
+        else:
+            return error()
+    else:
+        return update_resource(username, wname, _DFL_BENCHMARK_NAME_, name, data)
+
+
 @benchmarks_bp.delete('/<name>/')
 @benchmarks_bp.delete('/<name>')
 @token_auth.login_required

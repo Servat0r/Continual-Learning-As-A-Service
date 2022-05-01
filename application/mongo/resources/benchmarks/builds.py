@@ -62,8 +62,5 @@ class SplitMNISTBuildConfig(MongoBuildConfig):
         # noinspection PyArgumentList
         return self.target_type()(benchmark)
 
-    def update(self, data, context: ResourceContext):
-        pass
-
 
 # FashionMNIST builder

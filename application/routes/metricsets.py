@@ -31,6 +31,26 @@ def build_metric_set(username, wname, name):
     return build_resource(username, wname, _DFL_METRICSET_NAME_, name)
 
 
+@metricsets_bp.patch('/<name>/')
+@metricsets_bp.patch('/<name>/')
+@token_auth.login_required
+def update_metricset(username, wname, name):
+    """
+    :param username:
+    :param wname:
+    :param name:
+    :return:
+    """
+    data, error, opts, extras = checked_json(request, True)
+    if error:
+        if data:
+            return error(**data)
+        else:
+            return error()
+    else:
+        return update_resource(username, wname, _DFL_METRICSET_NAME_, name, data)
+
+
 @metricsets_bp.delete('/<name>/')
 @metricsets_bp.delete('/<name>')
 @token_auth.login_required
