@@ -57,7 +57,7 @@ def add_new_resource(username, workspace, typename) -> Response:
             )
         elif __DEBUG:
             print(resource_document)
-        return make_success_dict(msg=f"Successfully created resource of type '{typename}'!")
+        return make_success_dict(HTTPStatus.CREATED, msg=f"Successfully created resource of type '{typename}'!")
 
 
 def build_resource(username, workspace, typename, name) -> Response:
