@@ -47,7 +47,7 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
     @classmethod
     @abstractmethod
     def get(cls, workspace: Workspace = None, name: str = None) -> list[BaseDataRepository]:
-        pass
+        return cls.get_class().get(workspace, name)
 
     # 4. Create + callbacks
     @classmethod

@@ -45,6 +45,15 @@ class MongoDataSubRepository(BaseDataSubRepository, db.Document):
 
     # 3. General classmethods
     @classmethod
+    def get(cls, repository: BaseDataRepository = None, name: str = None):
+        args = {}
+        if repository is not None:
+            args['data_repository'] = repository
+        if name is not None:
+            args['name'] = name
+        return list(cls.objects(**args).all())
+
+    @classmethod
     def get_by_data_repository(cls, repository: BaseDataRepository) -> list[BaseDataSubRepository]:
         return list(cls.objects(data_repository=repository).all())
 

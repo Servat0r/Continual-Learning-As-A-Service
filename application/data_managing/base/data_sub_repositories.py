@@ -35,8 +35,13 @@ class BaseDataSubRepository(JSONSerializable, URIBasedResource):
     # 3. General classmethods
     @classmethod
     @abstractmethod
+    def get(cls, repository: BaseDataRepository = None, name: str = None):
+        return cls.get_class().get(repository, name)
+
+    @classmethod
+    @abstractmethod
     def get_by_data_repository(cls, repository: BaseDataRepository) -> list[BaseDataSubRepository]:
-        pass
+        return cls.get_class().get_by_data_repository(repository)
 
     # 4. Create + callbacks
     @classmethod
