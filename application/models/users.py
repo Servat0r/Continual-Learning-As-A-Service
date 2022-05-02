@@ -22,11 +22,8 @@ def check_token(token):
 
 class User(UserMixin):
 
+    # 0.0. Actual class
     __user_class__: t.Type[User] = None
-
-    @staticmethod
-    def check_ownership(username: str, user: User):
-        return user.get_name() == username
 
     @staticmethod
     def set_user_class(cls: t.Type[User]):
@@ -38,7 +35,7 @@ class User(UserMixin):
     def user_class() -> t.Type[User] | None:
         return User.__user_class__
 
-    # ....................... #
+    # 0.1 Data manager
     __data_manager__ = None
 
     @staticmethod
@@ -53,7 +50,7 @@ class User(UserMixin):
     def get_data_manager():
         return User.__data_manager__
 
-    # ....................... #
+    # 3. General classmethods
     @classmethod
     def canonicalize(cls, obj: str | User) -> User:
         if isinstance(obj, str):
@@ -82,8 +79,65 @@ class User(UserMixin):
     @abstractmethod
     def get_by_token(cls, token: str) -> User:
         return User.user_class().get_by_token(token)
-    # ....................... #
 
+    # 4. Create + callbacks
+    @classmethod
+    @abstractmethod
+    def before_create(cls, username: str, email: str, password: str) -> TBoolExc:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def after_create(cls, user: User) -> TBoolExc:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def create(cls, username: str, email: str, password: str, save: bool = True) -> User:
+
+        result, exc = User.user_class().before_create(username, email, password)
+        if not result:
+            raise exc
+
+        user = User.user_class().create(username, email, password)
+
+        if user is not None:
+            result, exc = User.user_class().after_create(user)
+            if not result:
+                User.delete(user)
+                raise exc
+
+        return user
+
+    # 5. Delete + callbacks
+    @classmethod
+    @abstractmethod
+    def before_delete(cls, user: User) -> TBoolExc:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def after_delete(cls, user: User) -> TBoolExc:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def delete(cls, user: User) -> TBoolExc:
+
+        result, exc = User.user_class().before_delete(user)
+        if not result:
+            return False, exc
+
+        result, exc = User.user_class().delete(user)
+        if not result:
+            return False, exc
+        else:
+            result, exc = User.user_class().after_delete(user)
+            if not result:
+                return False, exc
+            return True, None
+
+    # 6. Read/Update/General instance methods
     def __str__(self):
         return self.__repr__()
 
@@ -112,68 +166,12 @@ class User(UserMixin):
         pass
 
     @abstractmethod
-    def workspaces(self):
-        pass
-
-    @abstractmethod
-    def to_dict(self, include_email=False) -> TDesc:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def create(cls, username: str, email: str, password: str, save: bool = True,
-               before_args: TDesc = None, after_args: TDesc = None) -> User:
-
-        if before_args is None:
-            before_args = {}
-
-        if after_args is None:
-            after_args = {}
-
-        result, exc = cls.get_data_manager().before_create_user(**before_args)
-        if not result:
-            raise exc
-
-        user = User.user_class().create(username, email, password)
-
-        if user is not None:
-            result, exc = cls.get_data_manager().after_create_user(user, **after_args)
-            if not result:
-                User.delete(user)
-                raise exc
-
-        return user
-
-    @abstractmethod
     def edit(self, data: dict, save: bool = True) -> dict[str, dict[str, str]]:
         pass
 
     @abstractmethod
     def save(self, create=False):
         pass
-
-    @classmethod
-    @abstractmethod
-    def delete(cls, user: User, before_args: TDesc = None, after_args: TDesc = None) -> TBoolExc:
-
-        if before_args is None:
-            before_args = {}
-
-        if after_args is None:
-            after_args = {}
-
-        result, exc = cls.get_data_manager().before_delete_user(user, **before_args)
-        if not result:
-            raise exc
-
-        result, exc = User.user_class().delete(user)
-        if not result:
-            raise exc
-        else:
-            result, exc = cls.get_data_manager().after_delete_user(user, **after_args)
-            if not result:
-                raise exc
-            return True, None
 
     @abstractmethod
     def set_password(self, password: str, save: bool = True):
@@ -185,6 +183,20 @@ class User(UserMixin):
         """
         pass
 
+    @abstractmethod
+    def user_base_dir(self):
+        pass
+
+    @abstractmethod
+    def to_dict(self, include_email=False) -> TDesc:
+        pass
+
+    # 7. Query-like instance methods
+    @abstractmethod
+    def workspaces(self):
+        pass
+
+    # 9. Special methods
     @staticmethod
     def get_password_hash(password: str) -> str:
         return generate_password_hash(password)
@@ -225,6 +237,10 @@ class User(UserMixin):
         :return:
         """
         pass
+
+    @staticmethod
+    def check_ownership(username: str, user: User):
+        return user.get_name() == username
 
 
 __all__ = [

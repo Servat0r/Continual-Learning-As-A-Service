@@ -12,11 +12,6 @@ class BaseMetadata(JSONSerializable):
             'last_modified': self.get_last_modified(),
         }
 
-    @classmethod
-    @abstractmethod
-    def from_dict(cls, data: TDesc) -> t.Any:
-        raise NotImplementedError
-
     @abstractmethod
     def get_created(self):
         pass

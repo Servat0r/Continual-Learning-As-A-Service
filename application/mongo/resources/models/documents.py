@@ -3,10 +3,7 @@ from application.mongo.resources.mongo_base_configs import *
 
 
 class ModelMetadata(MongoBaseMetadata):
-
-    @classmethod
-    def from_dict(cls, data: TDesc) -> t.Any:
-        raise NotImplementedError
+    pass
 
 
 class MongoModelConfig(MongoResourceConfig):

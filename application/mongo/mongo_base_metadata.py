@@ -13,10 +13,6 @@ class MongoBaseMetadata(BaseMetadata, db.EmbeddedDocument):
     created = db.DateTimeField(required=True)
     last_modified = db.DateTimeField(required=True)
 
-    @classmethod
-    def from_dict(cls, data: TDesc) -> t.Any:
-        raise NotImplementedError
-
     def get_created(self):
         return self.created
 

@@ -30,42 +30,22 @@ class BaseDataManager:
     @classmethod
     @abstractmethod
     def create(cls, root_dir: str = _DFL_ROOT_DIR, *args, **kwargs) -> BaseDataManager:
-        return BaseDataManager.__manager_class__.create(root_dir, *args, **kwargs)
+        return BaseDataManager.get_class().create(root_dir, *args, **kwargs)
 
     @abstractmethod
-    def before_create_user(self, *args, **kwargs) -> TBoolExc:
-        """
-        To call before a user is created.
-        :return:
-        """
+    def create_subdir(self, dir_name: str, parents: list[str] = None) -> TBoolExc:
         pass
 
     @abstractmethod
-    def after_create_user(self, user, *args, **kwargs) -> TBoolExc:
+    def remove_subdir(self, dir_name: str, parents: list[str] = None) -> TBoolExc:
         pass
 
     @abstractmethod
-    def before_delete_user(self, user, *args, **kwargs) -> TBoolExc:
+    def get_dir_path(self, dir_names: list[str] = None) -> str:
         pass
 
     @abstractmethod
-    def after_delete_user(self, user, *args, **kwargs) -> TBoolExc:
-        pass
-
-    @abstractmethod
-    def before_create_workspace(self, *args, **kwargs) -> TBoolExc:
-        pass
-
-    @abstractmethod
-    def after_create_workspace(self, workspace, *args, **kwargs) -> TBoolExc:
-        pass
-
-    @abstractmethod
-    def before_delete_workspace(self, workspace, *args, **kwargs) -> TBoolExc:
-        pass
-
-    @abstractmethod
-    def after_delete_workspace(self, workspace, *args, **kwargs) -> TBoolExc:
+    def get_file_path(self, file_name: str, dir_names: list[str] = None) -> str:
         pass
 
     # metodi per aggiungere/togliere files etc.

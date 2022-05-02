@@ -3,10 +3,7 @@ from application.mongo.resources.mongo_base_configs import *
 
 
 class BenchmarkMetadata(MongoBaseMetadata):
-
-    @classmethod
-    def from_dict(cls, data: TDesc) -> t.Any:
-        raise NotImplementedError
+    pass
 
 
 class MongoBenchmarkConfig(MongoResourceConfig):

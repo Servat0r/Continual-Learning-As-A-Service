@@ -23,11 +23,6 @@ class JSONSerializable:
     def to_dict(self) -> TDesc:
         pass
 
-    @classmethod
-    @abstractmethod
-    def from_dict(cls, data: TDesc) -> t.Any:
-        pass
-
 
 class NameBasedResource:
 

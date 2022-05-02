@@ -46,9 +46,16 @@ def make_shell_context():
         'system': os.system, 'cls': cls, 'clear': clear,
         'db': db, 'drop_db': drop_db, 'drop_coll': drop_collections,
 
-        # classes
+        # users & workspaces
         'User': User, 'Workspace': Workspace,
         'Context': UserWorkspaceResourceContext,
+
+        # data managing
+        'DataRepo': BaseDataRepository,
+        'DataSubRepo': BaseDataSubRepository,
+        'DataManager': BaseDataManager,
+
+        # resources
         'DataType': DataType, 'Benchmark': MongoBenchmark,
         'MetricSet': MongoStandardMetricSet,
         'Model': MongoModel,

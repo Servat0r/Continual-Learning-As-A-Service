@@ -9,7 +9,7 @@ from mongoengine import NotUniqueError
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
 from application.validation import USERNAME_MAX_CHARS
 from application.database import db
-from application.resources import t, TDesc, TBoolExc
+from application.resources import TDesc, TBoolExc
 from application.models import User, Workspace
 
 
@@ -19,14 +19,11 @@ class UserMetadata(MongoBaseMetadata):
         result = super().to_dict()
         return result
 
-    @classmethod
-    def from_dict(cls, data: TDesc) -> t.Any:
-        raise NotImplementedError
-
 
 @User.set_user_class
 class MongoUser(User, db.Document):
 
+    # 1. Fields
     username = db.StringField(required=True, max_length=USERNAME_MAX_CHARS, unique=True)
     email = db.StringField(required=True, unique=True)
     password_hash = db.StringField()
@@ -34,7 +31,7 @@ class MongoUser(User, db.Document):
     token_expiration = db.DateTimeField()
     metadata = db.EmbeddedDocumentField(UserMetadata)
 
-    # ....................... #
+    # 3. General classmethods
     @classmethod
     def all(cls):
         return list(cls.objects({}).all())
@@ -50,7 +47,66 @@ class MongoUser(User, db.Document):
     @classmethod
     def get_by_token(cls, token: str) -> User:
         return cls.objects(token=token).first()
-    # ....................... #
+
+    # 4. Create + callbacks
+    @classmethod
+    def before_create(cls, username: str, email: str, password: str) -> TBoolExc:
+        return True, None
+
+    @classmethod
+    def after_create(cls, user: User) -> TBoolExc:
+        manager = User.get_data_manager()
+        return manager.create_subdir(user.user_base_dir())
+
+    @classmethod
+    def create(cls, username: str, email: str, password: str, save: bool = True):
+        now = datetime.utcnow()
+        # noinspection PyArgumentList
+        user = cls(
+            username=username,
+            email=email,
+            password_hash=cls.get_password_hash(password),
+            token='',
+            token_expiration=now,
+            metadata=UserMetadata(created=now, last_modified=now)
+        )
+        user.get_token(expires_in=3600, save=False)
+        if save:
+            user.save(create=True)
+            print(f"Created user '{username}' with id '{user.id}'")
+        return user
+
+    # 5. Delete + callbacks
+    @classmethod
+    def before_delete(cls, user: User) -> TBoolExc:
+        try:
+            for workspace in user.workspaces():
+                workspace.close()
+                Workspace.delete(workspace)
+            return True, None
+        except Exception as ex:
+            return False, ex
+
+    @classmethod
+    def after_delete(cls, user: User) -> TBoolExc:
+        try:
+            manager = User.get_data_manager()
+            manager.remove_subdir(user.user_base_dir())
+            return True, None
+        except Exception as ex:
+            return False, ex
+
+    @classmethod
+    def delete(cls, user: User, before_args: TDesc = None, after_args: TDesc = None) -> TBoolExc:
+        try:
+            db.Document.delete(user)
+            return True, None
+        except Exception as ex:
+            return False, ex
+
+    # 6. Read/Update/General instance methods
+    def __repr__(self):
+        return f"<User '{self.username}'>"
 
     def get_name(self):
         return self.username
@@ -69,40 +125,6 @@ class MongoUser(User, db.Document):
 
     def get_metadata(self) -> TDesc:
         return self.metadata.to_dict()
-
-    def workspaces(self):
-        return Workspace.get_class().get_by_owner(self)
-
-    def __repr__(self):
-        return f"<User '{self.username}'>"
-
-    def to_dict(self, include_email=False):
-        data = {
-            'username': self.username,
-            'metadata': self.metadata.to_dict(),
-        }
-        if include_email:
-            data['email'] = self.email
-        return data
-
-    @classmethod
-    def create(cls, username: str, email: str, password: str, save: bool = True,
-               before_args: TDesc = None, after_args: TDesc = None):
-        now = datetime.utcnow()
-        # noinspection PyArgumentList
-        user = cls(
-            username=username,
-            email=email,
-            password_hash=cls.get_password_hash(password),
-            token='',
-            token_expiration=now,
-            metadata=UserMetadata(created=now, last_modified=now)
-        )
-        user.get_token(expires_in=3600, save=False)
-        if save:
-            user.save(create=True)
-            print(f"Created user '{username}' with id '{user.id}'")
-        return user
 
     def edit(self, data: dict, save: bool = True) -> dict[str, dict[str, str]]:
         username = data.pop('username')
@@ -130,29 +152,8 @@ class MongoUser(User, db.Document):
             self.save()
         return result
 
-    def update_last_modified(self, time: datetime = None, save: bool = True):
-        self.metadata.update_last_modified(time)
-        if save:
-            self.save()
-
     def save(self, create=False):
         db.Document.save(self, force_insert=create)
-
-    @classmethod
-    def delete(cls, user: User, before_args: TDesc = None, after_args: TDesc = None) -> TBoolExc:
-        try:
-            db.Document.delete(user)
-            return True, None
-        except Exception as ex:
-            return False, ex
-
-    def check_correct_password(self, password):
-        """
-        Checks password for the current user against the memorized hash.
-        :param password:
-        :return:
-        """
-        return check_password_hash(self.password_hash, password)
 
     def set_password(self, password: str, save: bool = True):
         """
@@ -165,6 +166,36 @@ class MongoUser(User, db.Document):
         self.update_last_modified(save=save)
         if save:
             self.save()
+
+    def user_base_dir(self):
+        return f"User_{self.get_id()}"
+
+    def update_last_modified(self, time: datetime = None, save: bool = True):
+        self.metadata.update_last_modified(time)
+        if save:
+            self.save()
+
+    def to_dict(self, include_email=False):
+        data = {
+            'username': self.username,
+            'metadata': self.metadata.to_dict(),
+        }
+        if include_email:
+            data['email'] = self.email
+        return data
+
+    # 7. Query-like Instance methods
+    def workspaces(self):
+        return Workspace.get_class().get_by_owner(self)
+
+    # 9. Special methods
+    def check_correct_password(self, password):
+        """
+        Checks password for the current user against the memorized hash.
+        :param password:
+        :return:
+        """
+        return check_password_hash(self.password_hash, password)
 
     def avatar(self, size):
         """

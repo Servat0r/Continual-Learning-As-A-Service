@@ -1,5 +1,4 @@
 from __future__ import annotations
-import os
 from application.utils import *
 from application.models.users import User
 from application.resources import *
@@ -10,6 +9,7 @@ class Workspace(JSONSerializable, URIBasedResource):
     OPEN = 'OPEN'
     CLOSED = 'CLOSED'
 
+    # 0.0. Actual class methods
     __workspace_class__: t.Type[Workspace] = None
 
     @staticmethod
@@ -22,7 +22,7 @@ class Workspace(JSONSerializable, URIBasedResource):
     def get_class():
         return Workspace.__workspace_class__
 
-    # ....................... #
+    # 0.1. Data manager methods
     __data_manager__ = None
 
     @staticmethod
@@ -37,7 +37,19 @@ class Workspace(JSONSerializable, URIBasedResource):
     def get_data_manager():
         return Workspace.__data_manager__
 
-    # ....................... #
+    # 2. Uri methods
+    @classmethod
+    @abstractmethod
+    def get_by_uri(cls, uri: str):
+        return Workspace.get_class().get_by_uri(uri)
+
+    @classmethod
+    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext) -> str:
+        username = context.get_username()
+        workspace = context.get_workspace()
+        return cls.uri_separator().join(['workspace', username, workspace])
+
+    # 3. General classmethods
     @classmethod
     def canonicalize(cls, obj: UserWorkspaceResourceContext | Workspace | tuple[str | User, str | Workspace]):
         if isinstance(obj, Workspace):
@@ -67,11 +79,6 @@ class Workspace(JSONSerializable, URIBasedResource):
 
     @classmethod
     @abstractmethod
-    def get_by_uri(cls, uri: str):
-        return Workspace.get_class().get_by_uri(uri)
-
-    @classmethod
-    @abstractmethod
     def get(cls, owner: str | User = None, name: str = None) -> list[Workspace]:
         return Workspace.get_class().get(owner, name)
 
@@ -84,19 +91,69 @@ class Workspace(JSONSerializable, URIBasedResource):
     @abstractmethod
     def all(cls):
         return Workspace.get_class().all()
-    # ....................... #
 
-    @property
+    # 4. Create + callbacks
+    @classmethod
     @abstractmethod
-    def uri(self):
+    def before_create(cls, name: str, owner: User) -> TBoolExc:
         pass
 
     @classmethod
-    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext) -> str:
-        username = context.get_username()
-        workspace = context.get_workspace()
-        return cls.uri_separator().join(['workspace', username, workspace])
-    # ....................... #
+    @abstractmethod
+    def after_create(cls, workspace: Workspace) -> TBoolExc:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def create(cls, name: str, owner: str | User, save: bool = True, open_on_create: bool = True) -> Workspace:
+
+        owner = User.canonicalize(owner)
+
+        result, exc = Workspace.get_class().before_create(name, owner)
+        if not result:
+            raise exc
+
+        workspace = Workspace.get_class().create(name, owner, save, open_on_create)
+
+        if workspace is not None:
+            result, exc = Workspace.get_class().after_create(workspace)
+            if not result:
+                Workspace.delete(workspace)
+                raise exc
+
+        return workspace
+
+    # 5. Delete + callbacks
+    @classmethod
+    @abstractmethod
+    def before_delete(cls, workspace: Workspace) -> TBoolExc:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def after_delete(cls, workspace: Workspace) -> TBoolExc:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def delete(cls, workspace: Workspace) -> TBoolExc:
+
+        result, exc = Workspace.get_class().before_delete(workspace)
+        if not result:
+            return False, exc
+
+        result, exc = Workspace.get_class().delete(workspace)
+        if not result:
+            return False, exc
+        else:
+            result, exc = Workspace.get_class().after_delete(workspace)
+            if not result:
+                return False, exc
+            return True, None
+
+    # 6. Read/Update Instance methods
+    def __str__(self):
+        return self.__repr__()
 
     @abstractmethod
     def get_id(self):
@@ -110,33 +167,9 @@ class Workspace(JSONSerializable, URIBasedResource):
     def get_owner(self) -> User:
         pass
 
-    def __str__(self):
-        return self.__repr__()
-
-    @classmethod
     @abstractmethod
-    def create(cls, name: str, owner: str | User, save: bool = True, open_on_create: bool = True,
-               before_args: TDesc = None, after_args: TDesc = None) -> Workspace:
-        
-        if before_args is None:
-            before_args = {}
-
-        if after_args is None:
-            after_args = {}
-
-        result, exc = cls.get_data_manager().before_create_workspace(**before_args)
-        if not result:
-            raise exc
-
-        workspace = Workspace.get_class().create(name, owner, save, open_on_create)
-
-        if workspace is not None:
-            result, exc = cls.get_data_manager().after_create_workspace(workspace, **after_args)
-            if not result:
-                Workspace.delete(workspace)
-                raise exc
-
-        return workspace
+    def workspace_base_dir(self):
+        pass
 
     @abstractmethod
     def rename(self, old_name: str, new_name: str) -> TBoolStr:
@@ -146,29 +179,28 @@ class Workspace(JSONSerializable, URIBasedResource):
     def save(self, create=False):
         pass
 
-    @classmethod
     @abstractmethod
-    def delete(cls, workspace: Workspace, before_args: TDesc = None, after_args: TDesc = None) -> TBoolExc:
+    def update_last_modified(self, time: datetime = None, save: bool = True):
+        pass
 
-        if before_args is None:
-            before_args = {}
+    @abstractmethod
+    def to_dict(self) -> TDesc:
+        pass
 
-        if after_args is None:
-            after_args = {}
+    # 7. Query-like methods
+    @abstractmethod
+    def data_repositories(self):
+        pass
 
-        result, exc = cls.get_data_manager().before_delete_workspace(workspace, **before_args)
-        if not result:
-            raise exc
+    @abstractmethod
+    def all_experiments(self):
+        pass
 
-        result, exc = Workspace.get_class().delete(workspace)
-        if not result:
-            raise exc
-        else:
-            result, exc = cls.get_data_manager().after_delete_workspace(workspace, **after_args)
-            if not result:
-                raise exc
-            return True, None
+    @abstractmethod
+    def running_experiments(self):
+        pass
 
+    # 8. Status methods
     @abstractmethod
     def open(self, save: bool = True):
         pass
@@ -178,19 +210,12 @@ class Workspace(JSONSerializable, URIBasedResource):
         pass
 
     @abstractmethod
-    def update_last_modified(self, time: datetime = None, save: bool = True):
-        pass
-
-    @abstractmethod
     def is_open(self):
         pass
 
-    @classmethod
-    def from_dict(cls, data: TDesc) -> t.Any:
-        raise NotImplementedError
-
+    # 9. Special methods
     @abstractmethod
-    def to_dict(self) -> TDesc:
+    def wait_experiments(self):
         pass
 
 
