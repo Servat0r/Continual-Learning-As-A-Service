@@ -61,81 +61,39 @@ class User(UserMixin):
             raise TypeError(f"Unsupported type: '{type(obj)}'.")
 
     @classmethod
+    def get(cls, username: str, **kwargs) -> list[User]:
+        pass
+
+    @classmethod
     @abstractmethod
     def all(cls):
         return User.user_class().all()
 
     @classmethod
     @abstractmethod
-    def get_by_name(cls, name: str) -> User:
+    def get_by_name(cls, name: str) -> User | None:
         return User.user_class().get_by_name(name)
 
     @classmethod
     @abstractmethod
-    def get_by_email(cls, email: str) -> User:
+    def get_by_email(cls, email: str) -> User | None:
         return User.user_class().get_by_email(email)
 
     @classmethod
     @abstractmethod
-    def get_by_token(cls, token: str) -> User:
+    def get_by_token(cls, token: str) -> User | None:
         return User.user_class().get_by_token(token)
 
     # 4. Create + callbacks
     @classmethod
     @abstractmethod
-    def before_create(cls, username: str, email: str, password: str) -> TBoolExc:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def after_create(cls, user: User) -> TBoolExc:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def create(cls, username: str, email: str, password: str, save: bool = True) -> User:
-
-        result, exc = User.user_class().before_create(username, email, password)
-        if not result:
-            raise exc
-
-        user = User.user_class().create(username, email, password)
-
-        if user is not None:
-            result, exc = User.user_class().after_create(user)
-            if not result:
-                User.delete(user)
-                raise exc
-
-        return user
+    def create(cls, username: str, email: str, password: str, save: bool = True) -> User | None:
+        return cls.user_class().create(username, email, password, save)
 
     # 5. Delete + callbacks
-    @classmethod
     @abstractmethod
-    def before_delete(cls, user: User) -> TBoolExc:
+    def delete(self) -> TBoolExc:
         pass
-
-    @classmethod
-    @abstractmethod
-    def after_delete(cls, user: User) -> TBoolExc:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def delete(cls, user: User) -> TBoolExc:
-
-        result, exc = User.user_class().before_delete(user)
-        if not result:
-            return False, exc
-
-        result, exc = User.user_class().delete(user)
-        if not result:
-            return False, exc
-        else:
-            result, exc = User.user_class().after_delete(user)
-            if not result:
-                return False, exc
-            return True, None
 
     # 6. Read/Update/General instance methods
     def __str__(self):

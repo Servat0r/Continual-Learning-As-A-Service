@@ -145,16 +145,9 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         except Exception as ex:
             return False, f"When updating build config: an error occurred: '{type(ex).__name__}': {ex.args[0]}."
 
-    def delete(self, context: ResourceContext):
-        """
-        Default implementation.
-        :param context:
-        :return:
-        """
-        db.EmbeddedDocument.delete(self)
 
+class MongoResourceConfig(RWLockableDocument, ResourceConfig):
 
-class MongoResourceConfig(db.Document, ResourceConfig):
     meta = {
         'abstract': True,
         'allow_inheritance': True,
@@ -169,7 +162,8 @@ class MongoResourceConfig(db.Document, ResourceConfig):
 
     # .................... #
     @classmethod
-    def get_by(cls, owner: str | User, workspace: str | Workspace, name: str = None) -> list[MongoResourceConfig]:
+    def get_by(cls, owner: str | MongoBaseUser, workspace: str | MongoBaseWorkspace,
+               name: str = None) -> list[MongoResourceConfig]:
         args = {}
         owner = User.canonicalize(owner)
         args['owner'] = owner
@@ -183,10 +177,11 @@ class MongoResourceConfig(db.Document, ResourceConfig):
     @classmethod
     def get_by_uri(cls, uri: str):
         s = uri.split(cls.uri_separator())
-        owner = User.canonicalize(s[1])
+        owner = t.cast(MongoBaseUser, User.canonicalize(s[1]))
         workspace = Workspace.canonicalize((s[1], s[2]))
         name = s[3]
-        return cls.objects(owner=owner, workspace=workspace, name=name).first()
+        ls = cls.get_by(owner=owner, workspace=workspace, name=name)
+        return ls[0] if len(ls) > 0 else None
 
     @classmethod
     def all(cls):
@@ -219,7 +214,8 @@ class MongoResourceConfig(db.Document, ResourceConfig):
         pass
 
     @classmethod
-    def create(cls, data, context: UserWorkspaceResourceContext, save: bool = True, **metadata):
+    def create(cls, data, context: UserWorkspaceResourceContext, save: bool = True,
+               parent_locked=False, **metadata):
         result, msg = cls.validate_input(data, context)
         if not result:
             raise ValueError(msg)
@@ -231,8 +227,8 @@ class MongoResourceConfig(db.Document, ResourceConfig):
                 raise ValueError(f"Unknown build config: '{data['build']}'")
 
             build_config = t.cast(MongoBuildConfig, config).create(data['build'], cls.target_type(), context, save)
-            owner = User.canonicalize(context.get_username())
-            workspace = Workspace.canonicalize(context)
+            owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
+            workspace = t.cast(MongoBaseWorkspace, Workspace.canonicalize(context))
             now = datetime.utcnow()
 
             if metadata is None:
@@ -240,18 +236,22 @@ class MongoResourceConfig(db.Document, ResourceConfig):
             metadata['created'] = now
             metadata['last_modified'] = now
 
-            # noinspection PyArgumentList
-            obj = cls(
-                name=name,
-                description=description,
-                build_config=build_config,
-                owner=owner,
-                workspace=workspace,
-                metadata=cls.meta_type()(**metadata),
-            )
-            if save:
-                obj.save(force_insert=True)
-            return obj
+            with owner.sub_resource_create(locked=parent_locked):
+                with workspace.sub_resource_create(locked=parent_locked):
+                    # noinspection PyArgumentList
+                    obj = cls(
+                        name=name,
+                        description=description,
+                        build_config=build_config,
+                        owner=owner,
+                        workspace=workspace,
+                        metadata=cls.meta_type()(**metadata),
+                    )
+                    if obj is not None:
+                        with obj.resource_create():
+                            if save:
+                                obj.save(force_insert=True)
+                    return obj
 
     @classmethod
     def validate_input(cls, data, context: ResourceContext) -> TBoolStr:
@@ -326,11 +326,13 @@ class MongoResourceConfig(db.Document, ResourceConfig):
 
         return True, None
 
-    def delete(self, context):
-        db.Document.delete(self)
-
-    def __init__(self, *args, **values):
-        db.Document.__init__(self, *args, **values)
+    def delete(self, context: UserWorkspaceResourceContext, locked=False, parent_locked=False):
+        owner = t.cast(MongoBaseUser, context.get_username())
+        workspace = t.cast(MongoWorkspace, context.get_workspace())
+        with owner.sub_resource_delete(locked=parent_locked):
+            with workspace.sub_resource_delete(locked=parent_locked):
+                with self.resource_delete(locked=locked):
+                    db.Document.delete(self)
 
     def __repr__(self):
         return f"{type(self).__name__} <{self.name}>[id = {self.id}, uri = {self.uri}]"

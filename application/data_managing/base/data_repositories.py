@@ -46,65 +46,19 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
 
     @classmethod
     @abstractmethod
-    def get(cls, workspace: Workspace = None, name: str = None) -> list[BaseDataRepository]:
-        return cls.get_class().get(workspace, name)
+    def get(cls, workspace: Workspace = None, name: str = None, **kwargs) -> list[BaseDataRepository]:
+        return cls.get_class().get(workspace, name, **kwargs)
 
     # 4. Create + callbacks
     @classmethod
     @abstractmethod
-    def before_create(cls, name: str, workspace: Workspace) -> TBoolExc:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def after_create(cls, repository: BaseDataRepository) -> TBoolExc:
-        pass
-
-    @classmethod
-    @abstractmethod
     def create(cls, name: str, workspace: Workspace, root: str = None, save: bool = True) -> BaseDataRepository | None:
-
-        result, exc = BaseDataRepository.get_class().before_create(name, workspace)
-        if not result:
-            raise exc
-
-        repository = BaseDataRepository.get_class().create(name, workspace, root, save)
-
-        if repository is not None:
-            result, exc = BaseDataRepository.get_class().after_create(repository)
-            if not result:
-                BaseDataRepository.delete(repository)
-                raise exc
-
-        return repository
+        return cls.get_class().create(name, workspace, root, save)
 
     # 5. Delete + callbacks
-    @classmethod
     @abstractmethod
-    def before_delete(cls, repository: BaseDataRepository) -> TBoolExc:
+    def delete(self) -> TBoolExc:
         pass
-
-    @classmethod
-    @abstractmethod
-    def after_delete(cls, repository: BaseDataRepository) -> TBoolExc:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def delete(cls, repository: BaseDataRepository) -> TBoolExc:
-
-        result, exc = BaseDataRepository.get_class().before_delete(repository)
-        if not result:
-            return False, exc
-
-        result, exc = BaseDataRepository.get_class().delete(repository)
-        if not result:
-            return False, exc
-        else:
-            result, exc = BaseDataRepository.get_class().after_delete(repository)
-            if not result:
-                return False, exc
-            return True, None
 
     # 6. Read/Update Instance methods
     @abstractmethod
@@ -112,7 +66,7 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
         pass
 
     @abstractmethod
-    def get_root(self):
+    def get_root(self) -> str:
         """
         Root directory
         :return:
@@ -120,19 +74,19 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
         pass
 
     @abstractmethod
-    def get_name(self):
+    def get_name(self) -> str:
         pass
 
     @abstractmethod
-    def get_workspace(self):
+    def get_workspace(self) -> Workspace:
         pass
 
     @abstractmethod
-    def get_owner(self):
+    def get_owner(self) -> User:
         pass
 
     @abstractmethod
-    def get_absolute_path(self):
+    def get_absolute_path(self) -> str:
         pass
 
     @abstractmethod
@@ -142,13 +96,3 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
     @abstractmethod
     def data_repo_base_dir(self) -> str:
         pass
-
-    # 7. Query-like instance methods
-    @abstractmethod
-    def get_sub_repositories(self):
-        pass
-
-    # 8. Status methods
-    # TODO
-
-    # 9. Special methods

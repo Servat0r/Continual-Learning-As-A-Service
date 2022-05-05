@@ -39,26 +39,46 @@ def return_exception(ex: Exception):
     return resp
 
 
+def user_n(n: int) -> t.Callable:
+    def nth_user():
+        return User.create(f"user{n}", f"user{n}@example.com", "1234@abcD")
+    return nth_user
+
+
+def wspace_n(n: int) -> t.Callable:
+    def nth_wspace():
+        return Workspace.create(f"wspace{n}", f"user{n}")
+    return nth_wspace
+
+
+def drop_exit():
+    drop_db()
+    exit()
+
+
 @app.shell_context_processor
 def make_shell_context():
     return {
         # generals
-        'system': os.system, 'cls': cls, 'clear': clear,
-        'db': db, 'drop_db': drop_db, 'drop_coll': drop_collections,
+        'system': os.system, 'cls': cls, 'clear': clear, 'db': db,
+        'drop_db': drop_db, 'drop_coll': drop_collections, 'drop_exit': drop_exit,
 
         # users & workspaces
-        'User': User, 'Workspace': Workspace,
+        'User': User.user_class(), 'Workspace': Workspace.get_class(),
         'Context': UserWorkspaceResourceContext,
 
         # data managing
-        'DataRepo': BaseDataRepository,
-        'DataSubRepo': BaseDataSubRepository,
+        'DataRepo': BaseDataRepository.get_class(),
         'DataManager': BaseDataManager,
 
         # resources
         'DataType': DataType, 'Benchmark': MongoBenchmark,
         'MetricSet': MongoStandardMetricSet,
         'Model': MongoModel,
+
+        # helpers
+        'user_n': user_n, 'wspace_n': wspace_n,
+
     }
 
 

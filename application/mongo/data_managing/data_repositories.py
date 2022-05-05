@@ -1,11 +1,8 @@
 from __future__ import annotations
-from datetime import datetime
 
+from application.resources import TBoolExc, TDesc
 from application.database import *
-from application.resources import TBoolExc, TDesc, t, UserWorkspaceResourceContext
-from application.models import User, Workspace
-from application.data_managing import BaseDataRepository, BaseDataSubRepository
-from application.mongo.mongo_base_metadata import MongoBaseMetadata
+from .base import *
 
 
 class MongoDataRepositoryMetadata(MongoBaseMetadata):
@@ -13,19 +10,20 @@ class MongoDataRepositoryMetadata(MongoBaseMetadata):
 
 
 @BaseDataRepository.set_class
-class MongoDataRepository(BaseDataRepository, db.Document):
+class MongoDataRepository(MongoBaseDataRepository):
 
     # 1. Fields
     meta = {
         'indexes': [
-            {'fields': ('workspace', 'name'), 'unique': True}
+            {'fields': ('workspace', 'name'), 'unique': True},
         ]
     }
 
-    workspace = db.ReferenceField(Workspace.get_class())            # workspace
+    workspace = db.ReferenceField(MongoBaseWorkspace)               # workspace
     name = db.StringField(required=True)                            # repo name
     root = db.StringField(required=True)                            # repo root directory
     metadata = db.EmbeddedDocumentField(MongoDataRepositoryMetadata)
+    files = db.MapField(db.IntField())                              # relative_path => file
 
     # 2. Uri methods
     @classmethod
@@ -35,7 +33,8 @@ class MongoDataRepository(BaseDataRepository, db.Document):
         wname = s[2]
         name = s[3]
         workspace = Workspace.canonicalize((username, wname))
-        return cls.objects(workspace=workspace, name=name).first()
+        ls = cls.get(workspace=workspace, name=name)
+        return ls[0] if len(ls) > 0 else None
 
     @property
     def uri(self):
@@ -44,87 +43,75 @@ class MongoDataRepository(BaseDataRepository, db.Document):
 
     # 3. General classmethods
     @classmethod
-    def get(cls, workspace: Workspace = None, name: str = None) -> list[BaseDataRepository]:
-        args = {}
+    def get(cls, workspace: MongoBaseWorkspace = None, name: str = None, **kwargs) -> list[BaseDataRepository]:
         if workspace is not None:
-            args['workspace'] = workspace
+            kwargs['workspace'] = workspace
         if name is not None:
-            args['name'] = name
-        return list(cls.objects(**args).all())
+            kwargs['name'] = name
+        return list(cls.objects(**kwargs).all())
 
     # 4. Create + callbacks
     @classmethod
-    def before_create(cls, name: str, workspace: Workspace) -> TBoolExc:
-        return True, None
+    def create(cls, name: str, workspace: MongoBaseWorkspace, root: str = None,
+               save: bool = True, parent_locked=False) -> MongoBaseDataRepository | None:
 
-    @classmethod
-    def after_create(cls, repository: BaseDataRepository) -> TBoolExc:
-        repository.root = repository.data_repo_base_dir()
-        repository.save()
-        manager = Workspace.get_data_manager()
-        owner = repository.get_owner()
-        workspace = repository.get_workspace()
-        return manager.create_subdir(
-            repository.get_root(),
-            parents=[
-                owner.user_base_dir(),
-                workspace.workspace_base_dir(),
-            ]
-        )
-
-    @classmethod
-    def create(cls, name: str, workspace: Workspace, root: str = None, save: bool = True) -> MongoDataRepository | None:
         # TODO Validation!
-        now = datetime.utcnow()
         if root is None:
             root = f"DataRepository_{name}"
-        # noinspection PyArgumentList
-        repository = cls(
-            workspace=workspace,
-            name=name,
-            root=root,
-            metadata=MongoDataRepositoryMetadata(created=now, last_modified=now),
-        )
-        if save:
-            repository.save(create=True)
-            print(f"Created DataRepository '{name}' with id '{repository.id}'.")
-        return repository
+
+        owner = workspace.get_owner()
+
+        with owner.sub_resource_create(locked=parent_locked):
+            with workspace.sub_resource_create(locked=parent_locked):
+
+                now = datetime.utcnow()
+                # noinspection PyArgumentList
+                repository = cls(
+                    workspace=workspace,
+                    name=name,
+                    root=root,
+                    metadata=MongoDataRepositoryMetadata(created=now, last_modified=now),
+                    files={},
+                )
+                if repository is not None:
+                    with repository.resource_create():
+                        if save:
+                            repository.save(create=True)
+                            print(f"Created DataRepository '{name}' with id '{repository.id}'.")
+
+                        manager = User.get_data_manager()
+                        repository.root = repository.data_repo_base_dir()
+                        repository.save()
+                        manager.create_subdir(
+                            repository.get_root(),
+                            parents=[
+                                owner.user_base_dir(),
+                                workspace.workspace_base_dir(),
+                            ]
+                        )
+                return repository
 
     # 5. Delete + callbacks
-    @classmethod
-    def before_delete(cls, repository: BaseDataRepository) -> TBoolExc:
-        try:
-            # TODO Aggiungere chiusura etc.
+    def delete(self, locked=False, parent_locked=False) -> TBoolExc:
 
-            return True, None
-        except Exception as ex:
-            return False, ex
+        owner = self.get_owner()
+        workspace = self.get_workspace()
 
-    @classmethod
-    def after_delete(cls, repository: BaseDataRepository) -> TBoolExc:
-        try:
-            manager = Workspace.get_data_manager()
-            workspace = repository.get_workspace()
-            owner = repository.get_owner()
-            parents = [
-                owner.user_base_dir(),
-                workspace.workspace_base_dir(),
-            ]
-            return manager.remove_subdir(
-                repository.get_root(),
-                parents=parents,
-            )
-        except Exception as ex:
-            return False, ex
-
-    @classmethod
-    def delete(cls, repository: BaseDataRepository) -> TBoolExc:
-        try:
-            # TODO Controlli!
-            db.Document.delete(repository)
-            return True, None
-        except Exception as ex:
-            return False, ex
+        with owner.sub_resource_delete(locked=parent_locked):
+            with workspace.sub_resource_delete(locked=parent_locked):
+                with self.resource_delete(locked=locked):
+                    # TODO Check sub-repositories!
+                    try:
+                        db.Document.delete(self)
+                        manager = User.get_data_manager()
+                        parents = [
+                            owner.user_base_dir(),
+                            workspace.workspace_base_dir(),
+                        ]
+                        manager.remove_subdir(self.get_root(), parents=parents)
+                        return True, None
+                    except Exception as ex:
+                        return False, ex
 
     # 6. Read/Update Instance methods
     def get_id(self):
@@ -136,10 +123,10 @@ class MongoDataRepository(BaseDataRepository, db.Document):
     def get_name(self) -> str:
         return self.name
 
-    def get_workspace(self) -> Workspace:
+    def get_workspace(self) -> MongoBaseWorkspace:
         return self.workspace
 
-    def get_owner(self) -> User:
+    def get_owner(self) -> MongoBaseUser:
         return self.workspace.get_owner()
 
     def get_absolute_path(self) -> str:
@@ -164,14 +151,10 @@ class MongoDataRepository(BaseDataRepository, db.Document):
             'name': self.name,
             'root': self.root,
             'workspace': self.workspace.to_dict(),
-            'sub_repositories': [obj.to_dict() for obj in self.sub_repositories],
             'metadata': self.metadata.to_dict(),
         }
 
     # 7. Query-like instance methods
-    def get_sub_repositories(self) -> list[BaseDataSubRepository]:
-        return BaseDataSubRepository.get_by_data_repository(self)
-
     # 8. Status methods
 
     # 9. Special methods

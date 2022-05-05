@@ -3,20 +3,16 @@ from __future__ import annotations
 from application.resources import *
 from application.validation import *
 from application.database import db
-from application.models import User, Workspace
 from application.data_managing import BaseDataRepository
-from application.mongo.mongo_base_metadata import MongoBaseMetadata
+from application.mongo.base import *
 
 
 class WorkspaceMetadata(MongoBaseMetadata):
-
-    def to_dict(self) -> TDesc:
-        result = super().to_dict()
-        return result
+    pass
 
 
 @Workspace.set_class
-class MongoWorkspace(Workspace, db.Document):
+class MongoWorkspace(MongoBaseWorkspace):
 
     # 1. Fields
     OPEN = 'OPEN'
@@ -28,10 +24,10 @@ class MongoWorkspace(Workspace, db.Document):
         ]
     }
 
-    owner = db.ReferenceField(User.user_class())
-    name = db.StringField(max_length=WORKSPACE_EXPERIMENT_MAX_CHARS)
-    status = db.StringField(max_length=8)
-    metadata = db.EmbeddedDocumentField(WorkspaceMetadata)
+    owner = db.ReferenceField(MongoBaseUser, required=True)
+    name = db.StringField(max_length=WORKSPACE_EXPERIMENT_MAX_CHARS, required=True)
+    status = db.StringField(max_length=8, required=True)
+    metadata = db.EmbeddedDocumentField(WorkspaceMetadata, required=True)
 
     # 2. Uri methods
     @classmethod
@@ -43,9 +39,10 @@ class MongoWorkspace(Workspace, db.Document):
         """
         s = uri.split(cls.uri_separator())
         print(s)
-        user = User.canonicalize(s[1])
+        user = t.cast(MongoBaseUser, User.canonicalize(s[1]))
         workspace = s[2]
-        return cls.objects(owner=user, name=workspace).first()
+        ls = cls.get(owner=user, name=workspace)
+        return ls[0] if len(ls) > 0 else None
 
     @property
     def uri(self):
@@ -54,31 +51,26 @@ class MongoWorkspace(Workspace, db.Document):
 
     # 3. General classmethods
     @classmethod
-    def get(cls, owner: str | User = None, name: str = None) -> t.Sequence[Workspace]:
-        args = {}
+    def get(cls, owner: str | MongoBaseUser = None, name: str = None, **kwargs) -> t.Sequence[MongoBaseWorkspace]:
         if owner is not None:
             owner = User.canonicalize(owner)
-            args['owner'] = owner
+            kwargs['owner'] = owner
         if name is not None:
-            args['name'] = name
-        return list(cls.objects(**args).all())
+            kwargs['name'] = name
+        return list(cls.objects(**kwargs).all())
 
     @classmethod
-    def get_by_owner(cls, owner: str | User):
-        owner = User.canonicalize(owner)
-        return list(cls.objects(owner=owner).all())
+    def get_by_owner(cls, owner: str | MongoBaseUser):
+        owner = t.cast(MongoBaseUser, User.canonicalize(owner))
+        return cls.get(owner=owner)
 
     @classmethod
     def all(cls):
-        return list(cls.objects({}).all())
+        return cls.get()
 
     # 4. Create + callbacks
     @classmethod
-    def before_create(cls, name: str, owner: User) -> TBoolExc:
-        return True, None
-
-    @classmethod
-    def after_create(cls, workspace: Workspace) -> TBoolExc:
+    def after_create(cls, workspace: MongoBaseWorkspace) -> TBoolExc:
         manager = Workspace.get_data_manager()
         return manager.create_subdir(
             workspace.workspace_base_dir(),
@@ -86,56 +78,61 @@ class MongoWorkspace(Workspace, db.Document):
         )
 
     @classmethod
-    def create(cls, name: str, owner: str | User, save: bool = True, open_on_create: bool = True) -> Workspace:
+    def create(cls, name: str, owner: str | MongoBaseUser, save: bool = True,
+               open_on_create: bool = True, parent_locked=False) -> MongoBaseWorkspace | None:
+
+        owner = t.cast(MongoBaseUser, User.canonicalize(owner))
+
+        if owner is None:
+            return None
 
         result, msg = validate_workspace_experiment(name)
         if not result:
             raise ValueError(msg)
 
-        owner = User.canonicalize(owner)
-        now = datetime.utcnow()
-        # noinspection PyArgumentList
-        workspace = cls(
-            name=name,
-            status=Workspace.OPEN if open_on_create else Workspace.CLOSED,
-            owner=owner,
-            metadata=WorkspaceMetadata(created=now, last_modified=now),
-        )
-        if save:
-            workspace.save(create=True)
-            print(f"Created workspace '{workspace}' with id '{workspace.id}'.")
-        return workspace
+        with owner.sub_resource_create(locked=parent_locked):
+
+            now = datetime.utcnow()
+            # noinspection PyArgumentList
+            workspace = cls(
+                name=name,
+                status=Workspace.OPEN if open_on_create else Workspace.CLOSED,
+                owner=owner,
+                metadata=WorkspaceMetadata(created=now, last_modified=now),
+            )
+            if workspace is not None:
+                with workspace.resource_create():
+                    if save:
+                        workspace.save(create=True)
+                        print(f"Created workspace '{workspace}' with id '{workspace.id}'.")
+                    manager = User.get_data_manager()
+                    manager.create_subdir(
+                        workspace.workspace_base_dir(),
+                        parents=[workspace.get_owner().user_base_dir()]
+                    )
+            return workspace
 
     # 5. Delete + callbacks
-    @classmethod
-    def before_delete(cls, workspace: Workspace) -> TBoolExc:
-        try:
-            if workspace.is_open():
-                workspace.close()
-            workspace.wait_experiments()
-            # TODO Eliminare DataRepositories ed Experiments!
-            return True, None
-        except Exception as ex:
-            return False, ex
+    def delete(self, locked=False, parent_locked=False):
+        with self.get_owner().sub_resource_delete(locked=parent_locked):
+            with self.resource_delete(locked=locked):
+                if self.is_open():
+                    self.close()
+                try:
+                    for experiment in (self.all_experiments() or []):
+                        print(experiment)
+                        experiment.delete(parent_locked=True)
+                    for repository in self.data_repositories():
+                        print(repository)
+                        repository.delete(parent_locked=True)
+                except Exception as ex:
+                    return False, ex
 
-    @classmethod
-    def after_delete(cls, workspace: Workspace) -> TBoolExc:
-        try:
-            manager = Workspace.get_data_manager()
-            return manager.remove_subdir(
-                workspace.workspace_base_dir(),
-                parents=[workspace.get_owner().user_base_dir()]
-            )
-        except Exception as ex:
-            return False, ex
-
-    @classmethod
-    def delete(cls, workspace: Workspace):
-        if workspace.is_open():
-            return False, RuntimeError(f"Workspace '{workspace.get_name()}' is still open!")
-        else:
-            db.Document.delete(workspace)
-            return True, None
+                try:
+                    db.Document.delete(self)
+                    return True, None
+                except Exception as ex:
+                    return False, ex
 
     # 6. Read/Update Instance methods
     def __repr__(self):
@@ -147,10 +144,10 @@ class MongoWorkspace(Workspace, db.Document):
     def get_name(self) -> str:
         return self.name
 
-    def get_owner(self) -> User:
+    def get_owner(self) -> MongoBaseUser:
         return self.owner
 
-    def workspace_base_dir(self):
+    def workspace_base_dir(self) -> str:
         return f"Workspace_{self.get_id()}"
 
     def rename(self, old_name: str, new_name: str) -> TBoolStr:
@@ -184,7 +181,7 @@ class MongoWorkspace(Workspace, db.Document):
         }
 
     # 7. Query-like methods
-    def data_repositories(self):
+    def data_repositories(self):    # TODO!
         return list(BaseDataRepository.get(self))
 
     def all_experiments(self):

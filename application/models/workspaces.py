@@ -79,8 +79,8 @@ class Workspace(JSONSerializable, URIBasedResource):
 
     @classmethod
     @abstractmethod
-    def get(cls, owner: str | User = None, name: str = None) -> list[Workspace]:
-        return Workspace.get_class().get(owner, name)
+    def get(cls, owner: str | User = None, name: str = None, **kwargs) -> list[Workspace]:
+        return Workspace.get_class().get(owner, name, **kwargs)
 
     @classmethod
     @abstractmethod
@@ -95,61 +95,13 @@ class Workspace(JSONSerializable, URIBasedResource):
     # 4. Create + callbacks
     @classmethod
     @abstractmethod
-    def before_create(cls, name: str, owner: User) -> TBoolExc:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def after_create(cls, workspace: Workspace) -> TBoolExc:
-        pass
-
-    @classmethod
-    @abstractmethod
     def create(cls, name: str, owner: str | User, save: bool = True, open_on_create: bool = True) -> Workspace:
-
-        owner = User.canonicalize(owner)
-
-        result, exc = Workspace.get_class().before_create(name, owner)
-        if not result:
-            raise exc
-
-        workspace = Workspace.get_class().create(name, owner, save, open_on_create)
-
-        if workspace is not None:
-            result, exc = Workspace.get_class().after_create(workspace)
-            if not result:
-                Workspace.delete(workspace)
-                raise exc
-
-        return workspace
+        return cls.get_class().create(name, owner, save, open_on_create)
 
     # 5. Delete + callbacks
-    @classmethod
     @abstractmethod
-    def before_delete(cls, workspace: Workspace) -> TBoolExc:
+    def delete(self) -> TBoolExc:
         pass
-
-    @classmethod
-    @abstractmethod
-    def after_delete(cls, workspace: Workspace) -> TBoolExc:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def delete(cls, workspace: Workspace) -> TBoolExc:
-
-        result, exc = Workspace.get_class().before_delete(workspace)
-        if not result:
-            return False, exc
-
-        result, exc = Workspace.get_class().delete(workspace)
-        if not result:
-            return False, exc
-        else:
-            result, exc = Workspace.get_class().after_delete(workspace)
-            if not result:
-                return False, exc
-            return True, None
 
     # 6. Read/Update Instance methods
     def __str__(self):

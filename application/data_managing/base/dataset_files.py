@@ -1,11 +1,12 @@
 from __future__ import annotations
+import os
 
-from application.resources.contexts import *
-from .data_sub_repositories import *
+from application.resources import *
 
 
-class BaseDatasetFile:
+class BaseDatasetFile(JSONSerializable):
 
+    # 0.0 Actual class methods
     __dataset_file_class__: t.Type[BaseDatasetFile] = None
 
     @staticmethod
@@ -18,16 +19,45 @@ class BaseDatasetFile:
     def get_class():
         return BaseDatasetFile.__dataset_file_class__
 
-    def get_absolute_path(self) -> str:
-        self_path = self.get_relative_path()
-        dataset_path = self.get_data_subrepo().get_absolute_path()
-        return os.path.join(dataset_path, self_path)
+    # 4. Create + callbacks
+    @classmethod
+    @abstractmethod
+    def before_create(cls, name: str, subrepo: str, relative_path: str,
+                      content: t.Any = None, is_binary: bool = True) -> TBoolExc:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def after_create(cls, dfile: BaseDatasetFile) -> TBoolExc:
+        pass
 
     @classmethod
     @abstractmethod
     def create(cls, name: str, subrepo: str, relative_path: str, context: ResourceContext,
                content: t.Any = None, is_binary: bool = True, save: bool = True):
         pass
+
+    # 5. Delete + callbacks
+    @classmethod
+    @abstractmethod
+    def before_delete(cls, dfile: BaseDatasetFile) -> TBoolExc:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def after_delete(cls, dfile: BaseDatasetFile) -> TBoolExc:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def delete(cls, dfile: BaseDatasetFile):
+        pass
+
+    # 6. Read/Update Instance methods
+    def get_absolute_path(self) -> str:
+        self_path = self.get_relative_path()
+        dataset_path = self.get_data_subrepo().get_absolute_path()
+        return os.path.join(dataset_path, self_path)
 
     @abstractmethod
     def read(self):
@@ -46,19 +76,7 @@ class BaseDatasetFile:
         pass
 
     @abstractmethod
-    def delete(self):
-        pass
-
-    @abstractmethod
     def is_empty(self) -> bool:
-        pass
-
-    @abstractmethod
-    def get_data_subrepo(self) -> BaseDataSubRepository:
-        """
-        Current data subrepo hosting this file.
-        :return:
-        """
         pass
 
     @abstractmethod
@@ -99,20 +117,10 @@ class BaseDatasetFile:
         Syntax:
             "name" -> name
             "label" -> label
-            "subrepo" -> sub_repository
             "path" -> relative_path
             "content_type" -> content_type
         :param data:
         :param save:
-        :return:
-        """
-        pass
-
-    @abstractmethod
-    def update_data_subrepo(self, subrepo: BaseDataSubRepository):
-        """
-        Updates data subrepo (e.g., when migrating files).
-        :param subrepo:
         :return:
         """
         pass
@@ -131,6 +139,11 @@ class BaseDatasetFile:
 
     @abstractmethod
     def update_label(self):
+        pass
+
+    # 9. Special methods
+    @abstractmethod
+    def reload(self):
         pass
 
     # -> data subrepo (reference) [dataset_root is the root of the corresponding data repo]

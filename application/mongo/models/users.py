@@ -1,27 +1,23 @@
 from __future__ import annotations
 import os
 import base64
-from datetime import datetime, timedelta
+from datetime import timedelta
 from hashlib import md5
 from werkzeug.security import check_password_hash
 from mongoengine import NotUniqueError
 
-from application.mongo.mongo_base_metadata import MongoBaseMetadata
 from application.validation import USERNAME_MAX_CHARS
 from application.database import db
 from application.resources import TDesc, TBoolExc
-from application.models import User, Workspace
+from application.mongo.base import *
 
 
 class UserMetadata(MongoBaseMetadata):
-
-    def to_dict(self) -> TDesc:
-        result = super().to_dict()
-        return result
+    pass
 
 
 @User.set_user_class
-class MongoUser(User, db.Document):
+class MongoUser(MongoBaseUser):
 
     # 1. Fields
     username = db.StringField(required=True, max_length=USERNAME_MAX_CHARS, unique=True)
@@ -33,33 +29,34 @@ class MongoUser(User, db.Document):
 
     # 3. General classmethods
     @classmethod
+    def get(cls, username: str | None = None, **kwargs) -> list[MongoBaseUser]:
+        if username is not None:
+            kwargs['username'] = username
+        return list(cls.objects(**kwargs).all())
+
+    @classmethod
     def all(cls):
-        return list(cls.objects({}).all())
+        return cls.get()
 
     @classmethod
-    def get_by_name(cls, name: str) -> User:
-        return cls.objects(username=name).first()
+    def get_by_name(cls, name: str) -> MongoBaseUser | None:
+        result = cls.get(name)
+        return result[0] if len(result) >= 1 else None
 
     @classmethod
-    def get_by_email(cls, email: str) -> User:
-        return cls.objects(email=email).first()
+    def get_by_email(cls, email: str) -> MongoBaseUser | None:
+        result = cls.get(email=email)
+        return result[0] if len(result) >= 1 else None
 
     @classmethod
-    def get_by_token(cls, token: str) -> User:
-        return cls.objects(token=token).first()
+    def get_by_token(cls, token: str) -> MongoBaseUser | None:
+        result = cls.get(token=token)
+        return result[0] if len(result) >= 1 else None
 
     # 4. Create + callbacks
     @classmethod
-    def before_create(cls, username: str, email: str, password: str) -> TBoolExc:
-        return True, None
-
-    @classmethod
-    def after_create(cls, user: User) -> TBoolExc:
-        manager = User.get_data_manager()
-        return manager.create_subdir(user.user_base_dir())
-
-    @classmethod
-    def create(cls, username: str, email: str, password: str, save: bool = True):
+    def create(cls, username: str, email: str, password: str,
+               save: bool = True, parent_locked=False) -> MongoBaseUser | None:
         now = datetime.utcnow()
         # noinspection PyArgumentList
         user = cls(
@@ -68,41 +65,36 @@ class MongoUser(User, db.Document):
             password_hash=cls.get_password_hash(password),
             token='',
             token_expiration=now,
-            metadata=UserMetadata(created=now, last_modified=now)
+            metadata=UserMetadata(created=now, last_modified=now),
         )
-        user.get_token(expires_in=3600, save=False)
-        if save:
-            user.save(create=True)
-            print(f"Created user '{username}' with id '{user.id}'")
+        if user is not None:
+            with user.resource_create():
+                user.get_token(expires_in=3600, save=False)
+                if save:
+                    user.save(create=True)
+                    print(f"Created user '{username}' with id '{user.id}'")
+                    manager = User.get_data_manager()
+                    manager.create_subdir(user.user_base_dir())
+
         return user
 
     # 5. Delete + callbacks
-    @classmethod
-    def before_delete(cls, user: User) -> TBoolExc:
-        try:
-            for workspace in user.workspaces():
-                workspace.close()
-                Workspace.delete(workspace)
-            return True, None
-        except Exception as ex:
-            return False, ex
+    def delete(self, locked=False, parent_locked=False) -> TBoolExc:
+        with self.resource_delete(locked=locked):
+            try:
+                for workspace in self.workspaces():
+                    workspace.close()
+                    workspace.delete(parent_locked=True)
+            except Exception as ex:
+                return False, ex
 
-    @classmethod
-    def after_delete(cls, user: User) -> TBoolExc:
-        try:
-            manager = User.get_data_manager()
-            manager.remove_subdir(user.user_base_dir())
-            return True, None
-        except Exception as ex:
-            return False, ex
-
-    @classmethod
-    def delete(cls, user: User, before_args: TDesc = None, after_args: TDesc = None) -> TBoolExc:
-        try:
-            db.Document.delete(user)
-            return True, None
-        except Exception as ex:
-            return False, ex
+            try:
+                db.Document.delete(self)
+                manager = User.get_data_manager()
+                manager.remove_subdir(self.user_base_dir())
+                return True, None
+            except Exception as ex:
+                return False, ex
 
     # 6. Read/Update/General instance methods
     def __repr__(self):
@@ -186,7 +178,7 @@ class MongoUser(User, db.Document):
 
     # 7. Query-like Instance methods
     def workspaces(self):
-        return Workspace.get_class().get_by_owner(self)
+        return Workspace.get_class().get_by_owner(self) or []
 
     # 9. Special methods
     def check_correct_password(self, password):
