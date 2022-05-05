@@ -70,14 +70,6 @@ class MongoWorkspace(MongoBaseWorkspace):
 
     # 4. Create + callbacks
     @classmethod
-    def after_create(cls, workspace: MongoBaseWorkspace) -> TBoolExc:
-        manager = Workspace.get_data_manager()
-        return manager.create_subdir(
-            workspace.workspace_base_dir(),
-            parents=[workspace.get_owner().user_base_dir()]
-        )
-
-    @classmethod
     def create(cls, name: str, owner: str | MongoBaseUser, save: bool = True,
                open_on_create: bool = True, parent_locked=False) -> MongoBaseWorkspace | None:
 
@@ -109,6 +101,14 @@ class MongoWorkspace(MongoBaseWorkspace):
                     manager.create_subdir(
                         workspace.workspace_base_dir(),
                         parents=[workspace.get_owner().user_base_dir()]
+                    )
+                    manager.create_subdir(
+                        workspace.data_base_dir(),
+                        parents=workspace.data_base_dir_parents(),
+                    )
+                    manager.create_subdir(
+                        workspace.experiments_base_dir(),
+                        parents=workspace.experiments_base_dir_parents(),
                     )
             return workspace
 
@@ -149,6 +149,12 @@ class MongoWorkspace(MongoBaseWorkspace):
 
     def workspace_base_dir(self) -> str:
         return f"Workspace_{self.get_id()}"
+
+    def data_base_dir_parents(self) -> list[str]:
+        return [self.get_owner().user_base_dir(), self.workspace_base_dir()]
+
+    def experiments_base_dir_parents(self) -> list[str]:
+        return [self.get_owner().user_base_dir(), self.workspace_base_dir()]
 
     def rename(self, old_name: str, new_name: str) -> TBoolStr:
         if not self.is_open():
@@ -201,7 +207,3 @@ class MongoWorkspace(MongoBaseWorkspace):
 
     def is_open(self):
         return self.status == Workspace.OPEN
-
-    # 9. Special methods
-    def wait_experiments(self):
-        return NotImplemented

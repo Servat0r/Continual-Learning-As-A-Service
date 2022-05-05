@@ -49,3 +49,6 @@ class BaseDataManager:
         pass
 
     # metodi per aggiungere/togliere files etc.
+    @abstractmethod
+    def create_file(self, file_name: str, dir_names: list[str], file_content = None) -> bool:
+        pass

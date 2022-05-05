@@ -6,6 +6,14 @@ from application.resources import *
 
 class Workspace(JSONSerializable, URIBasedResource):
 
+    @staticmethod
+    def data_base_dir() -> str:
+        return f"Data"
+
+    @staticmethod
+    def experiments_base_dir() -> str:
+        return f"Experiments"
+
     OPEN = 'OPEN'
     CLOSED = 'CLOSED'
 
@@ -120,7 +128,15 @@ class Workspace(JSONSerializable, URIBasedResource):
         pass
 
     @abstractmethod
-    def workspace_base_dir(self):
+    def workspace_base_dir(self) -> str:
+        pass
+
+    @abstractmethod
+    def data_base_dir_parents(self) -> list[str]:
+        pass
+
+    @abstractmethod
+    def experiments_base_dir_parents(self) -> list[str]:
         pass
 
     @abstractmethod
@@ -164,12 +180,6 @@ class Workspace(JSONSerializable, URIBasedResource):
     @abstractmethod
     def is_open(self):
         pass
-
-    # 9. Special methods
-    @abstractmethod
-    def wait_experiments(self):
-        pass
-
 
 __all__ = [
     'URI_SEPARATOR',

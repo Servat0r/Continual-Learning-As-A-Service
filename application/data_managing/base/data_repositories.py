@@ -96,3 +96,11 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
     @abstractmethod
     def data_repo_base_dir(self) -> str:
         pass
+
+    @abstractmethod
+    def add_directory(self, dir_name: str, parents: list[str] = None) -> bool:
+        pass
+
+    @abstractmethod
+    def add_file(self, file_name: str, file_content, parents: list[str] = None) -> bool:
+        pass

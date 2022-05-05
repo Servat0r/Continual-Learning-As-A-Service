@@ -82,13 +82,9 @@ class MongoDataRepository(MongoBaseDataRepository):
                         manager = User.get_data_manager()
                         repository.root = repository.data_repo_base_dir()
                         repository.save()
-                        manager.create_subdir(
-                            repository.get_root(),
-                            parents=[
-                                owner.user_base_dir(),
-                                workspace.workspace_base_dir(),
-                            ]
-                        )
+                        parents = workspace.data_base_dir_parents()
+                        parents.append(workspace.data_base_dir())
+                        manager.create_subdir(repository.get_root(), parents=parents)
                 return repository
 
     # 5. Delete + callbacks
@@ -104,10 +100,8 @@ class MongoDataRepository(MongoBaseDataRepository):
                     try:
                         db.Document.delete(self)
                         manager = User.get_data_manager()
-                        parents = [
-                            owner.user_base_dir(),
-                            workspace.workspace_base_dir(),
-                        ]
+                        parents = workspace.data_base_dir_parents()
+                        parents.append(workspace.data_base_dir())
                         manager.remove_subdir(self.get_root(), parents=parents)
                         return True, None
                     except Exception as ex:
@@ -154,7 +148,9 @@ class MongoDataRepository(MongoBaseDataRepository):
             'metadata': self.metadata.to_dict(),
         }
 
-    # 7. Query-like instance methods
-    # 8. Status methods
-
     # 9. Special methods
+    def add_directory(self, dir_name: str, parents: list[str] = None) -> bool:
+        return NotImplemented
+
+    def add_file(self, file_name: str, file_content, parents: list[str] = None) -> bool:
+        return NotImplemented
