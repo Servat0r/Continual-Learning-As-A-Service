@@ -30,21 +30,6 @@ class Workspace(JSONSerializable, URIBasedResource):
     def get_class():
         return Workspace.__workspace_class__
 
-    # 0.1. Data manager methods
-    __data_manager__ = None
-
-    @staticmethod
-    def set_data_manager(manager) -> bool:
-        if Workspace.__data_manager__ is None:
-            Workspace.__data_manager__ = manager
-            return True
-        else:
-            return False
-
-    @staticmethod
-    def get_data_manager():
-        return Workspace.__data_manager__
-
     # 2. Uri methods
     @classmethod
     @abstractmethod

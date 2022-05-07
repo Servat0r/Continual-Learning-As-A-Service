@@ -5,6 +5,9 @@ from application.mongo.resources.criterions import *
 from application.mongo.resources.optimizers import *
 from application.mongo.resources.models import *
 
+from avalanche.logging import CSVLogger, InteractiveLogger
+from avalanche.training.plugins import EvaluationPlugin
+
 
 class MongoBaseStrategyBuildConfig(MongoBuildConfig):
     """
@@ -78,6 +81,7 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
 
         owner = User.canonicalize(context.get_username())
         workspace = Workspace.canonicalize(context)
+
         model = MongoModel.config_type().get_one(owner, workspace, model_name)
         optim = MongoCLOptimizer.config_type().get_one(owner, workspace, optim_name)
         criterion = MongoCLCriterion.config_type().get_one(owner, workspace, criterion_name)
@@ -103,13 +107,29 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         optim = self.optimizer.build(context)
         criterion = self.criterion.build(context)
         metricset = self.metricset.build(context)
+        workspace = Workspace.canonicalize(context)
+
+        # TODO Pass it from experiment! (From context?)
+        log_folder = os.path.join(
+            BaseDataManager.get().get_root(),
+            *workspace.experiments_base_dir_parents(),
+            workspace.experiments_base_dir(),
+            'exp2',
+            'logs',
+        )
 
         strategy = self.get_avalanche_strategy()(
             model.get_value(), optim.get_value(),
             criterion.get_value(), device=get_device(),
             train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
             eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            # TODO Evaluator!
+            evaluator=EvaluationPlugin(
+                *metricset.get_value(),
+                loggers=[
+                    CSVLogger(log_folder=log_folder),
+                    InteractiveLogger(),
+                ]
+            ),
         )
         # noinspection PyArgumentList
         return self.target_type()(strategy)

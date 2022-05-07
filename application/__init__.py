@@ -2,13 +2,13 @@
 application package init.
 """
 from __future__ import annotations
+import os
 import logging
-from logging.handlers import SMTPHandler
+from logging.handlers import RotatingFileHandler, SMTPHandler
 from flask import Flask
 from .config import *
 from .database import db
 from .utils import *
-from .log import *
 from .converters import *
 from .data_managing import *
 from .models import *
@@ -17,9 +17,7 @@ from .mongo import *
 
 _NAME = os.environ.get('SERVER_NAME') or 'SERVER'
 
-manager = BaseDataManager.create()
-User.set_data_manager(manager)
-Workspace.set_data_manager(manager)
+BaseDataManager.create()
 
 
 def create_app(config_class=MongoConfig):
@@ -43,6 +41,14 @@ def create_app(config_class=MongoConfig):
 
     if not app.debug and not app.testing:
 
+        os.makedirs('logs', exist_ok=True)
+
+        file_handler = RotatingFileHandler(os.path.join('logs', 'auth_server.log'), maxBytes=10240,
+                                           backupCount=10)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+        file_handler.setLevel(logging.INFO)
+
         if app.config['MAIL_SERVER']:
             auth = None
             if app.config['MAIL_USERNAME'] or app.config['MAIL_PASSWORD']:
@@ -50,6 +56,7 @@ def create_app(config_class=MongoConfig):
             secure = None
             if app.config['MAIL_USE_TLS']:
                 secure = ()
+
             mail_handler = SMTPHandler(
                 mailhost=(app.config['MAIL_SERVER'], app.config['MAIL_PORT']),
                 fromaddr='no-reply@' + app.config['MAIL_SERVER'],

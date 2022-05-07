@@ -10,6 +10,7 @@ from application.validation import USERNAME_MAX_CHARS
 from application.database import db
 from application.resources import TDesc, TBoolExc
 from application.mongo.base import *
+from application.data_managing import BaseDataManager
 
 
 class UserMetadata(MongoBaseMetadata):
@@ -73,7 +74,7 @@ class MongoUser(MongoBaseUser):
                 if save:
                     user.save(create=True)
                     print(f"Created user '{username}' with id '{user.id}'")
-                    manager = User.get_data_manager()
+                    manager = BaseDataManager.get()
                     manager.create_subdir(user.user_base_dir())
 
         return user
@@ -90,7 +91,7 @@ class MongoUser(MongoBaseUser):
 
             try:
                 db.Document.delete(self)
-                manager = User.get_data_manager()
+                manager = BaseDataManager.get()
                 manager.remove_subdir(self.user_base_dir())
                 return True, None
             except Exception as ex:

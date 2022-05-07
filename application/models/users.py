@@ -3,6 +3,7 @@ from abc import abstractmethod
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash
+
 from application.resources import t, TDesc, TBoolExc
 
 
@@ -34,21 +35,6 @@ class User(UserMixin):
     @staticmethod
     def user_class() -> t.Type[User] | None:
         return User.__user_class__
-
-    # 0.1 Data manager
-    __data_manager__ = None
-
-    @staticmethod
-    def set_data_manager(manager) -> bool:
-        if User.__data_manager__ is None:
-            User.__data_manager__ = manager
-            return True
-        else:
-            return False
-
-    @staticmethod
-    def get_data_manager():
-        return User.__data_manager__
 
     # 3. General classmethods
     @classmethod

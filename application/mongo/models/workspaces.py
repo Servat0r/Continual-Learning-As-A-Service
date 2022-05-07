@@ -5,6 +5,7 @@ from application.validation import *
 from application.database import db
 from application.data_managing import BaseDataRepository
 from application.mongo.base import *
+from application.data_managing import BaseDataManager
 
 
 class WorkspaceMetadata(MongoBaseMetadata):
@@ -97,7 +98,7 @@ class MongoWorkspace(MongoBaseWorkspace):
                     if save:
                         workspace.save(create=True)
                         print(f"Created workspace '{workspace}' with id '{workspace.id}'.")
-                    manager = User.get_data_manager()
+                    manager = BaseDataManager.get()
                     manager.create_subdir(
                         workspace.workspace_base_dir(),
                         parents=[workspace.get_owner().user_base_dir()]

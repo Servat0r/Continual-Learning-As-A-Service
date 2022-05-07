@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from application.resources import TBoolExc, TDesc
 from application.database import *
+from application.resources import TBoolExc, TDesc
 from .base import *
 
 
@@ -79,7 +79,7 @@ class MongoDataRepository(MongoBaseDataRepository):
                             repository.save(create=True)
                             print(f"Created DataRepository '{name}' with id '{repository.id}'.")
 
-                        manager = User.get_data_manager()
+                        manager = BaseDataManager.get()
                         repository.root = repository.data_repo_base_dir()
                         repository.save()
                         parents = workspace.data_base_dir_parents()
@@ -99,7 +99,7 @@ class MongoDataRepository(MongoBaseDataRepository):
                     # TODO Check sub-repositories!
                     try:
                         db.Document.delete(self)
-                        manager = User.get_data_manager()
+                        manager = BaseDataManager.get()
                         parents = workspace.data_base_dir_parents()
                         parents.append(workspace.data_base_dir())
                         manager.remove_subdir(self.get_root(), parents=parents)
@@ -124,7 +124,7 @@ class MongoDataRepository(MongoBaseDataRepository):
         return self.workspace.get_owner()
 
     def get_absolute_path(self) -> str:
-        manager = Workspace.get_data_manager()
+        manager = BaseDataManager.get()
         workspace = self.get_workspace()
         owner = self.get_owner()
         dir_names = [

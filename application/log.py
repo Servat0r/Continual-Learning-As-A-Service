@@ -11,8 +11,6 @@ file_handler.setFormatter(logging.Formatter(
 file_handler.setLevel(logging.INFO)
 
 
-# TODO Eventualmente ExtendedCSVLogger(CSVLogger) con data_manager!
-
 __all__ = [
     'file_handler',
 ]

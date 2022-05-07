@@ -1,8 +1,9 @@
 from __future__ import annotations
 import os
 import shutil
+import typing
 
-from application.resources import TBoolExc
+from application.resources import TBoolExc, t
 from application.data_managing import BaseDataManager
 
 
@@ -22,6 +23,9 @@ class MongoLocalDataManager(BaseDataManager):
     def create(cls, root_dir: str = BaseDataManager._DFL_ROOT_DIR, *args, **kwargs) -> MongoLocalDataManager:
         manager = cls(root_dir)
         return manager
+
+    def get_root(self):
+        return self.root_dir
 
     def create_subdir(self, dir_name: str, parents: list[str] = None):
         if parents is None:
@@ -56,3 +60,18 @@ class MongoLocalDataManager(BaseDataManager):
     def get_file_path(self, file_name: str, dir_names: list[str] = None) -> str:
         dir_path = self.get_dir_path(dir_names)
         return os.path.join(dir_path, file_name)
+
+    def create_files(self, files: dict[tuple[str, list[str]], t.Any | None]) -> int:
+        pass
+
+    def read_from_files(self, files: tuple[str, list[str], int | None]) -> dict[tuple[str, list[str]], t.Any]:
+        pass
+
+    def print_to_file(self, file_name: str, dir_names: list[str], *values: t.Any, sep=' ', newline=True, append=True):
+        pass
+
+    def write_to_file(self, file_name: str, dir_names: list[str], content, append=True):
+        pass
+
+    def delete_file(self, file_name: str, dir_names: list[str], return_content=False) -> t.AnyStr | None:
+        pass
