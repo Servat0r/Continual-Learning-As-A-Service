@@ -8,7 +8,10 @@ class StrategyMetadata(MongoBaseMetadata):
 
 class MongoStrategyConfig(MongoResourceConfig):
 
+    _COLLECTION = 'strategies'
+
     meta = {
+        'collection': _COLLECTION,
         'indexes': [
             {'fields': ('owner', 'workspace', 'name'), 'unique': True}
         ]

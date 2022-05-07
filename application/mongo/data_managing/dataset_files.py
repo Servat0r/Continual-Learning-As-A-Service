@@ -12,7 +12,7 @@ class MongoDatasetFileMetadata(MongoBaseMetadata):
 
 class MongoDatasetFile(BaseDatasetFile, db.EmbeddedDocument):
 
-    # Fields
+    # 1. Fields
     name = db.StringField()
     path = db.ListField(db.StringField())
     label = db.IntField()

@@ -21,12 +21,22 @@ class UserMetadata(MongoBaseMetadata):
 class MongoUser(MongoBaseUser):
 
     # 1. Fields
+    _COLLECTION = 'users'
+
+    meta = {
+        'collection': _COLLECTION,
+    }
+
     username = db.StringField(required=True, max_length=USERNAME_MAX_CHARS, unique=True)
     email = db.StringField(required=True, unique=True)
     password_hash = db.StringField()
     token = db.StringField(unique=True)
     token_expiration = db.DateTimeField()
     metadata = db.EmbeddedDocumentField(UserMetadata)
+
+    @property
+    def parents(self) -> set[RWLockableDocument]:
+        return set()
 
     # 3. General classmethods
     @classmethod

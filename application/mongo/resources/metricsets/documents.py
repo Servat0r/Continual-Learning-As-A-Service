@@ -8,7 +8,10 @@ class StandardMetricSetMetadata(MongoBaseMetadata):
 
 class MongoStandardMetricSetConfig(MongoResourceConfig):
 
+    _COLLECTION = 'metricsets'
+
     meta = {
+        'collection': _COLLECTION,
         'indexes': [
             {'fields': ('owner', 'workspace', 'name'), 'unique': True}
         ]

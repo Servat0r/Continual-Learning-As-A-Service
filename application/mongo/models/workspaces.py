@@ -19,7 +19,10 @@ class MongoWorkspace(MongoBaseWorkspace):
     OPEN = 'OPEN'
     CLOSED = 'CLOSED'
 
+    _COLLECTION = 'workspaces'
+
     meta = {
+        'collection': _COLLECTION,
         'indexes': [
             {'fields': ('owner', 'name'), 'unique': True}
         ]
@@ -29,6 +32,10 @@ class MongoWorkspace(MongoBaseWorkspace):
     name = db.StringField(max_length=WORKSPACE_EXPERIMENT_MAX_CHARS, required=True)
     status = db.StringField(max_length=8, required=True)
     metadata = db.EmbeddedDocumentField(WorkspaceMetadata, required=True)
+
+    @property
+    def parents(self) -> set[RWLockableDocument]:
+        return {self.owner}
 
     # 2. Uri methods
     @classmethod
@@ -94,7 +101,7 @@ class MongoWorkspace(MongoBaseWorkspace):
                 metadata=WorkspaceMetadata(created=now, last_modified=now),
             )
             if workspace is not None:
-                with workspace.resource_create():
+                with workspace.resource_create(parents_locked=workspace.parents):
                     if save:
                         workspace.save(create=True)
                         print(f"Created workspace '{workspace}' with id '{workspace.id}'.")
@@ -115,25 +122,27 @@ class MongoWorkspace(MongoBaseWorkspace):
 
     # 5. Delete + callbacks
     def delete(self, locked=False, parent_locked=False):
-        with self.get_owner().sub_resource_delete(locked=parent_locked):
-            with self.resource_delete(locked=locked):
-                if self.is_open():
-                    self.close()
-                try:
-                    for experiment in (self.all_experiments() or []):
-                        print(experiment)
-                        experiment.delete(parent_locked=True)
-                    for repository in self.data_repositories():
-                        print(repository)
-                        repository.delete(parent_locked=True)
-                except Exception as ex:
-                    return False, ex
 
-                try:
-                    db.Document.delete(self)
-                    return True, None
-                except Exception as ex:
-                    return False, ex
+        parents_locked = self.parents if parent_locked else set()
+        with self.resource_delete(locked=locked, parents_locked=parents_locked):
+            if self.is_open():
+                self.close()
+            try:
+                for experiment in (self.all_experiments() or []):
+                    print(experiment)
+                    experiment.delete(parent_locked=True)
+                for repository in self.data_repositories():
+                    print(repository)
+                    # noinspection PyArgumentList
+                    repository.delete(parent_locked=True)
+            except Exception as ex:
+                return False, ex
+
+            try:
+                db.Document.delete(self)
+                return True, None
+            except Exception as ex:
+                return False, ex
 
     # 6. Read/Update Instance methods
     def __repr__(self):

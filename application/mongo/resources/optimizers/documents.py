@@ -8,7 +8,10 @@ class CLOptimizerMetadata(MongoBaseMetadata):
 
 class MongoCLOptimizerConfig(MongoResourceConfig):
 
+    _COLLECTION = 'optimizers'
+
     meta = {
+        'collection': _COLLECTION,
         'indexes': [
             {'fields': ('owner', 'workspace', 'name'), 'unique': True}
         ]

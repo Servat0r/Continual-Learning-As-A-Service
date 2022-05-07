@@ -4,7 +4,7 @@ from application.mongo.resources.metricsets import *
 from application.mongo.resources.criterions import *
 from application.mongo.resources.optimizers import *
 from application.mongo.resources.models import *
-from avalanche.training.strategies import Naive, Cumulative, SynapticIntelligence
+from avalanche.training.strategies import Naive, Cumulative, SynapticIntelligence, LwF
 from .base_builds import *
 
 
@@ -96,14 +96,76 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
         model = self.model.build(context)
         optim = self.optimizer.build(context)
         criterion = self.criterion.build(context)
-        metricset = self.metricset.build(context)
 
         strategy = SynapticIntelligence(
             model.get_value(), optim.get_value(), criterion.get_value(),
             si_lambda=self.si_lambda, eps=self.eps, device=get_device(),
             train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
             eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            # TODO Evaluator!
+            evaluator=self.get_evaluator(),
+        )
+        # noinspection PyArgumentList
+        return self.target_type()(strategy)
+
+
+@MongoBuildConfig.register_build_config('LwF')
+class LwFBuildConfig(MongoBaseStrategyBuildConfig):
+
+    # Fields
+    alpha = db.ListField(db.FloatField(), required=True)
+    temperature = db.FloatField(required=True)
+
+    @staticmethod
+    def get_avalanche_strategy() -> t.Type[BaseStrategy]:
+        return LwF
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return super().get_required().union({'alpha', 'temperature'})
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return super().get_optionals()
+
+    @classmethod
+    def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: UserWorkspaceResourceContext) -> TBoolStr:
+        result, msg = super().validate_input(data, dtype, context)
+        if not result:
+            return result, msg
+
+        iname, values = context.pop()
+        params: TDesc = values['params']
+        alpha = params['alpha']
+        temperature = params['temperature']
+
+        alpha_checked = True
+        if isinstance(alpha, list):
+            for a in alpha:
+                if not isinstance(a, float):
+                    alpha_checked = False
+                    break
+        else:
+            alpha_checked = False
+        if not alpha_checked:
+            return False, "Parameter 'alpha' is not of the correct type."
+
+        if not isinstance(temperature, float):
+            return False, "Parameter 'temperature' is not of the correct type."
+
+        context.push(iname, values)
+        return True, None
+
+    def build(self, context: UserWorkspaceResourceContext):
+        model = self.model.build(context)
+        optim = self.optimizer.build(context)
+        criterion = self.criterion.build(context)
+
+        strategy = LwF(
+            model.get_value(), optim.get_value(), criterion.get_value(),
+            alpha=self.alpha, temperature=self.temperature, device=get_device(),
+            train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
+            eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
+            evaluator=self.get_evaluator(),
         )
         # noinspection PyArgumentList
         return self.target_type()(strategy)

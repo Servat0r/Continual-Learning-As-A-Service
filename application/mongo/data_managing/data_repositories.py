@@ -13,7 +13,10 @@ class MongoDataRepositoryMetadata(MongoBaseMetadata):
 class MongoDataRepository(MongoBaseDataRepository):
 
     # 1. Fields
+    _COLLECTION = 'data_repositories'
+
     meta = {
+        'collection': _COLLECTION,
         'indexes': [
             {'fields': ('workspace', 'name'), 'unique': True},
         ]
@@ -24,6 +27,10 @@ class MongoDataRepository(MongoBaseDataRepository):
     root = db.StringField(required=True)                            # repo root directory
     metadata = db.EmbeddedDocumentField(MongoDataRepositoryMetadata)
     files = db.MapField(db.IntField())                              # relative_path => file
+
+    @property
+    def parents(self) -> set[RWLockableDocument]:
+        return {self.workspace}
 
     # 2. Uri methods
     @classmethod
@@ -59,53 +66,48 @@ class MongoDataRepository(MongoBaseDataRepository):
         if root is None:
             root = f"DataRepository_{name}"
 
-        owner = workspace.get_owner()
+        parents_locked = workspace.parents if parent_locked else set()
+        with workspace.sub_resource_create(locked=parent_locked, parents_locked=parents_locked):
+            now = datetime.utcnow()
+            # noinspection PyArgumentList
+            repository = cls(
+                workspace=workspace,
+                name=name,
+                root=root,
+                metadata=MongoDataRepositoryMetadata(created=now, last_modified=now),
+                files={},
+            )
+            if repository is not None:
+                with repository.resource_create(parents_locked=repository.parents):
+                    if save:
+                        repository.save(create=True)
+                        print(f"Created DataRepository '{name}' with id '{repository.id}'.")
 
-        with owner.sub_resource_create(locked=parent_locked):
-            with workspace.sub_resource_create(locked=parent_locked):
-
-                now = datetime.utcnow()
-                # noinspection PyArgumentList
-                repository = cls(
-                    workspace=workspace,
-                    name=name,
-                    root=root,
-                    metadata=MongoDataRepositoryMetadata(created=now, last_modified=now),
-                    files={},
-                )
-                if repository is not None:
-                    with repository.resource_create():
-                        if save:
-                            repository.save(create=True)
-                            print(f"Created DataRepository '{name}' with id '{repository.id}'.")
-
-                        manager = BaseDataManager.get()
-                        repository.root = repository.data_repo_base_dir()
-                        repository.save()
-                        parents = workspace.data_base_dir_parents()
-                        parents.append(workspace.data_base_dir())
-                        manager.create_subdir(repository.get_root(), parents=parents)
-                return repository
+                    manager = BaseDataManager.get()
+                    repository.root = repository.data_repo_base_dir()
+                    repository.save()
+                    parents = workspace.data_base_dir_parents()
+                    parents.append(workspace.data_base_dir())
+                    manager.create_subdir(repository.get_root(), parents=parents)
+            return repository
 
     # 5. Delete + callbacks
     def delete(self, locked=False, parent_locked=False) -> TBoolExc:
 
-        owner = self.get_owner()
         workspace = self.get_workspace()
+        parents_locked = self.parents if parent_locked else set()
 
-        with owner.sub_resource_delete(locked=parent_locked):
-            with workspace.sub_resource_delete(locked=parent_locked):
-                with self.resource_delete(locked=locked):
-                    # TODO Check sub-repositories!
-                    try:
-                        db.Document.delete(self)
-                        manager = BaseDataManager.get()
-                        parents = workspace.data_base_dir_parents()
-                        parents.append(workspace.data_base_dir())
-                        manager.remove_subdir(self.get_root(), parents=parents)
-                        return True, None
-                    except Exception as ex:
-                        return False, ex
+        with self.resource_delete(locked=locked, parents_locked=parents_locked):
+            # TODO Check sub-repositories!
+            try:
+                db.Document.delete(self)
+                manager = BaseDataManager.get()
+                parents = workspace.data_base_dir_parents()
+                parents.append(workspace.data_base_dir())
+                manager.remove_subdir(self.get_root(), parents=parents)
+                return True, None
+            except Exception as ex:
+                return False, ex
 
     # 6. Read/Update Instance methods
     def get_id(self):

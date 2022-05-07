@@ -1,4 +1,6 @@
 from __future__ import annotations
+from abc import abstractmethod
+
 from application.database import *
 
 
@@ -7,13 +9,22 @@ class _SubResourceCtxManager:
     READ = 0
     WRITE = 1
 
-    def __init__(self, resource: RWLockableDocument, create=False, lock_type=READ, locked=False):
+    def __init__(self, resource: RWLockableDocument, create=False,
+                 lock_type=READ, locked=False, parents_locked: set[RWLockableDocument] = None):
         self.resource = resource
         self.create = create
         self.lock_type = lock_type
         self.locked = locked
+        self.parents_to_lock: set[RWLockableDocument] = resource.parents.difference(set(parents_locked or []))
+        self.super_contexts: list[_SubResourceCtxManager] = []
 
     def __enter__(self):
+        if not self.locked:
+            # Sempre nello stesso ordine?
+            for parent in self.parents_to_lock:
+                context = parent.sub_resource_operation(locked=False, parents_locked=None)
+                self.super_contexts.append(context.__enter__())
+
         if self.create:
             self.resource.init_lock_set(wrlock=True, acquired=1)
         else:
@@ -30,6 +41,8 @@ class _SubResourceCtxManager:
                 self.resource.read_unlock()
             elif self.lock_type == self.WRITE:
                 self.resource.write_unlock()
+            for context in self.super_contexts[::-1]:
+                context.__exit__(exc_type, exc_val, exc_tb)
 
 
 class LockingError(Exception):
@@ -86,23 +99,43 @@ class RWLockableDocument(db.Document):
             self.modify({'rdlocks': 0, 'wrlock': True}, wrlock=False)
             self._acquired -= 1
 
-    def resource_create(self, locked=False) -> _SubResourceCtxManager:
-        return _SubResourceCtxManager(resource=self, create=True,
-                                      lock_type=_SubResourceCtxManager.WRITE, locked=locked)
+    @property
+    @abstractmethod
+    def parents(self) -> set[RWLockableDocument]:
+        pass
 
-    def resource_delete(self, locked=False) -> _SubResourceCtxManager:
-        return _SubResourceCtxManager(resource=self, create=False,
-                                      lock_type=_SubResourceCtxManager.WRITE, locked=locked)
+    def resource_create(self, locked: bool = False,
+                        parents_locked: set[RWLockableDocument] = None) -> _SubResourceCtxManager:
+        return _SubResourceCtxManager(resource=self, create=True, lock_type=_SubResourceCtxManager.WRITE,
+                                      locked=locked, parents_locked=parents_locked)
 
-    def sub_resource_create(self, locked=False) -> _SubResourceCtxManager:
-        return _SubResourceCtxManager(resource=self, create=False,
-                                      lock_type=_SubResourceCtxManager.READ, locked=locked)
+    def resource_delete(self, locked=False,
+                        parents_locked: set[RWLockableDocument] = None) -> _SubResourceCtxManager:
+        return _SubResourceCtxManager(resource=self, create=False, lock_type=_SubResourceCtxManager.WRITE,
+                                      locked=locked, parents_locked=parents_locked)
 
-    def sub_resource_delete(self, locked=False) -> _SubResourceCtxManager:
-        return _SubResourceCtxManager(resource=self, create=False,
-                                      lock_type=_SubResourceCtxManager.READ, locked=locked)
+    def resource_read(self, locked=False,
+                      parents_locked: set[RWLockableDocument] = None) -> _SubResourceCtxManager:
+        return _SubResourceCtxManager(resource=self, create=False, lock_type=_SubResourceCtxManager.READ,
+                                      locked=locked, parents_locked=parents_locked)
+
+    def sub_resource_create(self, locked=False,
+                            parents_locked: set[RWLockableDocument] = None) -> _SubResourceCtxManager:
+        return _SubResourceCtxManager(resource=self, create=False, lock_type=_SubResourceCtxManager.READ,
+                                      locked=locked, parents_locked=parents_locked)
+
+    def sub_resource_delete(self, locked=False,
+                            parents_locked: set[RWLockableDocument] = None) -> _SubResourceCtxManager:
+        return _SubResourceCtxManager(resource=self, create=False, lock_type=_SubResourceCtxManager.READ,
+                                      locked=locked, parents_locked=parents_locked)
+
+    def sub_resource_operation(self, locked=False,
+                               parents_locked: set[RWLockableDocument] = None) -> _SubResourceCtxManager:
+        return _SubResourceCtxManager(resource=self, create=False, lock_type=_SubResourceCtxManager.READ,
+                                      locked=locked, parents_locked=parents_locked)
 
 
+# TODO Correggere o eliminare!
 class RWLockableEmbeddedDocument(db.EmbeddedDocument):
     """
     A document that can be "read-write" locked.

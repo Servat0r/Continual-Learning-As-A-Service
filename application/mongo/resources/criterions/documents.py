@@ -8,7 +8,10 @@ class CLCriterionMetadata(MongoBaseMetadata):
 
 class MongoCLCriterionConfig(MongoResourceConfig):
 
+    _COLLECTION = 'criterions'
+
     meta = {
+        'collection': _COLLECTION,
         'indexes': [
             {'fields': ('owner', 'workspace', 'name'), 'unique': True}
         ]

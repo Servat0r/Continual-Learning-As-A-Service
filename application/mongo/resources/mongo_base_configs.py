@@ -160,6 +160,10 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
     build_config = db.EmbeddedDocumentField(MongoBuildConfig)
     metadata = db.EmbeddedDocumentField(MongoBaseMetadata)
 
+    @property
+    def parents(self) -> set[RWLockableDocument]:
+        return {self.workspace}
+
     # .................... #
     @classmethod
     def get(cls, owner: str | MongoBaseUser = None, workspace: str | MongoBaseWorkspace = None,
@@ -227,7 +231,7 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
 
     @classmethod
     def create(cls, data, context: UserWorkspaceResourceContext, save: bool = True,
-               parent_locked=False, **metadata):
+               parents_locked: set[RWLockableDocument] = None, all_locked=False, **metadata):
         result, msg = cls.validate_input(data, context)
         if not result:
             raise ValueError(msg)
@@ -248,22 +252,22 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
             metadata['created'] = now
             metadata['last_modified'] = now
 
-            with owner.sub_resource_create(locked=parent_locked):
-                with workspace.sub_resource_create(locked=parent_locked):
-                    # noinspection PyArgumentList
-                    obj = cls(
-                        name=name,
-                        description=description,
-                        build_config=build_config,
-                        owner=owner,
-                        workspace=workspace,
-                        metadata=cls.meta_type()(**metadata),
-                    )
-                    if obj is not None:
-                        with obj.resource_create():
-                            if save:
-                                obj.save(force_insert=True)
-                    return obj
+            parents_locked = workspace.parents if all_locked else parents_locked
+            with workspace.sub_resource_create(parents_locked=parents_locked):
+                # noinspection PyArgumentList
+                obj = cls(
+                    name=name,
+                    description=description,
+                    build_config=build_config,
+                    owner=owner,
+                    workspace=workspace,
+                    metadata=cls.meta_type()(**metadata),
+                )
+                if obj is not None:
+                    with obj.resource_create(parents_locked=obj.parents):
+                        if save:
+                            obj.save(force_insert=True)
+                return obj
 
     @classmethod
     def validate_input(cls, data, context: ResourceContext) -> TBoolStr:
@@ -338,13 +342,11 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
 
         return True, None
 
-    def delete(self, context: UserWorkspaceResourceContext, locked=False, parent_locked=False):
-        owner = t.cast(MongoBaseUser, context.get_username())
-        workspace = t.cast(MongoWorkspace, context.get_workspace())
-        with owner.sub_resource_delete(locked=parent_locked):
-            with workspace.sub_resource_delete(locked=parent_locked):
-                with self.resource_delete(locked=locked):
-                    db.Document.delete(self)
+    def delete(self, context: UserWorkspaceResourceContext, locked=False,
+               all_locked=False, parents_locked: set[RWLockableDocument] = None):
+        parents_locked = self.parents if all_locked else parents_locked
+        with self.resource_delete(locked=locked, parents_locked=parents_locked):
+            db.Document.delete(self)
 
     def __repr__(self):
         return f"{type(self).__name__} <{self.name}>[id = {self.id}, uri = {self.uri}]"

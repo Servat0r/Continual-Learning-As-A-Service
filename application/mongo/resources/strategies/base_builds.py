@@ -1,3 +1,5 @@
+import os
+
 from application.utils import get_device
 from application.mongo.resources.mongo_base_configs import *
 from application.mongo.resources.metricsets import *
@@ -31,6 +33,26 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
     @abstractmethod
     def get_avalanche_strategy() -> t.Type[BaseStrategy]:
         pass
+
+    def get_evaluator(self):
+        log_folder = self.get_logging_path()
+        return EvaluationPlugin(
+            *self.metricset.get_value(),
+            loggers=[
+                CSVLogger(log_folder=log_folder),
+                InteractiveLogger(),
+            ]
+        )
+
+    def get_logging_path(self):
+        # TODO Pass it from experiment! (From context?)
+        return os.path.join(
+            BaseDataManager.get().get_root(),
+            *self.workspace.experiments_base_dir_parents(),
+            self.workspace.experiments_base_dir(),
+            'exp2',
+            'logs',
+        )
 
     @classmethod
     @abstractmethod
@@ -107,29 +129,15 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         optim = self.optimizer.build(context)
         criterion = self.criterion.build(context)
         metricset = self.metricset.build(context)
-        workspace = Workspace.canonicalize(context)
 
-        # TODO Pass it from experiment! (From context?)
-        log_folder = os.path.join(
-            BaseDataManager.get().get_root(),
-            *workspace.experiments_base_dir_parents(),
-            workspace.experiments_base_dir(),
-            'exp2',
-            'logs',
-        )
+        workspace = Workspace.canonicalize(context)
 
         strategy = self.get_avalanche_strategy()(
             model.get_value(), optim.get_value(),
             criterion.get_value(), device=get_device(),
             train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
             eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=EvaluationPlugin(
-                *metricset.get_value(),
-                loggers=[
-                    CSVLogger(log_folder=log_folder),
-                    InteractiveLogger(),
-                ]
-            ),
+            evaluator=self.get_evaluator(),
         )
         # noinspection PyArgumentList
         return self.target_type()(strategy)

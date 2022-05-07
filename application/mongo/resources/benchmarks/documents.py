@@ -8,7 +8,10 @@ class BenchmarkMetadata(MongoBaseMetadata):
 
 class MongoBenchmarkConfig(MongoResourceConfig):
 
+    _COLLECTION = 'benchmarks'
+
     meta = {
+        'collection': _COLLECTION,
         'indexes': [
             {'fields': ('owner', 'workspace', 'name'), 'unique': True}
         ]

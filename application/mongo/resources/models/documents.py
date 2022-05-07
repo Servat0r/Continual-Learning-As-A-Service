@@ -8,7 +8,10 @@ class ModelMetadata(MongoBaseMetadata):
 
 class MongoModelConfig(MongoResourceConfig):
 
+    _COLLECTION = 'models'
+
     meta = {
+        'collection': _COLLECTION,
         'indexes': [
             {'fields': ('owner', 'workspace', 'name'), 'unique': True}
         ]
