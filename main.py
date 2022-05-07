@@ -73,8 +73,9 @@ def make_shell_context():
 
         # resources
         'DataType': DataType, 'Benchmark': MongoBenchmark,
-        'MetricSet': MongoStandardMetricSet,
-        'Model': MongoModel,
+        'Criterion': MongoCLCriterion, 'MetricSet': MongoStandardMetricSet,
+        'Model': MongoModel, 'Optimizer': MongoCLOptimizer,
+        'Strategy': MongoStrategy,
 
         # helpers
         'user_n': user_n, 'wspace_n': wspace_n,

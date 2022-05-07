@@ -3,7 +3,6 @@ Validation functions for url elements (username, password, workspace name etc.)
 """
 from __future__ import annotations
 from pyisemail import is_email
-from application.utils import split_uri
 
 
 # Validation help
@@ -164,56 +163,9 @@ def validate_alnum(alnum: str) -> tuple[bool, str | None]:
         return True, None
 
 
-WTYPE_MIN_CHARS = 2
-WTYPE_MAX_CHARS = 32
-_WTYPE_DESC = "Workspace type identifier must contain only alphanumeric characters."
-
-
-def validate_workspace_wtype(wtype: str) -> tuple[bool, str | None]:
-    result, msg = validation_function_template(wtype, 'Workspace type identifier', WTYPE_MIN_CHARS, WTYPE_MAX_CHARS)
-    if not result:
-        return result, msg
-    elif not wtype.isalnum():
-        return False, _WTYPE_DESC
-    else:
-        return True, None
-
-
 _URI_PATH_REQS = \
     "Uri path must contain only alphanumeric characters and not contain any whitespaces " \
     "or multiple consecutive special characters."
-
-
-def validate_uri_path(path: str) -> tuple[bool, str | None]:
-    result, msg = validation_function_template(path, "Uri path")
-    if not result:
-        return result, msg
-    else:
-        path_len = len(path)
-        for i in range(path_len):
-            current = path[i]
-            if current.isspace():
-                return False, "Uri path must not contain any whitespaces."
-            elif not current.isalnum() and (i < path_len - 1):
-                next_char = path[i+1]
-                if not next_char.isalnum():
-                    return False, "Uri path must not contain multiple consecutive non-alphanumeric characters."
-        return True, None
-
-
-def validate_workspace_uri(uri: str) -> tuple[bool, str | None]:
-    components = split_uri(uri)
-    if len(components) != 2:
-        return False, "URI format is incorrect."
-    else:
-        result1, msg1 = validate_workspace_wtype(components['prefix'])
-        result2, msg2 = validate_uri_path(components['path'])
-        if not result1:
-            return result1, msg1
-        elif not result2:
-            return result2, msg2
-        else:
-            return True, None
 
 
 __all__ = [
@@ -234,10 +186,4 @@ __all__ = [
     'ALNUM_MAX_CHARS',
     'ALNUM_MIN_CHARS',
     'validate_alnum',
-
-    'WTYPE_MAX_CHARS',
-    'WTYPE_MIN_CHARS',
-    'validate_workspace_wtype',
-    'validate_uri_path',
-    'validate_workspace_uri',
 ]

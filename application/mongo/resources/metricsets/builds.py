@@ -39,20 +39,20 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
         labels_repartition_metrics
         mean_scores_metrics
     """
-    accuracy = db.MapField(db.BooleanField(), validation=std_name_validate)
-    loss = db.MapField(db.BooleanField(), validation=std_name_validate)
-    bwt = db.MapField(db.BooleanField(), validation=std_name_validate)
-    forgetting = db.MapField(db.BooleanField(), validation=std_name_validate)
-    forward_transfer = db.MapField(db.BooleanField(), validation=std_name_validate)
-    confusion_matrix = db.MapField(db.BooleanField(), validation=std_name_validate)
-    cpu_usage = db.MapField(db.BooleanField(), validation=std_name_validate)
-    disk_usage = db.MapField(db.BooleanField(), validation=std_name_validate)
-    gpu_usage = db.MapField(db.BooleanField(), validation=std_name_validate)
-    ram_usage = db.MapField(db.BooleanField(), validation=std_name_validate)
-    timing = db.MapField(db.BooleanField(), validation=std_name_validate)
-    MAC = db.MapField(db.BooleanField(), validation=std_name_validate)
-    labels_repartition = db.MapField(db.BooleanField(), validation=std_name_validate)
-    mean_scores = db.MapField(db.BooleanField(), validation=std_name_validate)
+    accuracy = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    loss = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    bwt = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    forgetting = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    forward_transfer = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    confusion_matrix = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    cpu_usage = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    disk_usage = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    gpu_usage = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    ram_usage = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    timing = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    MAC = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    labels_repartition = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    mean_scores = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -123,7 +123,7 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
                         break
             if not checked:
                 context.pop()
-                return False, "One or more metrics type are not in {<bool>: <string>} dict type."
+                return False, "One or more metrics type are not in {<string>: <bool>} dict type."
         return True, None
 
     @classmethod

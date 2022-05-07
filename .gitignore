@@ -9,3 +9,4 @@ docs/ignore/
 docs/json_examples/
 dbscripts/
 tests/*.env
+tests/ignore/

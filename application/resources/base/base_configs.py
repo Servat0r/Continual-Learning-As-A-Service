@@ -74,17 +74,18 @@ class BuildConfig(NameBasedResource):
     def update(self, data, context: ResourceContext):
         pass
 
-    @abstractmethod
-    def delete(self, context: ResourceContext):
-        pass
-
 
 class ResourceConfig(URIBasedResource):
 
     # .................... #
     @classmethod
     @abstractmethod
-    def get_by(cls, owner, workspace, name: str = None) -> list[ResourceConfig]:
+    def get(cls, owner=None, workspace=None, name: str = None) -> list[ResourceConfig]:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_one(cls, owner=None, workspace=None, name: str = None, check_unique=False):
         pass
 
     @classmethod

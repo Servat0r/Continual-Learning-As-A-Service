@@ -4,7 +4,9 @@ Common constants.
 from __future__ import annotations
 from typing import Any
 from http import HTTPStatus
-from flask import Request, Response, jsonify, Flask
+
+import torch
+from flask import Request, Response, jsonify
 from werkzeug.exceptions import BadRequest
 from .errors import *
 
@@ -19,16 +21,6 @@ DELETE = 'DELETE'
 
 # Default success and error messages
 _DFL_SUCCESS_MSG = 'Request successfully completed.'
-URI_SEPARATOR = '://'
-
-
-def split_uri(uri: str) -> dict[str, str]:
-    result = uri.split(URI_SEPARATOR, maxsplit=1)
-    return {'prefix': result[0], 'path': result[1]}
-
-
-def make_uri(prefix: str, path: str):
-    return URI_SEPARATOR.join([prefix, path])
 
 
 def make_success_kwargs(status: int = HTTPStatus.OK, msg: str = _DFL_SUCCESS_MSG, **kwargs) -> Response:
@@ -112,21 +104,15 @@ def checked_json(request: Request, keyargs: bool = False, required: set[str] = N
         return None, BadJSONSyntax, [], []
 
 
-def get_filesave_dir(app: Flask) -> str | None:
-    if app.config['STD_FILESAVE_DIR']:
-        return app.config['STD_FILESAVE_DIR']
-    else:
-        return None
+def get_device():
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 __all__ = [
     'GET', 'PUT', 'POST', 'PATCH',
     'OPTIONS', 'HEAD', 'DELETE',
-    'URI_SEPARATOR',
-    'split_uri',
-    'make_uri',
     'make_success_kwargs',
     'make_success_dict',
     'checked_json',
-    'get_filesave_dir',
+    'get_device',
 ]

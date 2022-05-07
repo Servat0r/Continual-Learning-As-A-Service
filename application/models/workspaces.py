@@ -181,9 +181,5 @@ class Workspace(JSONSerializable, URIBasedResource):
     def is_open(self):
         pass
 
-__all__ = [
-    'URI_SEPARATOR',
-    'make_uri',
-    'split_uri',
-    'Workspace',
-]
+
+__all__ = ['Workspace']

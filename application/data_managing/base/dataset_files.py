@@ -22,32 +22,11 @@ class BaseDatasetFile(JSONSerializable):
     # 4. Create + callbacks
     @classmethod
     @abstractmethod
-    def before_create(cls, name: str, subrepo: str, relative_path: str,
-                      content: t.Any = None, is_binary: bool = True) -> TBoolExc:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def after_create(cls, dfile: BaseDatasetFile) -> TBoolExc:
-        pass
-
-    @classmethod
-    @abstractmethod
     def create(cls, name: str, subrepo: str, relative_path: str, context: ResourceContext,
                content: t.Any = None, is_binary: bool = True, save: bool = True):
         pass
 
     # 5. Delete + callbacks
-    @classmethod
-    @abstractmethod
-    def before_delete(cls, dfile: BaseDatasetFile) -> TBoolExc:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def after_delete(cls, dfile: BaseDatasetFile) -> TBoolExc:
-        pass
-
     @classmethod
     @abstractmethod
     def delete(cls, dfile: BaseDatasetFile):
@@ -56,8 +35,12 @@ class BaseDatasetFile(JSONSerializable):
     # 6. Read/Update Instance methods
     def get_absolute_path(self) -> str:
         self_path = self.get_relative_path()
-        dataset_path = self.get_data_subrepo().get_absolute_path()
+        dataset_path = self.get_data_repository().get_absolute_path()
         return os.path.join(dataset_path, self_path)
+
+    @abstractmethod
+    def get_data_repository(self):
+        pass
 
     @abstractmethod
     def read(self):
@@ -68,19 +51,7 @@ class BaseDatasetFile(JSONSerializable):
         pass
 
     @abstractmethod
-    def open(self):
-        pass
-
-    @abstractmethod
-    def close(self):
-        pass
-
-    @abstractmethod
-    def is_empty(self) -> bool:
-        pass
-
-    @abstractmethod
-    def get_relative_path(self) -> str:
+    def get_relative_path(self) -> list[str]:
         """
         Current file path relative to the root of the data subrepo.
         :return:
@@ -96,14 +67,6 @@ class BaseDatasetFile(JSONSerializable):
         pass
 
     @abstractmethod
-    def get_content_type(self) -> str:
-        """
-        Mimetype of file content (if applicable).
-        :return:
-        """
-        pass
-
-    @abstractmethod
     def get_label(self) -> int:
         """
         Label of the file (for classification tasks).
@@ -112,7 +75,7 @@ class BaseDatasetFile(JSONSerializable):
         pass
 
     @abstractmethod
-    def update(self, data: TDesc, save: bool = True):
+    def update(self, data: TDesc, save: bool = True) -> bool:
         """
         Syntax:
             "name" -> name
@@ -126,24 +89,15 @@ class BaseDatasetFile(JSONSerializable):
         pass
 
     @abstractmethod
-    def update_relative_path(self) -> str:
+    def update_relative_path(self) -> bool:
         pass
 
     @abstractmethod
-    def update_name(self):
+    def update_name(self) -> bool:
         pass
 
     @abstractmethod
-    def update_content_type(self):
-        pass
-
-    @abstractmethod
-    def update_label(self):
-        pass
-
-    # 9. Special methods
-    @abstractmethod
-    def reload(self):
+    def update_label(self) -> bool:
         pass
 
     # -> data subrepo (reference) [dataset_root is the root of the corresponding data repo]

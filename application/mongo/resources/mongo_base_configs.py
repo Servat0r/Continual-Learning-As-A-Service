@@ -162,17 +162,29 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
 
     # .................... #
     @classmethod
-    def get_by(cls, owner: str | MongoBaseUser, workspace: str | MongoBaseWorkspace,
-               name: str = None) -> list[MongoResourceConfig]:
+    def get(cls, owner: str | MongoBaseUser = None, workspace: str | MongoBaseWorkspace = None,
+            name: str = None) -> list[MongoResourceConfig]:
         args = {}
-        owner = User.canonicalize(owner)
-        args['owner'] = owner
+        if owner is not None:
+            owner = User.canonicalize(owner)
+            args['owner'] = owner
         if isinstance(workspace, str):
-            workspace = Workspace.canonicalize((owner, workspace))
+            if owner is not None:
+                workspace = Workspace.canonicalize((owner, workspace))
+            else:
+                raise RuntimeError("Unable to canonicalize workspace name: missing 'owner' parameter.")
         args['workspace'] = workspace
         if name is not None:
             args['name'] = name
         return list(cls.objects(**args).all())
+
+    @classmethod
+    def get_one(cls, owner: str | MongoBaseUser = None, workspace: str | MongoBaseWorkspace = None,
+                name: str = None, check_unique=False) -> MongoResourceConfig | None:
+        results = cls.get(owner, workspace, name)
+        if check_unique and len(results) > 1:
+            raise RuntimeError("Query returned more than one result!")
+        return results[0] if len(results) > 0 else None
 
     @classmethod
     def get_by_uri(cls, uri: str):
@@ -180,7 +192,7 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
         owner = t.cast(MongoBaseUser, User.canonicalize(s[1]))
         workspace = Workspace.canonicalize((s[1], s[2]))
         name = s[3]
-        ls = cls.get_by(owner=owner, workspace=workspace, name=name)
+        ls = cls.get(owner=owner, workspace=workspace, name=name)
         return ls[0] if len(ls) > 0 else None
 
     @classmethod
@@ -221,7 +233,7 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
             raise ValueError(msg)
         else:
             name = data['name']
-            description = data['description'] or ''
+            description = data.get('description') or ''
             config = MongoBuildConfig.get_by_name(data['build'])
             if config is None:
                 raise ValueError(f"Unknown build config: '{data['build']}'")

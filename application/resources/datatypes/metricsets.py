@@ -24,4 +24,3 @@ class StandardMetricSet(BaseMetricSet, ABC):
     Specialization of the base case where we consider ONLY
     standard metrics got by metrics helper functions.
     """
-    pass

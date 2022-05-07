@@ -1,6 +1,6 @@
 import logging
-from logging.handlers import RotatingFileHandler
 import os
+from logging.handlers import RotatingFileHandler
 
 os.makedirs('logs', exist_ok=True)
 
@@ -10,6 +10,8 @@ file_handler.setFormatter(logging.Formatter(
     '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
 file_handler.setLevel(logging.INFO)
 
+
+# TODO Eventualmente ExtendedCSVLogger(CSVLogger) con data_manager!
 
 __all__ = [
     'file_handler',

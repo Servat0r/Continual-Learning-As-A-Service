@@ -126,7 +126,7 @@ def update_resource(username, workspace, typename, name, updata) -> Response:
 
     context = UserWorkspaceResourceContext(username, workspace)
 
-    resource_document = ctp.get_by(username, workspace, name)
+    resource_document = ctp.get(username, workspace, name)
 
     if resource_document is None or len(resource_document) != 1:
         return InternalFailure(
