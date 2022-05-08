@@ -163,11 +163,6 @@ def validate_alnum(alnum: str) -> tuple[bool, str | None]:
         return True, None
 
 
-_URI_PATH_REQS = \
-    "Uri path must contain only alphanumeric characters and not contain any whitespaces " \
-    "or multiple consecutive special characters."
-
-
 __all__ = [
     'USERNAME_MAX_CHARS',
     'USERNAME_MIN_CHARS',

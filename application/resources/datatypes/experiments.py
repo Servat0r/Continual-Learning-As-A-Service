@@ -2,84 +2,38 @@
 Interface for CL experiments.
 """
 from __future__ import annotations
-from application.resources import *
+
+from application.utils import ABC, TDesc, t, abstractmethod, Module
+from application.resources.utils import JSONSerializable
+from .metricsets import BaseMetricSet
+from .benchmarks import Benchmark
+from .strategies import Strategy
 
 
-class BaseCLExperiment(JSONSerializable):
+class CLExperimentMixin(JSONSerializable, ABC):
 
-    # 0.0 Actual class methods
-    __experiment_class__: t.Type[BaseCLExperiment] = None
-
-    @staticmethod
-    def set_class(cls):
-        if BaseCLExperiment.__data_repo_class__ is None:
-            BaseCLExperiment.__data_repo_class__ = cls
-        return cls
-
-    @staticmethod
-    def get_class():
-        return BaseCLExperiment.__experiment_class__
-
-    # 3. General classmethods
-
-    # 4. Create + callbacks
-    @classmethod
     @abstractmethod
-    def create(cls, strategy: Strategy, benchmark: Benchmark) -> BaseCLExperiment | None:
-        pass
-
-    # 5. Delete + callbacks
-    @abstractmethod
-    def delete(self):
-        pass
-
-    # 6. Instance methods
-    @abstractmethod
-    def setup(self, strategy: Strategy, benchmark: Benchmark) -> bool:
+    def get_metricset(self) -> BaseMetricSet:
         pass
 
     @abstractmethod
-    def get_settings(self):
+    def get_benchmark(self):
         pass
 
     @abstractmethod
-    def get_status(self):
+    def get_strategy(self):
         pass
 
     @abstractmethod
-    def get_models(self):
+    def get_model(self):
         pass
 
     @abstractmethod
-    def get_model(self, exec_id: int):
+    def get_optimizer(self):
         pass
 
     @abstractmethod
-    def get_executions(self):
-        pass
-
-    @abstractmethod
-    def get_execution(self, exec_id: int):
-        pass
-
-    @abstractmethod
-    def get_metricset(self):
-        pass
-
-    @abstractmethod
-    def get_csv_results(self):
-        pass
-
-    @abstractmethod
-    def get_owner(self):
-        pass
-
-    @abstractmethod
-    def get_workspace(self):
-        pass
-
-    @abstractmethod
-    def get_data_repository(self):
+    def get_criterion(self):
         pass
 
     @abstractmethod
@@ -87,5 +41,61 @@ class BaseCLExperiment(JSONSerializable):
         pass
 
 
-class BaseCLExperimentExecution(JSONSerializable):
-    pass    # TODO Magari cancellare!
+class BaseCLExperiment(CLExperimentMixin):
+
+    # 1. Fields
+    CREATED = 'CREATED'
+    READY = 'READY'
+    RUNNING = 'RUNNING'
+    ENDED = 'ENDED'
+
+    # 3. General classmethods
+
+    # 6. Instance methods
+    @abstractmethod
+    def setup(self, strategy: Strategy, benchmark: Benchmark) -> bool:
+        pass
+
+    @abstractmethod
+    def run(self):
+        pass
+
+    def is_running(self):
+        return self.get_status() == self.RUNNING
+
+    def is_done(self):
+        return self.get_status() == self.ENDED
+
+    @abstractmethod
+    def get_status(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_executions(self) -> t.Sequence[BaseCLExperimentExecution]:
+        pass
+
+    @abstractmethod
+    def get_execution(self, exec_id: int) -> BaseCLExperimentExecution:
+        pass
+
+    @abstractmethod
+    def get_current_execution(self):
+        pass
+
+
+class BaseCLExperimentExecution(CLExperimentMixin):
+
+    @abstractmethod
+    def get_csv_results(self):
+        pass
+
+    @abstractmethod
+    def get_final_model(self) -> Module:
+        pass
+
+
+__all__ = [
+    'CLExperimentMixin',
+    'BaseCLExperiment',
+    'BaseCLExperimentExecution',
+]

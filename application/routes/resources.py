@@ -1,13 +1,13 @@
 """
 Base module for handling operations on "generic" resources.
 """
-import os
 from http import HTTPStatus
-from flask import request
+from flask import request, Response
 
 from application.utils import *
 from application.errors import *
 from application.resources import *
+
 from application.mongo.resources import MongoResourceConfig
 from .auth import check_current_user_ownership
 
@@ -184,3 +184,11 @@ def delete_resource(username, workspace, typename, name) -> Response:
         return make_success_dict(msg=f"Successfully deleted resource '{name}'.")
     except Exception as ex:
         return InternalFailure(msg=ex.args[0])
+
+
+__all__ = [
+    'add_new_resource',
+    'build_resource',
+    'update_resource',
+    'delete_resource',
+]

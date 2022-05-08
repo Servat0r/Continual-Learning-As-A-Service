@@ -1,5 +1,4 @@
 from __future__ import annotations
-from application.mongo.resources import *
 from commons_test.resources.base_datatypes import *
 from commons_test.resources.documents import *
 

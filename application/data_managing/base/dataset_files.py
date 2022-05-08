@@ -1,7 +1,8 @@
 from __future__ import annotations
-import os
 
-from application.resources import *
+from application.utils import TDesc, t, abstractmethod, os
+from application.resources.utils import JSONSerializable
+from application.resources.contexts import ResourceContext
 
 
 class BaseDatasetFile(JSONSerializable):
@@ -35,8 +36,8 @@ class BaseDatasetFile(JSONSerializable):
     # 6. Read/Update Instance methods
     def get_absolute_path(self) -> str:
         self_path = self.get_relative_path()
-        dataset_path = self.get_data_repository().get_absolute_path()
-        return os.path.join(dataset_path, self_path)
+        dataset_path: str = self.get_data_repository().get_absolute_path()
+        return os.path.join(dataset_path, *self_path)
 
     @abstractmethod
     def get_data_repository(self):

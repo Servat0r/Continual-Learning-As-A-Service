@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from application.data_managing.base import *
-from application.mongo.base import *
+from application.utils import abstractmethod, TBoolExc
+from application.data_managing.base import BaseDataRepository
+
+from application.mongo.utils import RWLockableDocument
+from application.mongo.base import MongoBaseWorkspace, MongoBaseUser
 
 
 class MongoBaseDataRepository(BaseDataRepository, RWLockableDocument):
@@ -28,3 +31,6 @@ class MongoBaseDataRepository(BaseDataRepository, RWLockableDocument):
     @abstractmethod
     def get_owner(self) -> MongoBaseUser:
         pass
+
+
+__all__ = ['MongoBaseDataRepository']

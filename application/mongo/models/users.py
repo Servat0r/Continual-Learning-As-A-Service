@@ -1,16 +1,20 @@
 from __future__ import annotations
-import os
 import base64
-from datetime import timedelta
+from datetime import datetime, timedelta
 from hashlib import md5
 from werkzeug.security import check_password_hash
 from mongoengine import NotUniqueError
 
+from application.utils import TDesc, TBoolExc, os
 from application.validation import USERNAME_MAX_CHARS
 from application.database import db
-from application.resources import TDesc, TBoolExc
+from application.models import User, Workspace
+
 from application.mongo.base import *
+from application.mongo.mongo_base_metadata import MongoBaseMetadata
+
 from application.data_managing import BaseDataManager
+from application.mongo.utils import RWLockableDocument
 
 
 class UserMetadata(MongoBaseMetadata):
@@ -242,3 +246,9 @@ class MongoUser(MongoBaseUser):
         self.token_expiration = datetime.utcnow() - timedelta(seconds=1)
         if save:
             self.save()
+
+
+__all__ = [
+    'UserMetadata',
+    'MongoUser',
+]

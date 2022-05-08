@@ -1,6 +1,13 @@
-from application.resources.datatypes import *
-from application.mongo.resources.mongo_base_configs import *
+from __future__ import annotations
 from avalanche.models import SimpleMLP
+
+from application.utils import TBoolStr, t, TDesc, get_device
+from application.database import db
+
+from application.resources.contexts import ResourceContext
+from application.resources.base import DataType
+
+from application.mongo.resources.mongo_base_configs import *
 
 
 # SimpleMLP builder
@@ -59,6 +66,12 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
             hidden_size=self.hidden_size,
             hidden_layers=self.hidden_layers,
             drop_rate=self.drop_rate,
-        )
+        ).to(get_device())
         # noinspection PyArgumentList
         return self.target_type()(model)
+
+
+# MultiHeadMLP builder
+
+
+__all__ = ['SimpleMLPBuildConfig']

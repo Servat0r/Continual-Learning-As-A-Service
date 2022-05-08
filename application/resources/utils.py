@@ -1,11 +1,6 @@
 from __future__ import annotations
-import typing as t
-from abc import *
 
-TBoolStr = t.TypeVar('TBoolStr', bound=tuple[bool, t.Optional[str]])
-TBoolExc = t.TypeVar('TBoolExc', bound=tuple[bool, t.Optional[Exception]])
-TBoolAny = t.TypeVar('TBoolAny', bound=tuple[bool, t.Any])
-TDesc = t.TypeVar('TDesc', bound=dict[str, t.Any])
+from application.utils import t, TBoolStr, TDesc, abstractmethod
 
 
 def primitive_validate(tp: type) -> t.Callable[[t.Any], TBoolStr]:
@@ -56,3 +51,12 @@ class URIBasedResource:
 
 nbr_type = t.Type[NameBasedResource]
 ubr_type = t.Type[URIBasedResource]
+
+__all__ = [
+    'primitive_validate',
+    'JSONSerializable',
+    'NameBasedResource',
+    'URIBasedResource',
+    'nbr_type',
+    'ubr_type',
+]

@@ -1,5 +1,5 @@
 from .validation import *
-from werkzeug.routing import BaseConverter, ValidationError
+from werkzeug.routing import BaseConverter, ValidationError as WerkzeugValidationError
 
 
 class UsernameConverter(BaseConverter):
@@ -9,7 +9,7 @@ class UsernameConverter(BaseConverter):
         if result:
             return value
         else:
-            raise ValidationError(msg)
+            raise WerkzeugValidationError(msg)
 
     def to_url(self, value) -> str:
         return BaseConverter.to_url(self, value)
@@ -22,7 +22,7 @@ class WorkspaceExperimentConverter(BaseConverter):
         if result:
             return value
         else:
-            raise ValidationError(msg)
+            raise WerkzeugValidationError(msg)
 
     def to_url(self, value) -> str:
         return BaseConverter.to_url(self, value)
@@ -35,7 +35,15 @@ class AlphaNumConverter(BaseConverter):
         if result:
             return value
         else:
-            raise ValidationError(msg)
+            raise WerkzeugValidationError(msg)
 
     def to_url(self, value) -> str:
         return BaseConverter.to_url(self, value)
+
+
+__all__ = [
+    'UsernameConverter',
+    'WorkspaceExperimentConverter',
+    'AlphaNumConverter',
+    'WerkzeugValidationError',
+]

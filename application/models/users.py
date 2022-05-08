@@ -1,10 +1,9 @@
 from __future__ import annotations
-from abc import abstractmethod
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash
 
-from application.resources import t, TDesc, TBoolExc
+from application.utils import t, abstractmethod, TBoolExc, TDesc
 
 
 def check_token(token):

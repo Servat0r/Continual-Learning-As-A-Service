@@ -1,62 +1,87 @@
 from __future__ import annotations
-import os
 
+from application.utils import t, TDesc
 from application.database import db
-from application.resources import TDesc, t
-from application.models import *
-from application.mongo.mongo_base_metadata import *
+from application.models import Workspace
+
+from application.resources.datatypes import Benchmark, BaseMetricSet,\
+    Strategy, BaseCLExperiment, BaseCLExperimentExecution
+
+from application.mongo.utils import RWLockableDocument
+from application.mongo.mongo_base_metadata import MongoBaseMetadata
+from application.mongo.resources import MongoStrategy
 
 
 class MongoCLExperimentMetadata(MongoBaseMetadata):
     pass
 
 
-class MongoCLExperiment(BaseCLExperiment):
+class MongoCLExperimentExecution(BaseCLExperimentExecution, db.EmbeddedDocument):
+    pass
 
-    @classmethod
-    def create(cls, strategy: Strategy, model: Model, opt: Optimizer, criterion: Criterion, metrics: BaseMetricSet,
-               benchmark: Benchmark) -> BaseCLExperiment | None:
+
+class MongoCLExperiment(BaseCLExperiment, RWLockableDocument):
+
+    _STATUS = (
+        BaseCLExperiment.CREATED,
+        BaseCLExperiment.READY,
+        BaseCLExperiment.RUNNING,
+        BaseCLExperiment.ENDED,
+    )
+
+    strategy = db.ReferenceField(MongoStrategy.config_type(), default=None)
+    benchmark = db.ReferenceField(Benchmark.config_type(), default=None)
+    status = db.StringField(choices=_STATUS, default=BaseCLExperiment.CREATED)
+    executions = db.ListField(db.EmbeddedDocumentField(MongoCLExperimentExecution), default=[])
+    workspace = db.ReferenceField(Workspace.get_class())
+    current_execution = db.EmbeddedDocumentField(MongoCLExperimentExecution)
+
+    def setup(self, strategy: Strategy, benchmark: Benchmark) -> bool:
         pass
 
-    def delete(self):
+    def run(self):
         pass
 
-    def setup(self, strategy: Strategy, model: Model, opt: Optimizer, criterion: Criterion, metrics: BaseMetricSet,
-              benchmark: Benchmark) -> bool:
+    def get_status(self) -> str:
+        return self.status
+
+    def get_executions(self) -> t.Sequence[BaseCLExperimentExecution]:
         pass
 
-    def get_settings(self):
+    def get_execution(self, exec_id: int) -> BaseCLExperimentExecution:
         pass
 
-    def get_status(self):
+    def get_current_execution(self):
         pass
 
-    def get_models(self):
+    def get_metricset(self) -> BaseMetricSet:
+        return self.strategy
+
+    def get_benchmark(self):
         pass
 
-    def get_model(self, exec_id: int):
+    def get_strategy(self):
         pass
 
-    def get_executions(self):
+    def get_model(self):
         pass
 
-    def get_execution(self, exec_id: int):
+    def get_optimizer(self):
         pass
 
-    def get_metricset(self):
-        pass
-
-    def get_csv_results(self):
-        pass
-
-    def get_owner(self):
-        pass
-
-    def get_workspace(self):
-        pass
-
-    def get_data_repository(self):
+    def get_criterion(self):
         pass
 
     def to_dict(self) -> TDesc:
         pass
+
+    @property
+    def parents(self) -> set[RWLockableDocument]:
+        pass
+
+
+__all__ = [
+    'MongoCLExperimentMetadata',
+    'MongoCLExperimentExecution',
+    'MongoCLExperiment',
+]

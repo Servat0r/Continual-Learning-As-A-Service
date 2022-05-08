@@ -1,6 +1,6 @@
 from datetime import datetime
 from application.database import db
-from application.resources import *
+from application.resources.base import BaseMetadata
 
 
 class MongoBaseMetadata(BaseMetadata, db.EmbeddedDocument):
@@ -27,3 +27,6 @@ class MongoBaseMetadata(BaseMetadata, db.EmbeddedDocument):
     def __init__(self, *args, **kwargs):
         BaseMetadata.__init__(self)
         db.EmbeddedDocument.__init__(self, *args, **kwargs)
+
+
+__all__ = ['MongoBaseMetadata']

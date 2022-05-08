@@ -1,7 +1,8 @@
-from flask import Blueprint
+from flask import Blueprint, request
 
-from application.routes.auth import token_auth
-from application.routes.resources import *
+from application.utils import checked_json
+from .auth import token_auth
+from .resources import *
 
 
 _DFL_BENCHMARK_NAME_ = "Benchmark"
@@ -62,3 +63,12 @@ def delete_benchmark(username, wname, name):
     :return:
     """
     return delete_resource(username, wname, _DFL_BENCHMARK_NAME_, name)
+
+
+__all__ = [
+    'benchmarks_bp',
+    'create_benchmark',
+    'build_benchmark',
+    'update_benchmark',
+    'delete_benchmark',
+]

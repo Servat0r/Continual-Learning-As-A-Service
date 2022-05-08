@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from avalanche.models import BaseModel
-from application.resources import *
+from application.utils import ABC, TDesc, t
+from application.resources.base import WrapperReferrableDataType
 
 
 class Model(WrapperReferrableDataType, ABC):
@@ -16,3 +17,6 @@ class Model(WrapperReferrableDataType, ABC):
 
     def get_metadata(self, key: str | None = None) -> TDesc | t.Any:
         return WrapperReferrableDataType.get_metadata(self, key)
+
+
+__all__ = ['Model']

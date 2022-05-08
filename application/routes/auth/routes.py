@@ -2,7 +2,6 @@
 Authentication handling routes.
 """
 from flask import Blueprint, request
-from application.database import db
 from application.utils import *
 from application.models import *
 from application.errors import *
@@ -86,3 +85,11 @@ def logout():
     current_user = token_auth.current_user()
     current_user.revoke_token()
     return make_success_kwargs(HTTPStatus.OK, 'Successfully logged out.')
+
+
+__all__ = [
+    'token_auth',
+    'auth_bp',
+    'login',
+    'logout',
+]

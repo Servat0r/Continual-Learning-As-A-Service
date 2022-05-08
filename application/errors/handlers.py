@@ -5,7 +5,7 @@ from __future__ import annotations
 from http import HTTPStatus
 from flask import Response
 
-from application.errors.utils import make_error
+from .utils import *
 
 
 class ServerResponseError(object):

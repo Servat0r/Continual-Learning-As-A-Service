@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from avalanche.evaluation.metric_definitions import *
-from application.resources import *
+from application.utils import ABC, TDesc, t
+from application.resources.base import WrapperReferrableDataType
 
 
 class BaseMetricSet(WrapperReferrableDataType, ABC):
@@ -24,3 +25,10 @@ class StandardMetricSet(BaseMetricSet, ABC):
     Specialization of the base case where we consider ONLY
     standard metrics got by metrics helper functions.
     """
+    pass
+
+
+__all__ = [
+    'BaseMetricSet',
+    'StandardMetricSet',
+]

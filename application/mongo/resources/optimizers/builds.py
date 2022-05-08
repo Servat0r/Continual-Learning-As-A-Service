@@ -1,10 +1,21 @@
-from application.resources.datatypes import *
+from __future__ import annotations
+from torch.optim import SGD
+
+from application.utils import t, TDesc
+from application.database import db
+from application.models import User, Workspace
+
+from application.resources.contexts import ResourceContext, UserWorkspaceResourceContext
+from application.resources.base import DataType
+
 from application.mongo.resources.mongo_base_configs import *
 from application.mongo.resources.models import *
-from torch.optim import SGD
 
 
 # SGD
+from application.utils import TBoolStr
+
+
 @MongoBuildConfig.register_build_config('SGD')
 class SGDBuildConfig(MongoBuildConfig):
 
@@ -77,3 +88,6 @@ class SGDBuildConfig(MongoBuildConfig):
 
         # noinspection PyArgumentList
         return self.target_type()(optimizer)
+
+
+__all__ = ['SGDBuildConfig']

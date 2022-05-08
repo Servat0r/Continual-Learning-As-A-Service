@@ -1,5 +1,3 @@
-from application.database import *
-from application.resources import *
 from commons_test.resources.metadata import *
 
 

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from torch.nn.modules import Module
-from application.resources import *
+from application.utils import ABC, TDesc, t
+from application.resources.base import WrapperReferrableDataType
 
 
 class CLCriterion(WrapperReferrableDataType, ABC):
@@ -16,3 +17,6 @@ class CLCriterion(WrapperReferrableDataType, ABC):
 
     def get_metadata(self, key: str | None = None) -> TDesc | t.Any:
         return WrapperReferrableDataType.get_metadata(self, key)
+
+
+__all__ = ['CLCriterion']

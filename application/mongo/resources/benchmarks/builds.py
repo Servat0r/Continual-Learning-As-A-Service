@@ -1,6 +1,13 @@
-from application.resources.datatypes import *
-from application.mongo.resources.mongo_base_configs import *
+from __future__ import annotations
 from avalanche.benchmarks.classic import SplitMNIST
+
+from application.utils import TBoolStr, t, TDesc
+from application.database import db
+
+from application.resources.contexts import ResourceContext
+from application.resources.base import DataType
+
+from application.mongo.resources.mongo_base_configs import *
 
 
 # SplitMNIST builder
@@ -64,3 +71,8 @@ class SplitMNISTBuildConfig(MongoBuildConfig):
 
 
 # FashionMNIST builder
+
+
+__all__ = [
+    'SplitMNISTBuildConfig',
+]

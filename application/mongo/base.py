@@ -1,11 +1,8 @@
 from __future__ import annotations
-from abc import *
-from datetime import datetime
 
-from application import TDesc, TBoolStr, TBoolExc, t
-from application.mongo.mongo_base_metadata import MongoBaseMetadata
-from application.mongo.utils import RWLockableDocument
+from application.utils import TBoolExc, abstractmethod
 from application.models import User, Workspace
+from application.mongo.utils import RWLockableDocument
 
 
 class MongoBaseUser(User, RWLockableDocument):
@@ -56,3 +53,9 @@ class MongoBaseWorkspace(Workspace, RWLockableDocument):
     @abstractmethod
     def delete(self, parent_locked=False) -> TBoolExc:
         pass
+
+
+__all__ = [
+    'MongoBaseUser',
+    'MongoBaseWorkspace',
+]

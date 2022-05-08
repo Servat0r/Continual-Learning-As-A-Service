@@ -2,13 +2,22 @@
 Common constants.
 """
 from __future__ import annotations
-from typing import Any
-from http import HTTPStatus
+import typing as t
+import os
+from abc import ABC, abstractmethod
 
 import torch
-from flask import Request, Response, jsonify
+from torch.nn.modules import Module
+from http import HTTPStatus
+from flask import Request, jsonify, Response
 from werkzeug.exceptions import BadRequest
 from .errors import *
+
+# TypeVars
+TBoolStr = t.TypeVar('TBoolStr', bound=tuple[bool, t.Optional[str]])
+TBoolExc = t.TypeVar('TBoolExc', bound=tuple[bool, t.Optional[Exception]])
+TBoolAny = t.TypeVar('TBoolAny', bound=tuple[bool, t.Any])
+TDesc = t.TypeVar('TDesc', bound=dict[str, t.Any])
 
 # Classic methods
 GET = 'GET'
@@ -50,7 +59,7 @@ def make_success_dict(status: int = HTTPStatus.OK, msg: str = _DFL_SUCCESS_MSG, 
 
 
 def checked_json(request: Request, keyargs: bool = False, required: set[str] = None, optionals: set[str] = None,
-                 force: bool = True) -> tuple[Any | None, ServerResponseError | None, list[str], list[str]]:
+                 force: bool = True) -> tuple[t.Any | None, ServerResponseError | None, list[str], list[str]]:
     """
     Checks if request data is JSON-syntactically correct and has exactly the expected parameters (even optional ones).
     :param request: Current incoming request.
@@ -109,10 +118,18 @@ def get_device():
 
 
 __all__ = [
+    'TBoolStr', 'TBoolExc',
+    'TDesc', 'TBoolAny', 't',
+
+    'os', 'ABC', 'abstractmethod',
+
     'GET', 'PUT', 'POST', 'PATCH',
     'OPTIONS', 'HEAD', 'DELETE',
+
     'make_success_kwargs',
     'make_success_dict',
     'checked_json',
+
     'get_device',
+    'Module',
 ]

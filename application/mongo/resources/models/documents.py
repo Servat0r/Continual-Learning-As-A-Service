@@ -1,4 +1,8 @@
-from application.database import *
+from __future__ import annotations
+
+from application.utils import t
+from application.resources.base import DataType, BaseMetadata
+from application.mongo.mongo_base_metadata import MongoBaseMetadata
 from application.mongo.resources.mongo_base_configs import *
 
 
@@ -27,3 +31,9 @@ class MongoModelConfig(MongoResourceConfig):
 
     def __init__(self, *args, **values):
         super().__init__(*args, **values)
+
+
+__all__ = [
+    'ModelMetadata',
+    'MongoModelConfig',
+]

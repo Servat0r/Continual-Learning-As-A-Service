@@ -1,4 +1,5 @@
 from application.mongo.resources import *
+from application.utils import TDesc
 
 
 class DummyMetadata(MongoBaseMetadata):

@@ -1,14 +1,17 @@
-import os
+from __future__ import annotations
+from avalanche.logging import CSVLogger, InteractiveLogger
+from avalanche.training.strategies import BaseStrategy
+from avalanche.training.plugins import EvaluationPlugin
 
-from application.utils import get_device
-from application.mongo.resources.mongo_base_configs import *
+from application.utils import abstractmethod, os, get_device
+from application.data_managing import BaseDataManager
+from application.models import User, Workspace
+
+from application.mongo.base import MongoBaseUser
 from application.mongo.resources.metricsets import *
 from application.mongo.resources.criterions import *
 from application.mongo.resources.optimizers import *
 from application.mongo.resources.models import *
-
-from avalanche.logging import CSVLogger, InteractiveLogger
-from avalanche.training.plugins import EvaluationPlugin
 
 
 class MongoBaseStrategyBuildConfig(MongoBuildConfig):
@@ -34,22 +37,25 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
     def get_avalanche_strategy() -> t.Type[BaseStrategy]:
         pass
 
-    def get_evaluator(self):
-        log_folder = self.get_logging_path()
+    def get_evaluator(self, context: UserWorkspaceResourceContext):
+        log_folder = self.get_logging_path(context)
+        metricset = self.metricset.build(context)
         return EvaluationPlugin(
-            *self.metricset.get_value(),
+            *metricset.get_value(),
             loggers=[
                 CSVLogger(log_folder=log_folder),
                 InteractiveLogger(),
             ]
         )
 
-    def get_logging_path(self):
+    @staticmethod
+    def get_logging_path(context: UserWorkspaceResourceContext):
         # TODO Pass it from experiment! (From context?)
+        workspace = Workspace.canonicalize(context)
         return os.path.join(
             BaseDataManager.get().get_root(),
-            *self.workspace.experiments_base_dir_parents(),
-            self.workspace.experiments_base_dir(),
+            *workspace.experiments_base_dir_parents(),
+            workspace.experiments_base_dir(),
             'exp2',
             'logs',
         )
@@ -101,7 +107,7 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         criterion_name = params['criterion']
         metricset_name = params['metricset']
 
-        owner = User.canonicalize(context.get_username())
+        owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
         workspace = Workspace.canonicalize(context)
 
         model = MongoModel.config_type().get_one(owner, workspace, model_name)
@@ -128,16 +134,16 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         model = self.model.build(context)
         optim = self.optimizer.build(context)
         criterion = self.criterion.build(context)
-        metricset = self.metricset.build(context)
-
-        workspace = Workspace.canonicalize(context)
 
         strategy = self.get_avalanche_strategy()(
             model.get_value(), optim.get_value(),
             criterion.get_value(), device=get_device(),
             train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
             eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(),
+            evaluator=self.get_evaluator(context),
         )
         # noinspection PyArgumentList
         return self.target_type()(strategy)
+
+
+__all__ = ['MongoBaseStrategyBuildConfig']

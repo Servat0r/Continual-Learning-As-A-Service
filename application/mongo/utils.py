@@ -1,6 +1,6 @@
 from __future__ import annotations
-from abc import abstractmethod
 
+from application.utils import abstractmethod
 from application.database import *
 
 
@@ -196,3 +196,10 @@ class RWLockableEmbeddedDocument(db.EmbeddedDocument):
     def sub_resource_delete(self, locked=False) -> _SubResourceCtxManager:
         return _SubResourceCtxManager(resource=self, create=False,
                                       lock_type=_SubResourceCtxManager.READ, locked=locked)
+
+
+__all__ = [
+    'LockingError',
+    'RWLockableDocument',
+    'RWLockableEmbeddedDocument',
+]

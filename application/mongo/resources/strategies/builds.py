@@ -1,10 +1,13 @@
-from application.utils import get_device
+from __future__ import annotations
+from avalanche.training.strategies import BaseStrategy, Naive, Cumulative, SynapticIntelligence, LwF
+
+from application.utils import TBoolStr, t, TDesc, get_device
+from application.database import db
+
+from application.resources.contexts import UserWorkspaceResourceContext
+from application.resources.base import DataType
+
 from application.mongo.resources.mongo_base_configs import *
-from application.mongo.resources.metricsets import *
-from application.mongo.resources.criterions import *
-from application.mongo.resources.optimizers import *
-from application.mongo.resources.models import *
-from avalanche.training.strategies import Naive, Cumulative, SynapticIntelligence, LwF
 from .base_builds import *
 
 
@@ -102,7 +105,7 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
             si_lambda=self.si_lambda, eps=self.eps, device=get_device(),
             train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
             eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(),
+            evaluator=self.get_evaluator(context),
         )
         # noinspection PyArgumentList
         return self.target_type()(strategy)
@@ -165,7 +168,15 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
             alpha=self.alpha, temperature=self.temperature, device=get_device(),
             train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
             eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(),
+            evaluator=self.get_evaluator(context),
         )
         # noinspection PyArgumentList
         return self.target_type()(strategy)
+
+
+__all__ = [
+    'NaiveBuildConfig',
+    'CumulativeBuildConfig',
+    'SynapticIntelligenceBuildConfig',
+    'LwFBuildConfig',
+]

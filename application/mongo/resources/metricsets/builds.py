@@ -1,8 +1,14 @@
-from mongoengine import ValidationError
-
-from application.resources.datatypes import *
-from application.mongo.resources.mongo_base_configs import *
+from __future__ import annotations
+from mongoengine import ValidationError as MongoEngineValidationError
 from avalanche.evaluation.metrics import *
+
+from application.utils import TBoolStr, t, TDesc
+from application.database import db
+
+from application.resources.contexts import ResourceContext
+from application.resources.base import DataType
+
+from application.mongo.resources.mongo_base_configs import *
 
 
 # Validator for standard metric helper settings
@@ -10,13 +16,13 @@ def std_name_validate(metric_cfg):
     try:
         for item in metric_cfg.items():
             if not isinstance(item[0], str):
-                raise ValidationError(f"Unknown key type: '{type(item[0]).__name__}'")
+                raise MongoEngineValidationError(f"Unknown key type: '{type(item[0]).__name__}'")
             elif not isinstance(item[1], bool):
-                raise ValidationError(f"Unknown value type: '{type(item[1]).__name__}'")
+                raise MongoEngineValidationError(f"Unknown value type: '{type(item[1]).__name__}'")
             elif not item[0] in StandardMetricSetBuildConfig.__values__:
-                raise ValidationError("Unknown metric evaluation scope.")
+                raise MongoEngineValidationError("Unknown metric evaluation scope.")
     except Exception as ex:
-        raise ValidationError(f"Error when validating document: '{ex}': '{ex.args[0]}'")
+        raise MongoEngineValidationError(f"Error when validating document: '{ex}': '{ex.args[0]}'")
 
 
 # Helper functions ONLY metricset builder

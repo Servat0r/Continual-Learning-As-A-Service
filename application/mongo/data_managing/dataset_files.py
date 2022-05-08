@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from application.database import *
-from application.resources import TBoolExc, TDesc
+from application.utils import t, TDesc
+from application.database import db
 from application.data_managing.base import BaseDatasetFile
+from application.resources.contexts import ResourceContext
 from application.mongo.mongo_base_metadata import *
 
 
@@ -59,3 +60,9 @@ class MongoDatasetFile(BaseDatasetFile, db.EmbeddedDocument):
 
     def to_dict(self) -> TDesc:
         pass
+
+
+__all__ = [
+    'MongoDatasetFileMetadata',
+    'MongoDatasetFile',
+]

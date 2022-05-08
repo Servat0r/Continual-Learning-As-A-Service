@@ -1,7 +1,8 @@
 from __future__ import annotations
-
 from avalanche.benchmarks import GenericCLScenario
-from application.resources import *
+
+from application.utils import t, TDesc, ABC
+from application.resources.base import WrapperReferrableDataType
 
 
 class Benchmark(WrapperReferrableDataType, ABC):
@@ -16,3 +17,6 @@ class Benchmark(WrapperReferrableDataType, ABC):
 
     def get_metadata(self, key: str | None = None) -> TDesc | t.Any:
         return WrapperReferrableDataType.get_metadata(self, key)
+
+
+__all__ = ['Benchmark']

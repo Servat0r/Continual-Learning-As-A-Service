@@ -1,7 +1,8 @@
-from flask import Blueprint
+from flask import Blueprint, request
 
-from application.routes.auth import token_auth
-from application.routes.resources import *
+from application.utils import checked_json
+from .auth import token_auth
+from .resources import *
 
 
 _DFL_METRICSET_NAME_ = "StandardMetricSet"
@@ -62,3 +63,12 @@ def delete_metric_set(username, wname, name):
     :return:
     """
     return delete_resource(username, wname, _DFL_METRICSET_NAME_, name)
+
+
+__all__ = [
+    'metricsets_bp',
+    'create_metric_set',
+    'build_metric_set',
+    'update_metricset',
+    'delete_metric_set',
+]

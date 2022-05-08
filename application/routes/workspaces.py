@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 from flask import Blueprint, request
-from application.routes.auth import token_auth
 from http import HTTPStatus
+
 from application.errors import *
 from application.utils import *
-from application.resources.base import *
+
+from application.resources.contexts import UserWorkspaceResourceContext
 from application.models import User, Workspace
-from .auth import check_current_user_ownership
+
+from .auth import token_auth, check_current_user_ownership
 
 
 workspaces_bp = Blueprint('workspaces', __name__, url_prefix='/users/<user:username>/workspaces')
@@ -221,3 +225,16 @@ def get_workspace_requirements(username, wname):    # TODO Completare!
 
     requirements = {'message': 'NotImplemented'}
     return make_success_kwargs(requirements=requirements)
+
+
+__all__ = [
+    'workspaces_bp',
+    'create_workspace',
+    'get_workspace',
+    'get_workspaces',
+    'rename_workspace',
+    'delete_workspace',
+    'get_workspace_status',
+    'set_workspace_status',
+    'get_workspace_requirements',
+]

@@ -1,7 +1,8 @@
-from flask import Blueprint
+from flask import Blueprint, request
 
-from application.routes.auth import token_auth
-from application.routes.resources import *
+from application.utils import checked_json
+from .auth import token_auth
+from .resources import *
 
 
 _DFL_MODEL_NAME_ = "Model"
@@ -50,3 +51,12 @@ def update_model(username, wname, name):
 @token_auth.login_required
 def delete_model(username, wname, name):
     return delete_resource(username, wname, _DFL_MODEL_NAME_, name)
+
+
+__all__ = [
+    'models_bp',
+    'create_model',
+    'build_model',
+    'update_model',
+    'delete_model',
+]

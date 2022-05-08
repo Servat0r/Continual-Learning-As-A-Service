@@ -22,3 +22,6 @@ def make_error(status: int, msg: str = _DFL_ERROR_MSG, err_type: str | None = No
     response = jsonify(err_dict)
     response.status = status
     return response
+
+
+__all__ = ['make_error']

@@ -1,8 +1,5 @@
 from http import HTTPStatus
-
-from application.errors import *
 from application import *
-from flask import jsonify
 
 
 #   Useful routines
@@ -27,7 +24,7 @@ def drop_collections(db_name: str = DFL_DATABASE_NAME, names: list[str] = None):
 app = create_app()
 
 
-# @app.errorhandler(Exception)
+@app.errorhandler(Exception)
 def return_exception(ex: Exception):
     print(ex)
     msgs = [str(arg) for arg in ex.args]
