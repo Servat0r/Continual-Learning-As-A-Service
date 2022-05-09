@@ -184,6 +184,13 @@ ServiceUnavailable = ServerResponseError(
     "The request has failed due to a temporary failure of the server.",
 )
 
+
+RouteNotImplemented = ServerResponseError(
+    HTTPStatus.NOT_IMPLEMENTED,
+    'NotImplemented',
+    "Request handler is not yet implemented."
+)
+
 __all__ = [
     'ServerResponseError',
     'InvalidToken',
@@ -207,4 +214,5 @@ __all__ = [
     'ResourceNotFound',
     'InternalFailure',
     'ServiceUnavailable',
+    'RouteNotImplemented',
 ]

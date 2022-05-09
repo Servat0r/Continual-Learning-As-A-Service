@@ -1,5 +1,4 @@
 from sys import argv
-import requests
 
 from client import *
 
@@ -31,6 +30,42 @@ model_build = {
     'name': 'SimpleMLP',
     'num_classes': 10,
     'input_size': 28 * 28,
+}
+
+criterion_name = "CrossEntropyLossOne"
+criterion_type = "CLCriterion"
+criterion_desc = "..."
+criterion_build = {
+    'name': 'CrossEntropyLoss',
+}
+
+optimizer_name = 'SGDOne'
+optimizer_desc = '...'
+optimizer_build = {
+    'name': 'SGD',
+    'learning_rate': 0.001,
+    'momentum': 0.9,
+    'model': model_name,
+}
+
+strategy_name = 'NaiveOne'  # 'CumulativeOne'
+strategy_desc = '...'
+strategy_build = {
+    'name': 'Naive',  # 'Cumulative',  # 'SynapticIntelligence',
+    'model': model_name,
+    'optimizer': optimizer_name,
+    'criterion': criterion_name,
+    'metricset': metricset_name,
+    # 'si_lambda': [1.0],
+    # 'eps': 0.001,
+}
+
+experiment_name = 'ExperimentOne'
+experiment_desc = '...'
+experiment_build = {
+    'name': 'ExperimentBuild',
+    'strategy': strategy_name,
+    'benchmark': benchmark_name,
 }
 
 
@@ -140,6 +175,18 @@ if __name__ == '__main__':
         # create and build models
         print_response(cl.create_model(model_name, model_build, model_desc))
         print_response(cl.build_model(model_name))
+
+    # todo if ... __only__:
+    print_response(cl.create_optimizer(optimizer_name, optimizer_build, optimizer_desc))
+    print_response(cl.build_optimizer(optimizer_name))
+
+    print_response(cl.create_criterion(criterion_name, criterion_build, criterion_desc))
+    print_response(cl.build_criterion(criterion_name))
+
+    print_response(cl.create_strategy(strategy_name, strategy_build, strategy_desc))
+    print_response(cl.build_strategy(strategy_name))
+
+    # todo experiments!
 
     if __models__ not in __nodel__:
         # delete models

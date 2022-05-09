@@ -1,6 +1,7 @@
 """
 Base module for handling operations on "generic" resources.
 """
+from __future__ import annotations
 from http import HTTPStatus
 from flask import request, Response
 
@@ -22,7 +23,17 @@ UnknownResourceType = ServerResponseError(
 )
 
 
-def add_new_resource(username, workspace, typename) -> Response:
+def _canonicalize_datatype(tp: str | t.Type[DataType]) -> \
+        tuple[t.Optional[t.Type[DataType]], t.Optional[Response]]:
+    if isinstance(tp, str):
+        return DataType.get_type(tp), None
+    elif issubclass(tp, DataType):
+        return tp, None
+    else:
+        return None, UnknownResourceType(type=str(tp))
+
+
+def add_new_resource(username, workspace, typename: str | t.Type[DataType]) -> Response:
     """
     Base method for adding a new "generic" resource.
     :param username:
@@ -42,9 +53,9 @@ def add_new_resource(username, workspace, typename) -> Response:
     else:
         context = UserWorkspaceResourceContext(username, workspace)
 
-        dtype = DataType.get_type(typename)
-        if dtype is None:
-            return UnknownResourceType(type=typename)
+        dtype, error = _canonicalize_datatype(typename)
+        if error:
+            return error
 
         ctp = t.cast(ReferrableDataType, dtype).config_type()
         if ctp is None:
@@ -60,7 +71,7 @@ def add_new_resource(username, workspace, typename) -> Response:
         return make_success_dict(HTTPStatus.CREATED, msg=f"Successfully created resource of type '{typename}'!")
 
 
-def build_resource(username, workspace, typename, name) -> Response:
+def build_resource(username, workspace, typename: str | t.Type[DataType], name) -> Response:
     """
     Base method for building a "generic" resource.
     TODO NO JSON!
@@ -72,13 +83,13 @@ def build_resource(username, workspace, typename, name) -> Response:
     :return:
     """
     if not check_current_user_ownership(username):
-        return ForbiddenOperation(f"You cannot add a new {typename} for another user ({username}).")
+        return ForbiddenOperation(f"You cannot build a {typename} for another user ({username}).")
 
     context = UserWorkspaceResourceContext(username, workspace)
 
-    dtype = DataType.get_type(typename)
-    if dtype is None:
-        return UnknownResourceType(type=typename)
+    dtype, error = _canonicalize_datatype(typename)
+    if error:
+        return error
 
     ctp: t.Type[MongoResourceConfig] = t.cast(ReferrableDataType, dtype).config_type()
     if ctp is None:
@@ -103,7 +114,25 @@ def build_resource(username, workspace, typename, name) -> Response:
         return InternalFailure(msg=f"Failed to build resource '{name}'.")
 
 
-def update_resource(username, workspace, typename, name, updata) -> Response:
+def get_resource(username, workspace, typename: str | t.Type[DataType], name, ownership_fail_msg: str = None,
+                 **ownership_fail_args) -> tuple[MongoResourceConfig | None, Response | None]:
+
+    ownership_fail_msg = ForbiddenOperation.dfl_msg if ownership_fail_msg is None else ownership_fail_msg
+    if not check_current_user_ownership(username):
+        return ForbiddenOperation(msg=ownership_fail_msg, **ownership_fail_args)
+
+    dtype, error = _canonicalize_datatype(typename)
+    if error:
+        return None, error
+
+    resource: MongoResourceConfig = t.cast(ReferrableDataType, dtype).config_type().get_one(username, workspace, name)
+    if resource is not None:
+        return resource, None
+    else:
+        return None, ResourceNotFound(resource=name)
+
+
+def update_resource(username, workspace, typename: str | t.Type[DataType], name, updata) -> Response:
     """
     Updates a resource.
     :param username:
@@ -114,11 +143,11 @@ def update_resource(username, workspace, typename, name, updata) -> Response:
     :return:
     """
     if not check_current_user_ownership(username):
-        return ForbiddenOperation(f"You cannot add a new {typename} for another user ({username}).")
+        return ForbiddenOperation(f"You cannot update a {typename} for another user ({username}).")
 
-    dtype = DataType.get_type(typename)
-    if dtype is None:
-        return UnknownResourceType(type=typename)
+    dtype, error = _canonicalize_datatype(typename)
+    if error:
+        return error
 
     ctp: t.Type[MongoResourceConfig] = t.cast(ReferrableDataType, dtype).config_type()
     if ctp is None:
@@ -144,7 +173,7 @@ def update_resource(username, workspace, typename, name, updata) -> Response:
         return make_success_dict()
 
 
-def delete_resource(username, workspace, typename, name) -> Response:
+def delete_resource(username, workspace, typename: str | t.Type[DataType], name) -> Response:
     """
     TODO NO JSON!
     TODO All parameters must be retrieved from URL!
@@ -155,13 +184,13 @@ def delete_resource(username, workspace, typename, name) -> Response:
     :return:
     """
     if not check_current_user_ownership(username):
-        return ForbiddenOperation(f"You cannot add a new {typename} for another user ({username}).")
+        return ForbiddenOperation(f"You cannot delete a {typename} for another user ({username}).")
 
     context = UserWorkspaceResourceContext(username, workspace)
 
-    dtype = DataType.get_type(typename)
-    if dtype is None:
-        return UnknownResourceType(type=typename)
+    dtype, error = _canonicalize_datatype(typename)
+    if error:
+        return error
 
     ctp: MongoResourceConfig = t.cast(ReferrableDataType, dtype).config_type()
     if ctp is None:
@@ -189,6 +218,7 @@ def delete_resource(username, workspace, typename, name) -> Response:
 __all__ = [
     'add_new_resource',
     'build_resource',
+    'get_resource',
     'update_resource',
     'delete_resource',
 ]

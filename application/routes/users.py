@@ -303,9 +303,9 @@ def delete_user(username):
 
     current_user = token_auth.current_user()
     if current_user.username == username:
-        result, msg = User.delete(current_user)
+        result, exc = current_user.delete()
         if not result:
-            return InternalFailure(msg=msg)
+            return InternalFailure(msg=exc.args[0])
         else:
             return make_success_kwargs(HTTPStatus.OK, msg=f"User '{username}' successfully deleted.", username=username)
     else:

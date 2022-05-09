@@ -47,7 +47,7 @@ class User(UserMixin):
 
     @classmethod
     def get(cls, username: str, **kwargs) -> list[User]:
-        pass
+        return cls.user_class().get(username, **kwargs)
 
     @classmethod
     @abstractmethod

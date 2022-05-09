@@ -13,6 +13,9 @@ class BaseClient:
     BENCHMARKS = "benchmarks"
     METRICSETS = "metricsets"
     MODELS = "models"
+    OPTIMIZERS = "optimizers"
+    CRITERIONS = "criterions"
+    STRATEGIES = "strategies"
 
     __debug_urls__: bool = False
 
@@ -68,6 +71,18 @@ class BaseClient:
     def models_base(self):
         return f"{self.workspaces_base}/{self.workspace}/{self.MODELS}"
 
+    @property
+    def optimizers_base(self):
+        return f"{self.workspaces_base}/{self.workspace}/{self.OPTIMIZERS}"
+    
+    @property
+    def criterions_base(self):
+        return f"{self.workspaces_base}/{self.workspace}/{self.CRITERIONS}"
+    
+    @property
+    def strategies_base(self):
+        return f"{self.workspaces_base}/{self.workspace}/{self.STRATEGIES}"
+    
     @staticmethod
     def get_url(*args):
         return '/'.join(args) + '/'
@@ -307,3 +322,69 @@ class BaseClient:
 
     def delete_model(self, name: str):
         return self.delete([self.models_base, name])
+
+    # Optimizer
+    def create_optimizer(self, name: str, build_config_data: dict, description: str = None):
+        data = {
+            'name': name,
+            'build': build_config_data,
+        }
+        if description is not None:
+            data['description'] = description
+        return self.post(self.optimizers_base, data=data)
+
+    def build_optimizer(self, name: str):
+        return self.get([self.optimizers_base, name])
+
+    def rename_optimizer(self, name: str, new_name: str):
+        return self.update_optimizer(name, {'name': new_name})
+
+    def update_optimizer(self, name: str, updata: dict):
+        return self.patch([self.optimizers_base, name], data=updata)
+
+    def delete_optimizer(self, name: str):
+        return self.delete([self.optimizers_base, name])
+
+    # Criterions
+    def create_criterion(self, name: str, build_config_data: dict, description: str = None):
+        data = {
+            'name': name,
+            'build': build_config_data,
+        }
+        if description is not None:
+            data['description'] = description
+        return self.post(self.criterions_base, data=data)
+
+    def build_criterion(self, name: str):
+        return self.get([self.criterions_base, name])
+
+    def rename_criterion(self, name: str, new_name: str):
+        return self.update_criterion(name, {'name': new_name})
+
+    def update_criterion(self, name: str, updata: dict):
+        return self.patch([self.criterions_base, name], data=updata)
+
+    def delete_criterion(self, name: str):
+        return self.delete([self.criterions_base, name])
+
+    # Strategies
+    def create_strategy(self, name: str, build_config_data: dict, description: str = None):
+        data = {
+            'name': name,
+            'build': build_config_data,
+        }
+        if description is not None:
+            data['description'] = description
+        return self.post(self.strategies_base, data=data)
+
+    def build_strategy(self, name: str):
+        return self.get([self.strategies_base, name])
+
+    def rename_strategy(self, name: str, new_name: str):
+        return self.update_strategy(name, {'name': new_name})
+
+    def update_strategy(self, name: str, updata: dict):
+        return self.patch([self.strategies_base, name], data=updata)
+
+    def delete_strategy(self, name: str):
+        return self.delete([self.strategies_base, name])

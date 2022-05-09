@@ -10,6 +10,8 @@ from .criterions import *
 from .optimizers import *
 from .strategies import *
 
+from .experiments import *
+
 
 blueprints = {
     auth_bp,
@@ -21,4 +23,5 @@ blueprints = {
     criterions_bp,
     optimizers_bp,
     strategies_bp,
+    experiments_bp,
 }

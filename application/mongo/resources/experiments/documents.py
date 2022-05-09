@@ -64,7 +64,7 @@ class MongoCLExperimentConfig(MongoResourceConfig):
             else:
                 return self.modify({}, status=BaseCLExperiment.READY)
 
-    # TODO ExperimentExecution operations
+    # TODO ExperimentExecution operations!
     def set_started(self, locked=False, all_locked=False, parents_locked: set[RWLockableDocument] = None) -> bool:
         parents_locked = self.parents if all_locked else parents_locked
         with self.resource_read(locked=locked, parents_locked=parents_locked):
@@ -73,7 +73,7 @@ class MongoCLExperimentConfig(MongoResourceConfig):
             else:
                 return self.modify({}, status=BaseCLExperiment.RUNNING)
 
-    # TODO ExperimentExecution operations
+    # TODO ExperimentExecution operations and thread/process stopping!
     def set_finished(self, locked=False, all_locked=False, parents_locked: set[RWLockableDocument] = None) -> bool:
         parents_locked = self.parents if all_locked else parents_locked
         with self.resource_read(locked=locked, parents_locked=parents_locked):
