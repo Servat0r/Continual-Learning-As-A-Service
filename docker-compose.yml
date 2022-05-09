@@ -1,0 +1,31 @@
+version: '3'
+services:
+  mongodb:
+    image: mongo:5.0.6
+    container_name: mongodb
+    restart: unless-stopped
+    hostname: test_mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD
+      - MONGO_INITDB_DATABASE
+      - MONGODB_DATA_DIR
+      - MONGODB_LOG_DIR
+    ports:
+      - "27017:27017"
+
+  main:
+    build: .
+    container_name: main
+    restart: unless-stopped
+    environment:
+      - MONGODB_DATABASE
+      - MONGODB_USERNAME
+      - MONGODB_PASSWORD
+      - MONGODB_HOSTNAME
+    volumes:
+      - .:/code
+    depends_on:
+      - mongodb
+    ports:
+      - "5000:5000"

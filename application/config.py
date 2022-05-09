@@ -42,8 +42,12 @@ class SQLConfig(SimpleConfig):
 class MongoConfig(SimpleConfig):
 
     MONGODB_DB = os.environ.get("MONGODB_DATABASE") or DFL_DATABASE_NAME
-    MONGODB_HOST = os.environ.get("MONGODB_HOST") or 'localhost'
+    MONGODB_HOST = os.environ.get("MONGODB_HOSTNAME") or 'localhost'
     MONGODB_PORT = os.environ.get("MONGODB_PORT") or 27017
+
+    MONGODB_USERNAME = os.environ.get('MONGODB_USERNAME') or 'user'
+    MONGODB_PASSWORD = os.environ.get('MONGODB_PASSWORD') or 'password'
+
     MONGODB_CONNECT = os.environ.get("MONGODB_CONNECT") or True  # TODO Change to False for "multi-service" Docker app!
 
 
