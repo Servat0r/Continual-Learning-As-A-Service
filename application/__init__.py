@@ -15,7 +15,7 @@ from .models import *
 from .mongo import *
 
 
-_NAME = os.environ.get('SERVER_NAME') or 'SERVER'
+_NAME = get_env('SERVER_NAME', 'SERVER')
 
 BaseDataManager.create()
 
@@ -30,14 +30,10 @@ def create_app(config_class=MongoConfig):
     app.url_map.converters['user'] = UsernameConverter
     app.url_map.converters['workspace'] = WorkspaceExperimentConverter
 
-    from application.routes import auth_bp, users_bp, workspaces_bp, benchmarks_bp, metricsets_bp, models_bp
+    from application.routes import blueprints
 
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(users_bp)
-    app.register_blueprint(workspaces_bp)
-    app.register_blueprint(benchmarks_bp)
-    app.register_blueprint(metricsets_bp)
-    app.register_blueprint(models_bp)
+    for bp in blueprints:
+        app.register_blueprint(bp)
 
     if not app.debug and not app.testing:
 

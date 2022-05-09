@@ -14,21 +14,21 @@ load_dotenv('test.env')
 
 class MongoTestConfig(MongoConfig):
     TESTING = True
-    MONGODB_DB = os.environ.get('MONGODB_DATABASE') or 'test'
+    MONGODB_DB = get_env('MONGODB_DATABASE', 'test')
 
-    TEST_HOST = os.environ.get('HOST') or '192.168.1.120'
-    TEST_PORT = int(os.environ.get('PORT') or '5000')
+    TEST_HOST = get_env('HOST', '192.168.1.120')
+    TEST_PORT = int(get_env('PORT', '5000'))
 
-    TEST_USERNAME = os.environ.get('USERNAME') or 'user1'
-    TEST_NEW_USERNAME = os.environ.get('NEW_USERNAME') or 'new_user_1'
+    TEST_USERNAME = get_env('USERNAME', 'user1')
+    TEST_NEW_USERNAME = get_env('NEW_USERNAME', 'new_user_1')
 
-    TEST_EMAIL = os.environ.get('EMAIL') or 'abc@example.com'
-    TEST_NEW_EMAIL = os.environ.get('NEW_EMAIL') or 'def@example.com'
+    TEST_EMAIL = get_env('EMAIL', 'abc@example.com')
+    TEST_NEW_EMAIL = get_env('NEW_EMAIL', 'def@example.com')
 
-    TEST_PASSWORD = os.environ.get('PASSWORD') or '1234?abcD'
-    TEST_NEW_PASSWORD = os.environ.get('NEW_PASSWORD') or '4321@Abcd'
+    TEST_PASSWORD = get_env('PASSWORD', '1234?abcD')
+    TEST_NEW_PASSWORD = get_env('NEW_PASSWORD', '4321@Abcd')
 
-    TEST_WORKSPACE = os.environ.get('WORKSPACE') or 'wspace1'
+    TEST_WORKSPACE = get_env('WORKSPACE', 'wspace1')
 
 
 class MyTestCase(unittest.TestCase):

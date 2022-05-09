@@ -100,12 +100,15 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
         optim = self.optimizer.build(context)
         criterion = self.criterion.build(context)
 
+        log_folder = self.get_logging_path(context)
+        metricset = self.metricset.build(context)
+
         strategy = SynapticIntelligence(
             model.get_value(), optim.get_value(), criterion.get_value(),
             si_lambda=self.si_lambda, eps=self.eps, device=get_device(),
             train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
             eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(context),
+            evaluator=self.get_evaluator(log_folder, metricset),
         )
         # noinspection PyArgumentList
         return self.target_type()(strategy)
@@ -163,12 +166,15 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
         optim = self.optimizer.build(context)
         criterion = self.criterion.build(context)
 
+        log_folder = self.get_logging_path(context)
+        metricset = self.metricset.build(context)
+
         strategy = LwF(
             model.get_value(), optim.get_value(), criterion.get_value(),
             alpha=self.alpha, temperature=self.temperature, device=get_device(),
             train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
             eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(context),
+            evaluator=self.get_evaluator(log_folder, metricset),
         )
         # noinspection PyArgumentList
         return self.target_type()(strategy)

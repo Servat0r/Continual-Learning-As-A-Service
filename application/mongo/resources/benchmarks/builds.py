@@ -8,11 +8,12 @@ from application.resources.contexts import ResourceContext
 from application.resources.base import DataType
 
 from application.mongo.resources.mongo_base_configs import *
+from .base_builds import *
 
 
 # SplitMNIST builder
 @MongoBuildConfig.register_build_config('SplitMNIST')
-class SplitMNISTBuildConfig(MongoBuildConfig):
+class SplitMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
     """
     Build config for a standard SplitMNIST benchmark based on avalanche.benchmarks.classics#SplitMNIST function.
     """

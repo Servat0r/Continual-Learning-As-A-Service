@@ -5,12 +5,13 @@ from __future__ import annotations
 
 from application.utils import ABC, TDesc, t, abstractmethod, Module
 from application.resources.utils import JSONSerializable
+from application.resources.base import ReferrableDataType
 from .metricsets import BaseMetricSet
 from .benchmarks import Benchmark
 from .strategies import Strategy
 
 
-class CLExperimentMixin(JSONSerializable, ABC):
+class CLExperimentMixin(ABC):
 
     @abstractmethod
     def get_metricset(self) -> BaseMetricSet:
@@ -36,12 +37,8 @@ class CLExperimentMixin(JSONSerializable, ABC):
     def get_criterion(self):
         pass
 
-    @abstractmethod
-    def to_dict(self) -> TDesc:
-        pass
 
-
-class BaseCLExperiment(CLExperimentMixin):
+class BaseCLExperiment(CLExperimentMixin, ReferrableDataType, ABC):
 
     # 1. Fields
     CREATED = 'CREATED'
@@ -52,9 +49,11 @@ class BaseCLExperiment(CLExperimentMixin):
     # 3. General classmethods
 
     # 6. Instance methods
-    @abstractmethod
-    def setup(self, strategy: Strategy, benchmark: Benchmark) -> bool:
-        pass
+    def set_metadata(self, **kwargs):
+        super().set_metadata(**kwargs)
+
+    def get_metadata(self, key: str | None = None) -> TDesc | t.Any:
+        return super().get_metadata(key)
 
     @abstractmethod
     def run(self):

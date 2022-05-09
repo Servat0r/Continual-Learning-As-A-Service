@@ -12,7 +12,7 @@ from application.validation import *
 from application.models import *
 from application.routes.auth import token_auth
 
-_CHECK_DNS = bool(os.environ.get('EMAIL_VALIDATION_CHECK_DNS') or False)
+_CHECK_DNS = bool(os.environ.get('EMAIL_VALIDATION_CHECK_DNS', False))
 
 users_bp = Blueprint('users', __name__, url_prefix='/users')
 

@@ -12,7 +12,7 @@ from application.mongo.resources import MongoResourceConfig
 from .auth import check_current_user_ownership
 
 
-__DEBUG = bool(os.environ.get('DEBUG') or False)
+__DEBUG = bool(os.environ.get('DEBUG', False))
 
 UnknownResourceType = ServerResponseError(
     HTTPStatus.NOT_FOUND,

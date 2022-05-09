@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from application.utils import t
 from application.resources.base import DataType, BaseMetadata
+
+from application.mongo.utils import RWLockableDocument
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
 from application.mongo.resources.mongo_base_configs import *
 
@@ -31,6 +33,11 @@ class MongoStrategyConfig(MongoResourceConfig):
 
     def __init__(self, *args, **values):
         super().__init__(*args, **values)
+
+    @property
+    def parents(self) -> set[RWLockableDocument]:
+        build_config = self.build_config
+        return {build_config.model, build_config.optimizer, build_config.criterion, build_config.metricset}
 
 
 __all__ = [

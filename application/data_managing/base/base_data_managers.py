@@ -24,7 +24,7 @@ class BaseDataManager:
     with the underlying FS.
     """
 
-    _DFL_ROOT_DIR = os.environ.get('BASEDIR') or 'files'
+    _DFL_ROOT_DIR = os.environ.get('BASEDIR', 'files')
 
     __manager_class__: t.Type[BaseDataManager] = None
     __manager__: t.Type[__manager_class__] = None

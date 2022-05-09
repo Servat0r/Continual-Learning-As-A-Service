@@ -37,9 +37,8 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
     def get_avalanche_strategy() -> t.Type[BaseStrategy]:
         pass
 
-    def get_evaluator(self, context: UserWorkspaceResourceContext):
-        log_folder = self.get_logging_path(context)
-        metricset = self.metricset.build(context)
+    @staticmethod
+    def get_evaluator(log_folder: bytes | str, metricset: StandardMetricSet) -> EvaluationPlugin:
         return EvaluationPlugin(
             *metricset.get_value(),
             loggers=[
@@ -117,7 +116,7 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
 
         refs_check = all(res is not None for res in [model, optim, criterion, metricset])
         if not refs_check:
-            return False, "One or more referred resource does not exist."
+            return False, "One or more referred resource(s) do(es) not exist."
         else:
             params['model'] = model
             params['optimizer'] = optim
@@ -135,15 +134,18 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         optim = self.optimizer.build(context)
         criterion = self.criterion.build(context)
 
+        log_folder = self.get_logging_path(context)
+        metricset = self.metricset.build(context)
+
         strategy = self.get_avalanche_strategy()(
             model.get_value(), optim.get_value(),
             criterion.get_value(), device=get_device(),
             train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
             eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(context),
+            evaluator=self.get_evaluator(log_folder, metricset),
         )
         # noinspection PyArgumentList
-        return self.target_type()(strategy)
+        return self.target_type()(strategy, model, optim, criterion, metricset)
 
 
 __all__ = ['MongoBaseStrategyBuildConfig']

@@ -287,15 +287,18 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
             config = MongoBuildConfig.get_by_name(data['build'])
             return t.cast(MongoBuildConfig, config).validate_input(data['build'], cls.target_type(), context)
 
-    def build(self, context: ResourceContext):
-        obj = self.build_config.build(context)
-        obj.set_metadata(
-            name=self.name,
-            owner=self.owner.username,
-            workspace=self.workspace.name,
-            extra=self.metadata.to_dict()
-        )
-        return obj
+    def build(self, context: ResourceContext,
+              locked=False, all_locked=False, parents_locked: set[RWLockableDocument] = None):
+        parents_locked = self.parents if all_locked else parents_locked
+        with self.resource_read(locked=locked, parents_locked=parents_locked):
+            obj = self.build_config.build(context)
+            obj.set_metadata(
+                name=self.name,
+                owner=self.owner.username,
+                workspace=self.workspace.name,
+                extra=self.metadata.to_dict()
+            )
+            return obj
 
     def update_last_modified(self, time: datetime = None, save: bool = True):
         self.metadata.update_last_modified(time)
