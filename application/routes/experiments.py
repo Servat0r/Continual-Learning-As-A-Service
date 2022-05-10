@@ -45,7 +45,7 @@ def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
             if result is None:
                 return ResourceNotFound(msg="Experiment run configuration does not exist.")
             elif result:
-                return make_success_kwargs(msg="Experiment correctly executed.")
+                return make_success_dict(msg="Experiment correctly executed.")
             else:
                 return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to run experiment.")
         except Exception as ex:
@@ -72,7 +72,7 @@ def setup_experiment(username, wname, name):
 
     result = experiment_config.setup()
     if result:
-        return make_success_kwargs(msg="Setup successfully completed.")
+        return make_success_dict(msg="Setup successfully completed.")
     else:
         return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Setup failed.")  # todo che errore?
 
@@ -116,7 +116,7 @@ def set_experiment_status(username, wname, name):
 def __start_experiment(experiment_config: MongoCLExperimentConfig, context: UserWorkspaceResourceContext):
     uri = experiment_config.uri
     _experiment_run_task.submit_stored(uri, experiment_config, context)
-    return make_success_kwargs(msg="Experiment successfully started!")
+    return make_success_dict(msg="Experiment successfully started!")
 
 
 @experiments_bp.get('/<name>/status/')
@@ -129,11 +129,13 @@ def get_experiment_status(username, wname, name):
     else:
         uri = experiment_config.uri
         if experiment_config.status != BaseCLExperiment.ENDED:
-            return make_success_kwargs(status=experiment_config.status)
+            return make_success_dict(data={'status': experiment_config.status})
         elif not executor.futures.done(uri):
-            return make_success_kwargs(status=executor.futures._state(uri))
+            status = executor.futures._state(uri)
+            print(status)
+            return make_success_dict(data={'status': status})
         else:
-            return make_success_kwargs(status=experiment_config.status)
+            return make_success_dict(data={'status': experiment_config.status})
 
 
 @experiments_bp.get('/<name>/results/')
@@ -146,7 +148,7 @@ def get_experiment_results(username, wname, name):
     else:
         uri = experiment_config.uri
         if experiment_config.status != BaseCLExperiment.ENDED:
-            return make_success_kwargs(
+            return make_success_dict(
                 HTTPStatus.OK,
                 msg="Experiment is still running and results are not available.",
             )
@@ -156,7 +158,7 @@ def get_experiment_results(username, wname, name):
                 result = future.result()
                 if result is not None:
                     return result
-            return make_success_kwargs(
+            return make_success_dict(
                 HTTPStatus.OK,
                 msg="No results available for this experiment.",
             )
@@ -170,7 +172,9 @@ def get_experiment_settings(username, wname, name):
     if err_response:
         return err_response
     else:
-        return make_success_dict(data=experiment_config.to_dict())
+        data = experiment_config.to_dict()
+        print(data)
+        return make_success_dict(data=data)
 
 
 @experiments_bp.get('/<name>/model/')

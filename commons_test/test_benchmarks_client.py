@@ -190,8 +190,17 @@ if __name__ == '__main__':
     print_response(cl.setup_experiment(experiment_name))
     print_response(cl.start_experiment(experiment_name))
 
+    sleep(5)
+    print_response(cl.get_experiment_settings(experiment_name))
+
+    sleep(5)
+    print_response(cl.get_experiment_status(experiment_name))
+
+    sleep(5)
+    print_response(cl.get_experiment_csv_results(experiment_name))
+
     for i in range(10):
-        sleep(30)
+        sleep(36)
         print_response(cl.get_experiment_results(experiment_name))
 
     print_response(cl.delete_experiment(experiment_name))
