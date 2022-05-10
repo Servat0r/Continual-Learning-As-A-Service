@@ -6,21 +6,22 @@ from application.models import User, Workspace
 
 from application.resources.contexts import ResourceContext, UserWorkspaceResourceContext
 from application.resources.base import DataType
-from application.resources.datatypes import BaseCLExperiment
+from application.resources.datatypes import BaseCLExperiment, BaseCLExperimentRunConfig
 
 from application.mongo.resources.mongo_base_configs import *
 from application.mongo.models import MongoUser, MongoWorkspace
-from application.mongo.resources.strategies import MongoStrategy
-from application.mongo.resources.benchmarks import MongoBenchmark
+from application.mongo.resources.strategies import MongoStrategyConfig
+from application.mongo.resources.benchmarks import MongoBenchmarkConfig
 
 
 @MongoBuildConfig.register_build_config('ExperimentBuild')
 class StandardExperimentBuildConfig(MongoBuildConfig):
 
     # Fields
-    strategy = db.ReferenceField(MongoStrategy.config_type())
-    benchmark = db.ReferenceField(MongoBenchmark.config_type())
+    strategy = db.ReferenceField(MongoStrategyConfig)
+    benchmark = db.ReferenceField(MongoBenchmarkConfig)
     status = db.StringField(default=BaseCLExperiment.CREATED)
+    run_config = db.StringField(default=BaseCLExperimentRunConfig.DFL_RUN_CONFIG_NAME)
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -28,7 +29,7 @@ class StandardExperimentBuildConfig(MongoBuildConfig):
 
     @classmethod
     def get_optionals(cls) -> set[str]:
-        return set()
+        return (super().get_optionals() or set()).union({'run_config'})
 
     @staticmethod
     def target_type() -> t.Type[DataType]:
@@ -44,18 +45,24 @@ class StandardExperimentBuildConfig(MongoBuildConfig):
 
         strategy_name = params['strategy']
         benchmark_name = params['benchmark']
+        run_config_name = params.get('run_config', BaseCLExperimentRunConfig.DFL_RUN_CONFIG_NAME)
 
         owner = t.cast(MongoUser, User.canonicalize(context.get_username()))
         workspace = t.cast(MongoWorkspace, Workspace.canonicalize(context))
 
-        strategy = MongoStrategy.config_type().get_one(owner, workspace, strategy_name)
-        benchmark = MongoBenchmark.config_type().get_one(owner, workspace, benchmark_name)
+        strategy = MongoStrategyConfig.get_one(owner, workspace, strategy_name)
+        benchmark = MongoBenchmarkConfig.get_one(owner, workspace, benchmark_name)
+        run_config = BaseCLExperimentRunConfig.get_by_name(run_config_name)
+
+        if run_config is None:
+            return False, f"The specified run configuration '{run_config_name}' does not exist."
 
         if strategy is None or benchmark is None:
             return False, "One or more referred resource(s) do(es) not exist."
         else:
             params['strategy'] = strategy
             params['benchmark'] = benchmark
+            params['run_config'] = run_config_name
             context.push(iname, values)
             return True, None
 
@@ -64,7 +71,8 @@ class StandardExperimentBuildConfig(MongoBuildConfig):
         return super().create(data, tp, context)
 
     def build(self, context: ResourceContext):
+
         strategy = self.strategy.build(context)
         benchmark = self.benchmark.build(context)
         # noinspection PyArgumentList
-        return self.target_type()(strategy, benchmark, self.status)
+        return self.target_type()(strategy, benchmark, self.status, self.run_config)

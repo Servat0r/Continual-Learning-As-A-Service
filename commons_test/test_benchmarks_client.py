@@ -1,4 +1,5 @@
 from sys import argv
+from time import sleep
 
 from client import *
 
@@ -176,7 +177,6 @@ if __name__ == '__main__':
         print_response(cl.create_model(model_name, model_build, model_desc))
         print_response(cl.build_model(model_name))
 
-    # todo if ... __only__:
     print_response(cl.create_optimizer(optimizer_name, optimizer_build, optimizer_desc))
     print_response(cl.build_optimizer(optimizer_name))
 
@@ -185,6 +185,16 @@ if __name__ == '__main__':
 
     print_response(cl.create_strategy(strategy_name, strategy_build, strategy_desc))
     print_response(cl.build_strategy(strategy_name))
+
+    print_response(cl.create_experiment(experiment_name, experiment_build, experiment_desc))
+    print_response(cl.setup_experiment(experiment_name))
+    print_response(cl.start_experiment(experiment_name))
+
+    for i in range(10):
+        sleep(30)
+        print_response(cl.get_experiment_results(experiment_name))
+
+    print_response(cl.delete_experiment(experiment_name))
 
     # todo experiments!
 

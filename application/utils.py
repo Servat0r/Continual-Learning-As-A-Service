@@ -5,13 +5,19 @@ from __future__ import annotations
 import typing as t
 import os
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 import torch
 from torch.nn.modules import Module
 from http import HTTPStatus
 from flask import Request, jsonify, Response
 from werkzeug.exceptions import BadRequest
+from flask_executor import Executor
+
 from .errors import *
+
+# Executor
+executor = Executor()
 
 # TypeVars
 TBoolStr = t.TypeVar('TBoolStr', bound=tuple[bool, t.Optional[str]])
@@ -113,15 +119,19 @@ def checked_json(request: Request, keyargs: bool = False, required: set[str] = N
         return None, BadJSONSyntax, [], []
 
 
+# utility for PyTorch device selection
 def get_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 __all__ = [
-    'TBoolStr', 'TBoolExc',
-    'TDesc', 'TBoolAny', 't',
+    'executor',
 
-    'os', 'ABC', 'abstractmethod',
+    'TBoolStr', 'TBoolExc',
+    'TDesc', 'TBoolAny',
+
+    'os', 'abstractmethod',
+    'ABC', 'datetime', 't',
 
     'GET', 'PUT', 'POST', 'PATCH',
     'OPTIONS', 'HEAD', 'DELETE',

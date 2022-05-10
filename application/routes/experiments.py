@@ -1,9 +1,10 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, Response
 from http import HTTPStatus
 
 from application.errors import *
-from application.utils import checked_json, make_success_dict, make_success_kwargs, make_error, t
+from application.utils import *
 
+from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType, ReferrableDataType
 from application.resources.datatypes import BaseCLExperiment
 
@@ -22,6 +23,35 @@ _EXPERIMENT_STOP = "STOP"
 
 experiments_bp = Blueprint('experiments', __name__,
                            url_prefix='/users/<user:username>/workspaces/<workspace:wname>/experiments')
+
+
+# todo spostare!
+@executor.job
+def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
+                         context: UserWorkspaceResourceContext) -> Response:
+
+    with experiment_config.resource_write():
+        try:
+            experiment: BaseCLExperiment = experiment_config.build(context, locked=True)
+            if experiment is None:
+                return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to initialize experiment!")
+
+            result = experiment_config.set_started(locked=True)
+            if not result:
+                return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to start experiment.")
+
+            result = experiment.run()
+
+            if result is None:
+                return ResourceNotFound(msg="Experiment run configuration does not exist.")
+            elif result:
+                return make_success_kwargs(msg="Experiment correctly executed.")
+            else:
+                return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to run experiment.")
+        except Exception as ex:
+            return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Error when executing experiment.")
+        finally:
+            experiment_config.set_finished(locked=True)
 
 
 @experiments_bp.post('/')
@@ -47,8 +77,8 @@ def setup_experiment(username, wname, name):
         return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Setup failed.")  # todo che errore?
 
 
-@experiments_bp.patch('/<name>/status/')
-@experiments_bp.patch('/<name>/status')
+@experiments_bp.patch('/<name>/')
+@experiments_bp.patch('/<name>')
 @token_auth.login_required
 def set_experiment_status(username, wname, name):
     """
@@ -76,25 +106,17 @@ def set_experiment_status(username, wname, name):
         if status != _EXPERIMENT_START and status != _EXPERIMENT_STOP:
             return ForbiddenOperation(msg="You can only start or stop an experiment!")
         elif status == _EXPERIMENT_START:
-            return __start_experiment(experiment_config)
+            context = UserWorkspaceResourceContext(username, wname)
+            return __start_experiment(experiment_config, context)
         elif status == _EXPERIMENT_STOP:
-            return __stop_experiment(experiment_config)
+            return RouteNotImplemented()
 
 
-def __start_experiment(experiment_config: MongoCLExperimentConfig):
-    result = experiment_config.set_started()
-    if result:
-        return make_success_kwargs(msg="Experiment successfully started!")
-    else:
-        return make_error(HTTPStatus.INTERNAL_SERVER_ERROR)
-
-
-def __stop_experiment(experiment_config: MongoCLExperimentConfig):
-    result = experiment_config.set_finished()
-    if result:
-        return make_success_kwargs(msg="Experiment successfully stopped!")
-    else:
-        return make_error(HTTPStatus.INTERNAL_SERVER_ERROR)
+# TODO Capire come eseguire i controlli di _experiment_run_task PRIMA di rispondere!
+def __start_experiment(experiment_config: MongoCLExperimentConfig, context: UserWorkspaceResourceContext):
+    uri = experiment_config.uri
+    _experiment_run_task.submit_stored(uri, experiment_config, context)
+    return make_success_kwargs(msg="Experiment successfully started!")
 
 
 @experiments_bp.get('/<name>/status/')
@@ -105,7 +127,39 @@ def get_experiment_status(username, wname, name):
     if err_response:
         return err_response
     else:
-        return make_success_kwargs(status=experiment_config.status)
+        uri = experiment_config.uri
+        if experiment_config.status != BaseCLExperiment.ENDED:
+            return make_success_kwargs(status=experiment_config.status)
+        elif not executor.futures.done(uri):
+            return make_success_kwargs(status=executor.futures._state(uri))
+        else:
+            return make_success_kwargs(status=experiment_config.status)
+
+
+@experiments_bp.get('/<name>/results/')
+@experiments_bp.get('/<name>/results')
+@token_auth.login_required
+def get_experiment_results(username, wname, name):
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    if err_response:
+        return err_response
+    else:
+        uri = experiment_config.uri
+        if experiment_config.status != BaseCLExperiment.ENDED:
+            return make_success_kwargs(
+                HTTPStatus.OK,
+                msg="Experiment is still running and results are not available.",
+            )
+        else:
+            future = executor.futures.pop(uri)
+            if future is not None:
+                result = future.result()
+                if result is not None:
+                    return result
+            return make_success_kwargs(
+                HTTPStatus.OK,
+                msg="No results available for this experiment.",
+            )
 
 
 @experiments_bp.get('/<name>/settings/')
@@ -146,6 +200,7 @@ __all__ = [
     'setup_experiment',
     'set_experiment_status',
     'get_experiment_status',
+    'get_experiment_results',
     'get_experiment_settings',
     'get_experiment_model',
     'get_experiment_csv_results',

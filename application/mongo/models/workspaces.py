@@ -85,7 +85,7 @@ class MongoWorkspace(MongoBaseWorkspace):
     # 4. Create + callbacks
     @classmethod
     def create(cls, name: str, owner: str | MongoBaseUser, save: bool = True,
-               open_on_create: bool = True, parent_locked=False) -> MongoBaseWorkspace | None:
+               open_on_create: bool = True, parents_locked=False) -> MongoBaseWorkspace | None:
 
         owner = t.cast(MongoBaseUser, User.canonicalize(owner))
 
@@ -96,7 +96,7 @@ class MongoWorkspace(MongoBaseWorkspace):
         if not result:
             raise ValueError(msg)
 
-        with owner.sub_resource_create(locked=parent_locked):
+        with owner.sub_resource_create(locked=parents_locked):
 
             now = datetime.utcnow()
             # noinspection PyArgumentList
@@ -107,7 +107,7 @@ class MongoWorkspace(MongoBaseWorkspace):
                 metadata=WorkspaceMetadata(created=now, last_modified=now),
             )
             if workspace is not None:
-                with workspace.resource_create(parents_locked=workspace.parents):
+                with workspace.resource_create(parents_locked=True):
                     if save:
                         workspace.save(create=True)
                         print(f"Created workspace '{workspace}' with id '{workspace.id}'.")
@@ -127,20 +127,19 @@ class MongoWorkspace(MongoBaseWorkspace):
             return workspace
 
     # 5. Delete + callbacks
-    def delete(self, locked=False, parent_locked=False):
+    def delete(self, locked=False, parents_locked=False):
 
-        parents_locked = self.parents if parent_locked else set()
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
             if self.is_open():
                 self.close()
             try:
                 for experiment in (self.all_experiments() or []):
                     print(experiment)
-                    experiment.delete(parent_locked=True)
+                    experiment.delete(parents_locked=True)
                 for repository in self.data_repositories():
                     print(repository)
                     # noinspection PyArgumentList
-                    repository.delete(parent_locked=True)
+                    repository.delete(parents_locked=True)
             except Exception as ex:
                 return False, ex
 

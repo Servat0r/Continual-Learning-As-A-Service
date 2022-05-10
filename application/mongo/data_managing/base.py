@@ -17,11 +17,11 @@ class MongoBaseDataRepository(BaseDataRepository, RWLockableDocument):
     @classmethod
     @abstractmethod
     def create(cls, name: str, workspace: MongoBaseWorkspace, root: str = None,
-               save: bool = True, parent_locked=False) -> BaseDataRepository | None:
+               save: bool = True, parents_locked=False) -> BaseDataRepository | None:
         pass
 
     @abstractmethod
-    def delete(self, locked=False, parent_locked=False) -> TBoolExc:
+    def delete(self, locked=False, parents_locked=False) -> TBoolExc:
         pass
 
     @abstractmethod

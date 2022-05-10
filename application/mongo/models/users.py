@@ -71,7 +71,7 @@ class MongoUser(MongoBaseUser):
     # 4. Create + callbacks
     @classmethod
     def create(cls, username: str, email: str, password: str,
-               save: bool = True, parent_locked=False) -> MongoBaseUser | None:
+               save: bool = True, parents_locked=False) -> MongoBaseUser | None:
         now = datetime.utcnow()
         # noinspection PyArgumentList
         user = cls(
@@ -94,12 +94,12 @@ class MongoUser(MongoBaseUser):
         return user
 
     # 5. Delete + callbacks
-    def delete(self, locked=False, parent_locked=False) -> TBoolExc:
-        with self.resource_delete(locked=locked):
+    def delete(self, locked=False, parents_locked=False) -> TBoolExc:
+        with self.resource_delete(locked=locked, parents_locked=parents_locked):
             try:
                 for workspace in self.workspaces():
                     workspace.close()
-                    workspace.delete(parent_locked=True)
+                    workspace.delete(parents_locked=True)
             except Exception as ex:
                 return False, ex
 

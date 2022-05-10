@@ -25,6 +25,7 @@ def create_app(config_class=MongoConfig):
     app.config.from_object(config_class)
 
     db.init_app(app)
+    executor.init_app(app)
 
     # Put HERE the custom converters!
     app.url_map.converters['user'] = UsernameConverter

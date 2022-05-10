@@ -4,11 +4,9 @@ Interface for CL experiments.
 from __future__ import annotations
 
 from application.utils import ABC, TDesc, t, abstractmethod, Module
-from application.resources.utils import JSONSerializable
 from application.resources.base import ReferrableDataType
+
 from .metricsets import BaseMetricSet
-from .benchmarks import Benchmark
-from .strategies import Strategy
 
 
 class CLExperimentMixin(ABC):
@@ -38,6 +36,50 @@ class CLExperimentMixin(ABC):
         pass
 
 
+class BaseCLExperimentRunConfig:
+
+    DFL_RUN_CONFIG_NAME = 'Std_Train_Test'
+
+    __CONFIGS__: TDesc = {}
+
+    @staticmethod
+    def register_run_config(name: str = None):
+        def registerer(cls):
+            nonlocal name
+            if name is None:
+                name = cls.__name__
+            BaseCLExperimentRunConfig.__CONFIGS__[name] = cls
+            return cls
+
+        return registerer
+
+    @staticmethod
+    def register_default_run_config():
+        return BaseCLExperimentRunConfig.register_run_config(BaseCLExperimentRunConfig.DFL_RUN_CONFIG_NAME)
+
+    @classmethod
+    def get_by_name(cls, name: str | TDesc) -> BaseCLExperimentRunConfig | None:
+        if isinstance(name, str):
+            return cls.__CONFIGS__.get(name)
+        elif isinstance(name, dict):
+            cname = name.get('name')
+            if cname is None:
+                raise ValueError('Missing name')
+            else:
+                return cls.__CONFIGS__.get(cname)
+
+    @classmethod
+    def canonicalize(cls, obj: str | BaseCLExperimentRunConfig) -> BaseCLExperimentRunConfig | None:
+        if isinstance(obj, BaseCLExperimentRunConfig):
+            return obj
+        else:
+            return cls.get_by_name(obj)
+
+    @abstractmethod
+    def run(self, experiment: BaseCLExperiment) -> bool:
+        pass
+
+
 class BaseCLExperiment(CLExperimentMixin, ReferrableDataType, ABC):
 
     # 1. Fields
@@ -55,15 +97,22 @@ class BaseCLExperiment(CLExperimentMixin, ReferrableDataType, ABC):
     def get_metadata(self, key: str | None = None) -> TDesc | t.Any:
         return super().get_metadata(key)
 
-    @abstractmethod
-    def run(self):
-        pass
+    def run(self) -> bool | None:
+        run_config = self.get_run_configuration()
+        if run_config is None:
+            return None
+        else:
+            return run_config.run(self)
 
     def is_running(self):
         return self.get_status() == self.RUNNING
 
     def is_done(self):
         return self.get_status() == self.ENDED
+
+    @abstractmethod
+    def get_run_configuration(self) -> BaseCLExperimentRunConfig:
+        pass
 
     @abstractmethod
     def get_status(self) -> str:
@@ -95,6 +144,7 @@ class BaseCLExperimentExecution(CLExperimentMixin):
 
 __all__ = [
     'CLExperimentMixin',
+    'BaseCLExperimentRunConfig',
     'BaseCLExperiment',
     'BaseCLExperimentExecution',
 ]

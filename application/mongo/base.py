@@ -19,11 +19,11 @@ class MongoBaseUser(User, RWLockableDocument):
     @classmethod
     @abstractmethod
     def create(cls, username: str, email: str, password: str,
-               save: bool = True, parent_locked=False) -> MongoBaseUser | None:
+               save: bool = True, parents_locked=False) -> MongoBaseUser | None:
         pass
 
     @abstractmethod
-    def delete(self, locked=False, parent_locked=False) -> TBoolExc:
+    def delete(self, locked=False, parents_locked=False) -> TBoolExc:
         pass
 
 
@@ -43,7 +43,7 @@ class MongoBaseWorkspace(Workspace, RWLockableDocument):
     @classmethod
     @abstractmethod
     def create(cls, name: str, owner: str | User, save: bool = True,
-               open_on_create: bool = True, parent_locked=False) -> MongoBaseWorkspace | None:
+               open_on_create: bool = True, parents_locked=False) -> MongoBaseWorkspace | None:
         pass
 
     @abstractmethod
@@ -51,7 +51,7 @@ class MongoBaseWorkspace(Workspace, RWLockableDocument):
         pass
 
     @abstractmethod
-    def delete(self, parent_locked=False) -> TBoolExc:
+    def delete(self, parents_locked=False) -> TBoolExc:
         pass
 
 

@@ -61,11 +61,11 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
 
     @classmethod
     def get_required(cls) -> set[str]:
-        return super().get_required().union({'si_lambda'})
+        return (super().get_required() or set()).union({'si_lambda'})
 
     @classmethod
     def get_optionals(cls) -> set[str]:
-        return super().get_optionals().union({'eps'})
+        return (super().get_optionals() or set()).union({'eps'})
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: UserWorkspaceResourceContext) -> TBoolStr:
@@ -127,7 +127,7 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
 
     @classmethod
     def get_required(cls) -> set[str]:
-        return super().get_required().union({'alpha', 'temperature'})
+        return (super().get_required() or set()).union({'alpha', 'temperature'})
 
     @classmethod
     def get_optionals(cls) -> set[str]:

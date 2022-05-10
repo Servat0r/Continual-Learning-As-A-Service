@@ -67,7 +67,8 @@ def add_new_resource(username, workspace, typename: str | t.Type[DataType]) -> R
                 msg=f"Failed to create resource document for resource '{data['name']}' of type {typename}."
             )
         elif __DEBUG:
-            print(resource_document)
+            pass
+            # print(resource_document)
         return make_success_dict(HTTPStatus.CREATED, msg=f"Successfully created resource of type '{typename}'!")
 
 

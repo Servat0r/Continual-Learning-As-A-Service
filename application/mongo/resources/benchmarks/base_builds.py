@@ -27,7 +27,7 @@ class MongoBaseBenchmarkBuildConfig(MongoBuildConfig):
     @classmethod
     @abstractmethod
     def get_optionals(cls) -> set[str]:
-        return super().get_optionals().union('data_repository')
+        return (super().get_optionals() or set()).union('data_repository')
 
 
 __all__ = [

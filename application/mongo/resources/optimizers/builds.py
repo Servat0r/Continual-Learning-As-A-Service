@@ -9,7 +9,8 @@ from application.resources.contexts import ResourceContext, UserWorkspaceResourc
 from application.resources.base import DataType
 
 from application.mongo.resources.mongo_base_configs import *
-from application.mongo.resources.models import *
+from application.mongo.base import MongoBaseUser
+from application.mongo.resources.models import MongoModelConfig
 
 
 # SGD
@@ -24,7 +25,7 @@ class SGDBuildConfig(MongoBuildConfig):
     dampening = db.FloatField(default=0)
     weight_decay = db.FloatField(default=0)
     nesterov = db.BooleanField(default=False)
-    model = db.ReferenceField(MongoModel.config_type(), required=True)  # for parameters
+    model = db.ReferenceField(MongoModelConfig, required=True)  # for parameters
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -65,10 +66,10 @@ class SGDBuildConfig(MongoBuildConfig):
             return False, "One or more parameters are not in the correct type."
 
         model_name = params['model']
-        owner = User.canonicalize(context.get_username())
+        owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
         workspace = Workspace.canonicalize(context)
 
-        model = MongoModel.config_type().get_one(owner, workspace, model_name)
+        model = MongoModelConfig.get_one(owner, workspace, model_name)
         if not model:
             return False, "One or more referred resource does not exist."
         else:

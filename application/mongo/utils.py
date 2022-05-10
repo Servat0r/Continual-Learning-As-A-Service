@@ -10,19 +10,20 @@ class _SubResourceCtxManager:
     WRITE = 1
 
     def __init__(self, resource: RWLockableDocument, create=False,
-                 lock_type=READ, locked=False, parents_locked: set[RWLockableDocument] = None):
+                 lock_type=READ, locked: bool = False, parents_locked: bool = False):
         self.resource = resource
         self.create = create
         self.lock_type = lock_type
         self.locked = locked
-        self.parents_to_lock: set[RWLockableDocument] = resource.parents.difference(set(parents_locked or []))
+        self.parents_locked = parents_locked
+        self.parents_to_lock: set[RWLockableDocument] = set() if parents_locked else resource.parents
         self.super_contexts: list[_SubResourceCtxManager] = []
 
     def __enter__(self):
         if not self.locked:
             # Sempre nello stesso ordine?
             for parent in self.parents_to_lock:
-                context = parent.sub_resource_operation(locked=False, parents_locked=None)
+                context = parent.sub_resource_operation(locked=False)
                 self.super_contexts.append(context.__enter__())
 
         if self.create:
@@ -105,32 +106,36 @@ class RWLockableDocument(db.Document):
         pass
 
     def resource_create(self, locked: bool = False,
-                        parents_locked: set[RWLockableDocument] = None) -> _SubResourceCtxManager:
+                        parents_locked: bool = False) -> _SubResourceCtxManager:
         return _SubResourceCtxManager(resource=self, create=True, lock_type=_SubResourceCtxManager.WRITE,
                                       locked=locked, parents_locked=parents_locked)
 
     def resource_delete(self, locked=False,
-                        parents_locked: set[RWLockableDocument] = None) -> _SubResourceCtxManager:
+                        parents_locked: bool = False) -> _SubResourceCtxManager:
         return _SubResourceCtxManager(resource=self, create=False, lock_type=_SubResourceCtxManager.WRITE,
                                       locked=locked, parents_locked=parents_locked)
 
     def resource_read(self, locked=False,
-                      parents_locked: set[RWLockableDocument] = None) -> _SubResourceCtxManager:
+                      parents_locked: bool = False) -> _SubResourceCtxManager:
         return _SubResourceCtxManager(resource=self, create=False, lock_type=_SubResourceCtxManager.READ,
                                       locked=locked, parents_locked=parents_locked)
 
+    def resource_write(self, locked=False, parents_locked: bool = False) -> _SubResourceCtxManager:
+        return _SubResourceCtxManager(resource=self, create=False, lock_type=_SubResourceCtxManager.WRITE,
+                                      locked=locked, parents_locked=parents_locked)
+
     def sub_resource_create(self, locked=False,
-                            parents_locked: set[RWLockableDocument] = None) -> _SubResourceCtxManager:
+                            parents_locked: bool = False) -> _SubResourceCtxManager:
         return _SubResourceCtxManager(resource=self, create=False, lock_type=_SubResourceCtxManager.READ,
                                       locked=locked, parents_locked=parents_locked)
 
     def sub_resource_delete(self, locked=False,
-                            parents_locked: set[RWLockableDocument] = None) -> _SubResourceCtxManager:
+                            parents_locked: bool = False) -> _SubResourceCtxManager:
         return _SubResourceCtxManager(resource=self, create=False, lock_type=_SubResourceCtxManager.READ,
                                       locked=locked, parents_locked=parents_locked)
 
     def sub_resource_operation(self, locked=False,
-                               parents_locked: set[RWLockableDocument] = None) -> _SubResourceCtxManager:
+                               parents_locked: bool = False) -> _SubResourceCtxManager:
         return _SubResourceCtxManager(resource=self, create=False, lock_type=_SubResourceCtxManager.READ,
                                       locked=locked, parents_locked=parents_locked)
 

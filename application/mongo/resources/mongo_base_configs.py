@@ -27,7 +27,7 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         Required parameters for this build config.
         :return:
         """
-        pass
+        return set()
 
     @classmethod
     @abstractmethod
@@ -36,7 +36,7 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         Optional parameters for this build config.
         :return:
         """
-        pass
+        return set()
 
     @classmethod
     def has_extras(cls) -> bool:
@@ -240,7 +240,7 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
 
     @classmethod
     def create(cls, data, context: UserWorkspaceResourceContext, save: bool = True,
-               parents_locked: set[RWLockableDocument] = None, all_locked=False, **metadata):
+               parents_locked=False, **metadata):
         result, msg = cls.validate_input(data, context)
         if not result:
             raise ValueError(msg)
@@ -261,7 +261,6 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
             metadata['created'] = now
             metadata['last_modified'] = now
 
-            parents_locked = workspace.parents if all_locked else parents_locked
             with workspace.sub_resource_create(parents_locked=parents_locked):
                 # noinspection PyArgumentList
                 obj = cls(
@@ -273,7 +272,7 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
                     metadata=cls.meta_type()(**metadata),
                 )
                 if obj is not None:
-                    with obj.resource_create(parents_locked=obj.parents):
+                    with obj.resource_create(parents_locked=True):
                         if save:
                             obj.save(force_insert=True)
                 return obj
@@ -288,8 +287,7 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
             return t.cast(MongoBuildConfig, config).validate_input(data['build'], cls.target_type(), context)
 
     def build(self, context: ResourceContext,
-              locked=False, all_locked=False, parents_locked: set[RWLockableDocument] = None):
-        parents_locked = self.parents if all_locked else parents_locked
+              locked=False, parents_locked=False):
         with self.resource_read(locked=locked, parents_locked=parents_locked):
             obj = self.build_config.build(context)
             obj.set_metadata(
@@ -354,9 +352,7 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
 
         return True, None
 
-    def delete(self, context: UserWorkspaceResourceContext, locked=False,
-               all_locked=False, parents_locked: set[RWLockableDocument] = None):
-        parents_locked = self.parents if all_locked else parents_locked
+    def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
             db.Document.delete(self)
 

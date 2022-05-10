@@ -16,6 +16,7 @@ class BaseClient:
     OPTIMIZERS = "optimizers"
     CRITERIONS = "criterions"
     STRATEGIES = "strategies"
+    EXPERIMENTS = "experiments"
 
     __debug_urls__: bool = False
 
@@ -82,6 +83,10 @@ class BaseClient:
     @property
     def strategies_base(self):
         return f"{self.workspaces_base}/{self.workspace}/{self.STRATEGIES}"
+
+    @property
+    def experiments_base(self):
+        return f"{self.workspaces_base}/{self.workspace}/{self.EXPERIMENTS}"
     
     @staticmethod
     def get_url(*args):
@@ -388,3 +393,40 @@ class BaseClient:
 
     def delete_strategy(self, name: str):
         return self.delete([self.strategies_base, name])
+
+    # Experiments
+    def create_experiment(self, name: str, build_config_data: dict, description: str = None):
+        data = {
+            'name': name,
+            'build': build_config_data,
+        }
+        if description is not None:
+            data['description'] = description
+        return self.post(self.experiments_base, data=data)
+
+    def setup_experiment(self, name: str):
+        return self.patch([self.experiments_base, name, 'setup'])
+
+    def start_experiment(self, name: str):
+        return self.patch([self.experiments_base, name], data={'status': 'START'})
+
+    def stop_experiment(self, name: str):
+        return self.patch([self.experiments_base, name], data={'status': 'STOP'})
+
+    def get_experiment_status(self, name: str):
+        return self.get([self.experiments_base, name, 'status'])
+
+    def get_experiment_results(self, name: str):
+        return self.get([self.experiments_base, name, 'results'])
+
+    def get_experiment_settings(self, name: str):
+        return self.get([self.experiments_base, name, 'settings'])
+
+    def get_experiment_model(self, name: str):
+        return self.get([self.experiments_base, name, 'model'])
+
+    def get_experiment_csv_results(self, name: str):
+        return self.get([self.experiments_base, name, 'results', 'csv'])
+
+    def delete_experiment(self, name: str):
+        return self.delete([self.experiments_base, name])

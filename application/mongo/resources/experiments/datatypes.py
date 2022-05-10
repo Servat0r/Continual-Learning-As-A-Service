@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from avalanche.benchmarks import GenericCLScenario
-from avalanche.training.strategies import BaseStrategy
+from application.utils import t
 
-from application.utils import t, TDesc
-
-from application.resources.contexts import ResourceContext, UserWorkspaceResourceContext
+from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType
 from application.resources.datatypes import *
 
@@ -16,11 +13,13 @@ from .documents import *
 @DataType.set_resource_type()
 class MongoCLExperiment(BaseCLExperiment):
 
-    def __init__(self, strategy: Strategy, benchmark: Benchmark, status: str):
+    def __init__(self, strategy: Strategy, benchmark: Benchmark,
+                 status: str, run_config: str | BaseCLExperimentRunConfig):
         super().__init__()
         self.strategy = strategy
         self.benchmark = benchmark
         self.status = status
+        self.run_config = BaseCLExperimentRunConfig.canonicalize(run_config)
 
     def __repr__(self):
         return f"{type(self).__name__} ({super().__repr__()})."
@@ -35,11 +34,11 @@ class MongoCLExperiment(BaseCLExperiment):
 
     @classmethod
     def get_by_uri(cls, uri: str):
-        pass
+        return cls.config_type().get_by_uri(uri)
 
     @classmethod
-    def dfl_uri_builder(cls, *args, **kwargs) -> str:
-        pass
+    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
+        return cls.config_type().dfl_uri_builder(context, name)
 
     @classmethod
     def canonical_typename(cls) -> str:
@@ -68,6 +67,9 @@ class MongoCLExperiment(BaseCLExperiment):
     def get_status(self) -> str:
         return self.status
 
+    def get_run_configuration(self) -> BaseCLExperimentRunConfig:
+        return self.run_config
+
     # ExperimentExecution methods
     def get_executions(self) -> t.Sequence[BaseCLExperimentExecution]:
         pass
@@ -77,18 +79,3 @@ class MongoCLExperiment(BaseCLExperiment):
 
     def get_current_execution(self):
         pass
-
-    # Experiment running methods
-    def run(self):
-        cl_scenario: GenericCLScenario = self.get_benchmark().get_value()
-        cl_strategy: BaseStrategy = self.get_strategy().get_value()
-
-        train_stream = cl_scenario.train_stream
-        test_stream = cl_scenario.test_stream
-
-        results: list[TDesc] = []
-        for experience in train_stream:
-            cl_strategy.train(experience)
-            results.append(cl_strategy.eval(test_stream))
-
-        print(*results, sep='\n')   # TODO Replace with results registering!

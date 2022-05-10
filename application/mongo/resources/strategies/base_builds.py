@@ -23,14 +23,14 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         'allow_inheritance': True,
     }
 
-    model = db.ReferenceField(MongoModel.config_type(), required=True)
-    optimizer = db.ReferenceField(MongoCLOptimizer.config_type(), required=True)     # TODO!
-    criterion = db.ReferenceField(MongoCLCriterion.config_type(), required=True)     # TODO!
+    model = db.ReferenceField(MongoModelConfig, required=True)
+    optimizer = db.ReferenceField(MongoCLOptimizerConfig, required=True)     # TODO!
+    criterion = db.ReferenceField(MongoCLCriterionConfig, required=True)     # TODO!
     train_mb_size = db.IntField(default=1)
     train_epochs = db.IntField(default=1)
     eval_mb_size = db.IntField(default=None)
     eval_every = db.IntField(default=-1)
-    metricset = db.ReferenceField(MongoStandardMetricSet.config_type(), required=True)
+    metricset = db.ReferenceField(MongoStandardMetricSetConfig, required=True)
 
     @staticmethod
     @abstractmethod

@@ -70,14 +70,13 @@ class MongoDataRepository(MongoBaseDataRepository):
     # 4. Create + callbacks
     @classmethod
     def create(cls, name: str, workspace: MongoBaseWorkspace, root: str = None,
-               save: bool = True, parent_locked=False) -> MongoBaseDataRepository | None:
+               save: bool = True, parents_locked=False) -> MongoBaseDataRepository | None:
 
         # TODO Validation!
         if root is None:
             root = f"DataRepository_{name}"
 
-        parents_locked = workspace.parents if parent_locked else set()
-        with workspace.sub_resource_create(locked=parent_locked, parents_locked=parents_locked):
+        with workspace.sub_resource_create(locked=parents_locked):
             now = datetime.utcnow()
             # noinspection PyArgumentList
             repository = cls(
@@ -88,7 +87,7 @@ class MongoDataRepository(MongoBaseDataRepository):
                 files={},
             )
             if repository is not None:
-                with repository.resource_create(parents_locked=repository.parents):
+                with repository.resource_create(parents_locked=True):
                     if save:
                         repository.save(create=True)
                         print(f"Created DataRepository '{name}' with id '{repository.id}'.")
@@ -102,10 +101,9 @@ class MongoDataRepository(MongoBaseDataRepository):
             return repository
 
     # 5. Delete + callbacks
-    def delete(self, locked=False, parent_locked=False) -> TBoolExc:
+    def delete(self, locked=False, parents_locked=False) -> TBoolExc:
 
         workspace = self.get_workspace()
-        parents_locked = self.parents if parent_locked else set()
 
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
             # TODO Check sub-repositories!
