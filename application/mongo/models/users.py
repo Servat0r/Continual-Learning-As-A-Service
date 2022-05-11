@@ -100,10 +100,7 @@ class MongoUser(MongoBaseUser):
                 for workspace in self.workspaces():
                     workspace.close()
                     workspace.delete(parents_locked=True)
-            except Exception as ex:
-                return False, ex
 
-            try:
                 db.Document.delete(self)
                 manager = BaseDataManager.get()
                 manager.remove_subdir(self.user_base_dir())

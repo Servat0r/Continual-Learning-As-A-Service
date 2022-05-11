@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from application.utils import t, datetime
+from application.utils import t, datetime, TBoolExc
 from application.models import User, Workspace
 
 from application.resources.contexts import UserWorkspaceResourceContext
-from application.resources.base import DataType, BaseMetadata
+from application.resources.base import DataType, ReferrableDataType, BaseMetadata
 
 from application.mongo.utils import RWLockableDocument
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
@@ -96,6 +96,17 @@ class MongoStrategyConfig(MongoResourceConfig):
                                     if save:
                                         obj.save(force_insert=True)
                             return obj
+
+    def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
+        with self.resource_delete(locked=locked, parents_locked=parents_locked):
+            try:
+                ExperimentClass = t.cast(ReferrableDataType, DataType.get_type('BaseCLExperiment')).config_type()
+                experiments = ExperimentClass.get(workspace=self.workspace)
+                for exp in experiments:
+                    exp.delete(context, parents_locked=True)
+                return super().delete(context, locked=True, parents_locked=True)
+            except Exception as ex:
+                return False, ex
 
 
 __all__ = [

@@ -133,17 +133,48 @@ class MongoWorkspace(MongoBaseWorkspace):
             if self.is_open():
                 self.close()
             try:
+                ModelClass = t.cast(ReferrableDataType, DataType.get_type('Model')).config_type()
+                MetricSetClass = t.cast(ReferrableDataType, DataType.get_type('StandardMetricSet')).config_type()
+                CLOptimizerClass = t.cast(ReferrableDataType, DataType.get_type('CLOptimizer')).config_type()
+                CLCriterionClass = t.cast(ReferrableDataType, DataType.get_type('CLCriterion')).config_type()
+
+                cl_models = ModelClass.get(self.owner, self)
+                msets = MetricSetClass.get(self.owner, self)
+                optims = CLOptimizerClass.get(self.owner, self)
+                crits = CLCriterionClass.get(self.owner, self)
+
+                context = UserWorkspaceResourceContext(self.owner.get_name(), self.get_name())
+
                 for experiment in (self.all_experiments() or []):
                     print(experiment)
-                    experiment.delete(parents_locked=True)
+                    experiment.delete(context, parents_locked=True)
+
                 for repository in self.data_repositories():
                     print(repository)
                     # noinspection PyArgumentList
-                    repository.delete(parents_locked=True)
-            except Exception as ex:
-                return False, ex
+                    repository.delete(context, parents_locked=True)
 
-            try:
+                for model in cl_models:
+                    print(model)
+                    model.delete(context, parents_locked=True)
+
+                for mset in msets:
+                    print(mset)
+                    mset.delete(context, parents_locked=True)
+
+                for optim in optims:
+                    print(optim)
+                    optim.delete(context, parents_locked=True)
+
+                for crit in crits:
+                    print(crit)
+                    crit.delete(context, parents_locked=True)
+
+                manager = BaseDataManager.get()
+                manager.remove_subdir(
+                    self.workspace_base_dir(),
+                    parents=[self.get_owner().user_base_dir()]
+                )
                 db.Document.delete(self)
                 return True, None
             except Exception as ex:
@@ -206,10 +237,10 @@ class MongoWorkspace(MongoBaseWorkspace):
         return list(BaseDataRepository.get(self))
 
     def all_experiments(self):
-        return NotImplemented
+        return []   # todo not implemented!
 
     def running_experiments(self):
-        return NotImplemented
+        return []   # todo not implemented!
 
     # 8. Status methods
     def open(self, save: bool = True):

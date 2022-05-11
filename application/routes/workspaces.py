@@ -130,8 +130,11 @@ def delete_workspace(username, wname):
     if (current_user.username != username) or (workspace.owner.username != username):
         return ForbiddenOperation("You cannot delete another user's workspace!")
 
-    Workspace.delete(workspace)
-    return make_success_dict()
+    result, ex = workspace.delete()
+    if result:
+        return make_success_dict()
+    else:
+        return InternalFailure(msg=ex.args[0], exception=str(ex))
 
 
 @workspaces_bp.get('<workspace:wname>/status/')

@@ -70,6 +70,9 @@ experiment_build = {
 }
 
 
+_SLEEP_TIME = 6
+_N_SLEEPS = 2
+
 if __name__ == '__main__':
 
     _SEP_ = '################################################\n\n'
@@ -149,6 +152,8 @@ if __name__ == '__main__':
         print_response(cl.create_workspace('wspace1'))
         print_response(cl.get_workspace('wspace1'))
 
+    # todo data repositories!
+
     if __benchmarks__ in __only__:
         # create and build benchmarks
         print_response(cl.create_benchmark(benchmark_name, benchmark_build, benchmark_desc))
@@ -199,8 +204,8 @@ if __name__ == '__main__':
     sleep(5)
     print_response(cl.get_experiment_csv_results(experiment_name))
 
-    for i in range(10):
-        sleep(36)
+    for i in range(_N_SLEEPS):
+        sleep(_SLEEP_TIME)
         print_response(cl.get_experiment_results(experiment_name))
 
     print_response(cl.delete_experiment(experiment_name))

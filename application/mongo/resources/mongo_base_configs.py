@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from application.database import db
-from application.utils import TBoolStr, TDesc, abstractmethod, t
+from application.utils import TBoolStr, TBoolExc, TDesc, abstractmethod, t
 from application.models import User, Workspace
 
 from application.resources.contexts import ResourceContext, UserWorkspaceResourceContext
@@ -352,9 +352,13 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
 
         return True, None
 
-    def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
+    def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
-            db.Document.delete(self)
+            try:
+                db.Document.delete(self)
+                return True, None
+            except Exception as ex:
+                return False, ex
 
     def __repr__(self):
         return f"{type(self).__name__} <{self.name}>[id = {self.id}, uri = {self.uri}]"

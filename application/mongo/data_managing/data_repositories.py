@@ -1,12 +1,13 @@
 from __future__ import annotations
 from datetime import datetime
 
-from application.utils import TBoolExc, TDesc
+from application.utils import TBoolExc, TDesc, t
 from application.database import *
 from application.models import Workspace
 
 from application.data_managing.base import BaseDataRepository, BaseDataManager
 from application.resources.contexts import UserWorkspaceResourceContext
+from application.resources.base import DataType, ReferrableDataType
 
 from application.mongo.utils import RWLockableDocument
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
@@ -105,14 +106,20 @@ class MongoDataRepository(MongoBaseDataRepository):
 
         workspace = self.get_workspace()
 
+        context = UserWorkspaceResourceContext(workspace.get_owner().get_name(), workspace.get_name())
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
-            # TODO Check sub-repositories!
             try:
+                BenchmarkClass = t.cast(ReferrableDataType, DataType.get_type('Benchmark')).config_type()
+                benchmarks = BenchmarkClass.get(workspace=self.get_workspace())
+                for benchmark in benchmarks:
+                    benchmark.delete(context, parents_locked=True)
+
                 db.Document.delete(self)
                 manager = BaseDataManager.get()
                 parents = workspace.data_base_dir_parents()
                 parents.append(workspace.data_base_dir())
                 manager.remove_subdir(self.get_root(), parents=parents)
+
                 return True, None
             except Exception as ex:
                 return False, ex

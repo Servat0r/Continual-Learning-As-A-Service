@@ -210,10 +210,13 @@ def delete_resource(username, workspace, typename: str | t.Type[DataType], name)
         print(resource_document)
 
     try:
-        resource_document.delete(context)
-        return make_success_dict(msg=f"Successfully deleted resource '{name}'.")
+        result, ex = resource_document.delete(context)
+        if result:
+            return make_success_dict(msg=f"Successfully deleted resource '{name}'.")
+        else:
+            raise ex
     except Exception as ex:
-        return InternalFailure(msg=ex.args[0])
+        return InternalFailure(msg=ex.args[0], exception=str(ex))
 
 
 __all__ = [
