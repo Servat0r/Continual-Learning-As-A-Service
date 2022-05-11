@@ -40,6 +40,12 @@ class BaseDataManager:
     def get_class():
         return BaseDataManager.__manager_class__
 
+    @staticmethod
+    @abstractmethod
+    def is_subpath(src_name: str, dest_name: str,
+                   src_parents: list[str] = None, dest_parents: list[str] = None, strict=True) -> bool:
+        pass
+
     @classmethod
     @abstractmethod
     def create(cls, root_address: str = _DFL_ROOT_DIR, *args, **kwargs) -> BaseDataManager:
@@ -66,6 +72,11 @@ class BaseDataManager:
 
     @abstractmethod
     def remove_subdir(self, dir_name: str, parents: list[str] = None) -> TBoolExc:
+        pass
+
+    @abstractmethod
+    def move_subdir(self, src_name: str, dest_name: str,
+                    src_parents: list[str] = None, dest_parents: list[str] = None) -> TBoolExc:
         pass
 
     @abstractmethod

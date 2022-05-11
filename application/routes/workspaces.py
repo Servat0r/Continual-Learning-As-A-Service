@@ -96,8 +96,10 @@ def rename_workspace(username, wname):
     :param wname:
     :return:
     """
-    if not check_current_user_ownership(username):
-        return ForbiddenOperation(f"You cannot rename another user ({username}) workspace ({wname}).")
+    result, error = check_current_user_ownership(username,
+                                                 f"You cannot rename another user ({username}) workspace ({wname}).")
+    if not result:
+        return error
 
     data, error, opts, extras = checked_json(request, False, {'new_name'})
     if error:

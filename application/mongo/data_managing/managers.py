@@ -1,6 +1,7 @@
 from __future__ import annotations
 import shutil
 
+from application import TFRead, TFContent
 from application.utils import t, TBoolExc, os
 
 from application.data_managing import BaseDataManager
@@ -18,6 +19,23 @@ class MongoLocalDataManager(BaseDataManager):
         os.makedirs(root_dir, exist_ok=True)
         self.root_dir = root_dir
 
+    @staticmethod
+    def is_subpath(src_name: str, dest_name: str,
+                   src_parents: list[str] = None, dest_parents: list[str] = None, strict=True) -> bool:
+        src = src_parents.copy()
+        dest = dest_parents.copy()
+        src.append(src_name)
+        dest.append(dest_name)
+
+        if len(src) > len(dest):
+            return False
+        else:
+            subpath = all(src[i] == dest[i] for i in range(len(src)))
+            if subpath:
+                return True if strict else (len(src) < len(dest))
+            else:
+                return False
+
     @classmethod
     def create(cls, root_dir: str = BaseDataManager._DFL_ROOT_DIR, *args, **kwargs) -> MongoLocalDataManager:
         manager = cls(root_dir)
@@ -26,7 +44,7 @@ class MongoLocalDataManager(BaseDataManager):
     def get_root(self):
         return self.root_dir
 
-    def create_subdir(self, dir_name: str, parents: list[str] = None):
+    def create_subdir(self, dir_name: str, parents: list[str] = None) -> TBoolExc:
         if parents is None:
             parents = []
         parents = tuple(parents)
@@ -34,6 +52,16 @@ class MongoLocalDataManager(BaseDataManager):
         complete_path = os.path.join(parent_path, dir_name)
         try:
             os.makedirs(complete_path, exist_ok=True)
+            return True, None
+        except Exception as ex:
+            return False, ex
+
+    def move_subdir(self, src_name: str, dest_name: str,
+                    src_parents: list[str] = None, dest_parents: list[str] = None) -> TBoolExc:
+        src_path = os.path.join(self.root_dir, *src_parents, src_name)
+        dest_path = os.path.join(self.root_dir, *dest_parents, dest_name)
+        try:
+            shutil.move(src_path, dest_path)
             return True, None
         except Exception as ex:
             return False, ex
@@ -59,6 +87,12 @@ class MongoLocalDataManager(BaseDataManager):
     def get_file_path(self, file_name: str, dir_names: list[str] = None) -> str:
         dir_path = self.get_dir_path(dir_names)
         return os.path.join(dir_path, file_name)
+
+    def create_file(self, data: TFContent) -> TBoolExc:
+        pass
+
+    def read_from_file(self, data: TFRead) -> t.Any | None:
+        pass
 
     def create_files(self, files: dict[tuple[str, list[str]], t.Any | None]) -> int:
         pass

@@ -26,8 +26,10 @@ def create_data_repository(username, wname):
     :param wname:
     :return:
     """
-    if not check_current_user_ownership(username):
-        return ForbiddenOperation(f"You cannot create a data repository for another user ({username}).")
+    result, error = check_current_user_ownership(username,
+                                                 f"You cannot create a data repository for another user ({username}).")
+    if not result:
+        return error
 
     data, error, opts, extras = checked_json(request, False, {'name'}, {'description'})
     if error:
@@ -52,8 +54,10 @@ def create_data_repository(username, wname):
 @token_auth.login_required
 def delete_repo(username, wname, name):
 
-    if not check_current_user_ownership(username):
-        return ForbiddenOperation(f"You cannot delete another user ('{username}') data repository.")
+    result, error = check_current_user_ownership(username,
+                                                 f"You cannot delete another user ('{username}') data repository.")
+    if not result:
+        return error
 
     current_user = token_auth.current_user()
     workspace = Workspace.canonicalize((current_user, wname))
@@ -73,8 +77,10 @@ def delete_repo(username, wname, name):
 @data_repositories_bp.get('/<name>')
 @token_auth.login_required
 def get_data_repo(username, wname, name):
-    if not check_current_user_ownership(username):
-        return ForbiddenOperation(f"You cannot create a data repository for another user ({username}).")
+    result, error = check_current_user_ownership(username,
+                                                 f"You cannot create a data repository for another user ({username}).")
+    if not result:
+        return error
 
     current_user = token_auth.current_user()
     workspace = Workspace.canonicalize((current_user, wname))
@@ -90,8 +96,10 @@ def get_data_repo(username, wname, name):
 @data_repositories_bp.get('/<name>/desc')
 @token_auth.login_required
 def get_data_repo_desc(username, wname, name):
-    if not check_current_user_ownership(username):
-        return ForbiddenOperation(f"You cannot create a data repository for another user ({username}).")
+    result, error = check_current_user_ownership(username,
+                                                 f"You cannot create a data repository for another user ({username}).")
+    if not result:
+        return error
 
     current_user = token_auth.current_user()
     workspace = Workspace.canonicalize((current_user, wname))
@@ -119,7 +127,33 @@ def create_sub_folder(username, wname, name):
     :param name:
     :return:
     """
-    pass
+    result, error = check_current_user_ownership(username,
+                                                 f"You cannot create a folder in another user ({username}) repository.")
+    if not result:
+        return error
+
+    data, error, opts, extras = checked_json(request, False, {'name'}, {'path'})
+    if error:
+        return error(**data) if data else error()
+
+    folder_name = data['name']
+    folder_path = data.get('path')
+
+    if (folder_path is not None) and not isinstance(folder_path, str):
+        return BadRequestSyntax(f"'folder_path' must be a string!")
+
+    folders = folder_path.split('/') if folder_path is not None else None
+
+    workspace = Workspace.canonicalize((username, wname))
+    data_repository = BaseDataRepository.get_one(workspace, name)
+    if data_repository:
+        result, exc = data_repository.add_directory(folder_name, folders)
+        if result:
+            return make_success_dict()
+        else:
+            return InternalFailure(msg=exc.args[0])
+    else:
+        return ResourceNotFound(resource=name)
 
 
 @data_repositories_bp.patch('/<name>/folders/')

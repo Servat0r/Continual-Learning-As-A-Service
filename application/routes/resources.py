@@ -41,8 +41,10 @@ def add_new_resource(username, workspace, typename: str | t.Type[DataType]) -> R
     :param typename:
     :return:
     """
-    if not check_current_user_ownership(username):
-        return ForbiddenOperation(f"You cannot add a new {typename} for another user ({username}).")
+    result, error = check_current_user_ownership(username,
+                                                 f"You cannot add a new {typename} for another user ({username}).")
+    if not result:
+        return error
 
     data, error, opts, extras = checked_json(request, True, {'name', 'build'}, {'description'})
     if error:
@@ -83,8 +85,10 @@ def build_resource(username, workspace, typename: str | t.Type[DataType], name) 
     :param name:
     :return:
     """
-    if not check_current_user_ownership(username):
-        return ForbiddenOperation(f"You cannot build a {typename} for another user ({username}).")
+    result, error = check_current_user_ownership(username,
+                                                 f"You cannot build a {typename} for another user ({username}).")
+    if not result:
+        return error
 
     context = UserWorkspaceResourceContext(username, workspace)
 
@@ -119,8 +123,9 @@ def get_resource(username, workspace, typename: str | t.Type[DataType], name, ow
                  **ownership_fail_args) -> tuple[MongoResourceConfig | None, Response | None]:
 
     ownership_fail_msg = ForbiddenOperation.dfl_msg if ownership_fail_msg is None else ownership_fail_msg
-    if not check_current_user_ownership(username):
-        return ForbiddenOperation(msg=ownership_fail_msg, **ownership_fail_args)
+    result, error = check_current_user_ownership(username, ownership_fail_msg, **ownership_fail_args)
+    if not result:
+        return None, error
 
     dtype, error = _canonicalize_datatype(typename)
     if error:
@@ -143,8 +148,10 @@ def update_resource(username, workspace, typename: str | t.Type[DataType], name,
     :param updata:
     :return:
     """
-    if not check_current_user_ownership(username):
-        return ForbiddenOperation(f"You cannot update a {typename} for another user ({username}).")
+    result, error = check_current_user_ownership(username,
+                                                 f"You cannot update a {typename} for another user ({username}).")
+    if not result:
+        return error
 
     dtype, error = _canonicalize_datatype(typename)
     if error:
@@ -184,8 +191,10 @@ def delete_resource(username, workspace, typename: str | t.Type[DataType], name)
     :param name:
     :return:
     """
-    if not check_current_user_ownership(username):
-        return ForbiddenOperation(f"You cannot delete a {typename} for another user ({username}).")
+    result, error = check_current_user_ownership(username,
+                                                 f"You cannot delete a {typename} for another user ({username}).")
+    if not result:
+        return error
 
     context = UserWorkspaceResourceContext(username, workspace)
 

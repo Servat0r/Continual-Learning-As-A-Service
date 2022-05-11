@@ -181,10 +181,6 @@ class User(UserMixin):
         """
         pass
 
-    @staticmethod
-    def check_ownership(username: str, user: User):
-        return user.get_name() == username
-
 
 __all__ = [
     'check_token',

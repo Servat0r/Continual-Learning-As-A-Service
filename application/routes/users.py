@@ -10,20 +10,12 @@ from application.errors import *
 from application.utils import *
 from application.validation import *
 from application.models import *
-from application.routes.auth import token_auth
+from .auth import token_auth, check_current_user_ownership
+
 
 _CHECK_DNS = bool(os.environ.get('EMAIL_VALIDATION_CHECK_DNS', False))
 
 users_bp = Blueprint('users', __name__, url_prefix='/users')
-
-
-# Utils
-def check_ownership(username, msg: str = None, *args, **kwargs) -> tuple[bool, ServerResponseError | None]:
-    current_user = token_auth.current_user()
-    if current_user.username != username:
-        return False, ForbiddenOperation(msg.format(*args, **kwargs))
-    else:
-        return True, None
 
 
 @users_bp.app_errorhandler(HTTPStatus.INTERNAL_SERVER_ERROR)
@@ -246,7 +238,7 @@ def edit_password(username):
     :param username: Username.
     :return:
     """
-    result, error = check_ownership(username, "You cannot change another user's password!")
+    result, error = check_current_user_ownership(username, "You cannot change another user's password!")
     if not result:
         return error
 
@@ -297,7 +289,7 @@ def delete_user(username):
     :param username:
     :return:
     """
-    result, error = check_ownership(username, "You don't have the permission to delete another user!")
+    result, error = check_current_user_ownership(username, "You don't have the permission to delete another user!")
     if not result:
         return error
 
@@ -314,7 +306,6 @@ def delete_user(username):
 
 __all__ = [
     'users_bp',
-    'check_ownership',
     'internal_server_error',
     'service_unavailable',
 

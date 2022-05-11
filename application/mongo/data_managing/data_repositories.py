@@ -5,7 +5,7 @@ from application.utils import TBoolExc, TDesc, t
 from application.database import *
 from application.models import Workspace
 
-from application.data_managing.base import BaseDataRepository, BaseDataManager
+from application.data_managing.base import BaseDataRepository, BaseDataManager, TFContent, TFRead
 from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType, ReferrableDataType
 
@@ -39,6 +39,15 @@ class MongoDataRepository(MongoBaseDataRepository):
     root = db.StringField(required=True)                            # repo root directory
     metadata = db.EmbeddedDocumentField(MongoDataRepositoryMetadata)
     files = db.MapField(db.IntField())                              # relative_path => file
+
+    def _complete_parents(self, parents: list[str] = None):
+        workspace = self.get_workspace()
+        return workspace.data_base_dir_parents() \
+            + [
+                workspace.data_base_dir(),
+                self.get_root(),
+            ] \
+            + (parents or [])
 
     @property
     def parents(self) -> set[RWLockableDocument]:
@@ -173,11 +182,35 @@ class MongoDataRepository(MongoBaseDataRepository):
         }
 
     # 9. Special methods
-    def add_directory(self, dir_name: str, parents: list[str] = None) -> bool:
-        return NotImplemented
+    def add_directory(self, dir_name: str, parents: list[str] = None) -> TBoolExc:
+        with self.resource_read():
+            manager = BaseDataManager.get()
+            parents = self._complete_parents(parents)
+            return manager.create_subdir(dir_name, parents)
 
-    def add_file(self, file_name: str, file_content, parents: list[str] = None) -> bool:
-        return NotImplemented
+    def add_file(self, file_name: str, file_content, parents: list[str] = None) -> TBoolExc:
+        with self.resource_read():
+            manager = BaseDataManager.get()
+            parents = self._complete_parents(parents)
+            content: TFContent = (file_name, parents, file_content)
+            return manager.create_file(content)
+
+    def move_directory(self, src_name: str, dest_name: str,
+                       src_parents: list[str] = None, dest_parents: list[str] = None) -> TBoolExc:
+        manager = BaseDataManager.get()
+        if manager.is_subpath(src_name, dest_name, src_parents, dest_parents, strict=True):
+            return False, ValueError("Source path is strictly contained in destination path.")
+        else:
+            src_parents = self._complete_parents(src_parents)
+            dest_parents = self._complete_parents(dest_parents)
+            with self.resource_write():
+                return manager.move_subdir(src_name, dest_name, src_parents, dest_parents)
+
+    def delete_directory(self, dir_name: str, dir_parents: list[str] = None) -> TBoolExc:
+        manager = BaseDataManager.get()
+        dir_parents = self._complete_parents(dir_parents)
+        with self.resource_write():
+            return manager.remove_subdir(dir_name, dir_parents)
 
 
 __all__ = [
