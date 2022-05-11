@@ -17,6 +17,7 @@ class BaseClient:
     CRITERIONS = "criterions"
     STRATEGIES = "strategies"
     EXPERIMENTS = "experiments"
+    DATA = "data"
 
     __debug_urls__: bool = False
 
@@ -55,6 +56,10 @@ class BaseClient:
     @property
     def workspaces_base(self):
         return f'{self.users_base}/{self.username}/{self.WORKSPACES}'
+
+    @property
+    def data_repositories_base(self):
+        return f'{self.workspaces_base}/{self.workspace}/{self.DATA}'
 
     @property
     def resources_base(self):
@@ -244,6 +249,31 @@ class BaseClient:
             else:
                 workspace_name = self.workspace
         return self.delete([self.workspaces_base, workspace_name])
+
+    # Data Repositories
+    def create_data_repository(self, repo_name: str, repo_desc: str = None):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None")
+        else:
+            return self.post([self.data_repositories_base], data={'name': repo_name, 'description': repo_desc})
+
+    def get_data_repository(self, repo_name: str):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None")
+        else:
+            return self.get([self.data_repositories_base, repo_name])
+
+    def get_data_repository_desc(self, repo_name: str):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None")
+        else:
+            return self.get([self.data_repositories_base, repo_name, 'desc'])
+
+    def delete_data_repository(self, repo_name: str):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None")
+        else:
+            return self.delete([self.data_repositories_base, repo_name])
 
     # Generic Resources TODO Modificare!
     def add_generic_resource(self, name: str, typename: str, build_config_data: dict, description: str = None):

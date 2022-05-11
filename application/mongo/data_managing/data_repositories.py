@@ -35,6 +35,7 @@ class MongoDataRepository(MongoBaseDataRepository):
 
     workspace = db.ReferenceField(MongoBaseWorkspace)               # workspace
     name = db.StringField(required=True)                            # repo name
+    description = db.StringField(default='')
     root = db.StringField(required=True)                            # repo root directory
     metadata = db.EmbeddedDocumentField(MongoDataRepositoryMetadata)
     files = db.MapField(db.IntField())                              # relative_path => file
@@ -70,12 +71,14 @@ class MongoDataRepository(MongoBaseDataRepository):
 
     # 4. Create + callbacks
     @classmethod
-    def create(cls, name: str, workspace: MongoBaseWorkspace, root: str = None,
+    def create(cls, name: str, workspace: MongoBaseWorkspace, root: str = None, desc: str = None,
                save: bool = True, parents_locked=False) -> MongoBaseDataRepository | None:
 
         # TODO Validation!
         if root is None:
             root = f"DataRepository_{name}"
+
+        desc = desc if desc is not None else ''
 
         with workspace.sub_resource_create(locked=parents_locked):
             now = datetime.utcnow()
@@ -83,6 +86,7 @@ class MongoDataRepository(MongoBaseDataRepository):
             repository = cls(
                 workspace=workspace,
                 name=name,
+                description=desc,
                 root=root,
                 metadata=MongoDataRepositoryMetadata(created=now, last_modified=now),
                 files={},
@@ -133,6 +137,9 @@ class MongoDataRepository(MongoBaseDataRepository):
 
     def get_name(self) -> str:
         return self.name
+
+    def get_description(self) -> str:
+        return self.description
 
     def get_workspace(self) -> MongoBaseWorkspace:
         return self.workspace

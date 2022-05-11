@@ -48,7 +48,10 @@ def create_workspace(username):
         return ForbiddenOperation("You cannot create a workspace for another user!")
 
     workspace = Workspace.create(data['name'], current_user)
-    return make_success_dict(HTTPStatus.CREATED, data=workspace.to_dict())
+    if workspace:
+        return make_success_dict(HTTPStatus.CREATED, data=workspace.to_dict())
+    else:
+        return InternalFailure(msg=f"Failed to create workspace '{data['name']}'.")
 
 
 @workspaces_bp.get('/<workspace:wname>/')

@@ -3,6 +3,9 @@ from time import sleep
 
 from client import *
 
+repository_name = "RepositoryOne"
+repository_desc = "An example of data repository."
+
 benchmark_name = "SplitMNISTOne"
 benchmark_type = "Benchmark"
 benchmark_desc = "An example of SplitMNIST benchmark."
@@ -70,7 +73,7 @@ experiment_build = {
 }
 
 
-_SLEEP_TIME = 6
+_SLEEP_TIME = 3
 _N_SLEEPS = 2
 
 if __name__ == '__main__':
@@ -152,7 +155,10 @@ if __name__ == '__main__':
         print_response(cl.create_workspace('wspace1'))
         print_response(cl.get_workspace('wspace1'))
 
-    # todo data repositories!
+    print_response(cl.create_data_repository(repository_name, repository_desc))
+    print_response(cl.get_data_repository_desc(repository_name))
+    print_response(cl.get_data_repository(repository_name))
+    print_response(cl.delete_data_repository(repository_name))
 
     if __benchmarks__ in __only__:
         # create and build benchmarks

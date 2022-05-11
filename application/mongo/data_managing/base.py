@@ -16,7 +16,7 @@ class MongoBaseDataRepository(BaseDataRepository, RWLockableDocument):
 
     @classmethod
     @abstractmethod
-    def create(cls, name: str, workspace: MongoBaseWorkspace, root: str = None,
+    def create(cls, name: str, workspace: MongoBaseWorkspace, root: str = None, desc: str = None,
                save: bool = True, parents_locked=False) -> BaseDataRepository | None:
         pass
 

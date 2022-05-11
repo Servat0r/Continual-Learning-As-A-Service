@@ -51,11 +51,20 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
     def get(cls, workspace: Workspace = None, name: str = None, **kwargs) -> list[BaseDataRepository]:
         return cls.get_class().get(workspace, name, **kwargs)
 
+    @classmethod
+    def get_one(cls, workspace: Workspace = None, name: str = None, **kwargs) -> BaseDataRepository | None:
+        repos = cls.get(workspace, name, **kwargs)
+        if repos is not None and len(repos) >= 1:
+            return repos[0]
+        else:
+            return None
+
     # 4. Create + callbacks
     @classmethod
     @abstractmethod
-    def create(cls, name: str, workspace: Workspace, root: str = None, save: bool = True) -> BaseDataRepository | None:
-        return cls.get_class().create(name, workspace, root, save)
+    def create(cls, name: str, workspace: Workspace, root: str = None,
+               desc: str = None, save: bool = True) -> BaseDataRepository | None:
+        return cls.get_class().create(name, workspace, root, desc, save)
 
     # 5. Delete + callbacks
     @abstractmethod
@@ -77,6 +86,10 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
 
     @abstractmethod
     def get_name(self) -> str:
+        pass
+
+    @abstractmethod
+    def get_description(self) -> str:
         pass
 
     @abstractmethod
