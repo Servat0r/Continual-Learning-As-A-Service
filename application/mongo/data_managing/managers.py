@@ -89,15 +89,22 @@ class MongoLocalDataManager(BaseDataManager):
         return os.path.join(dir_path, file_name)
 
     def create_file(self, data: TFContent) -> TBoolExc:
-        pass
+        fpath = os.path.join(self.get_root(), self.get_file_path(data[0], data[1]))
+        try:
+            with open(fpath, 'w') as f:
+                if data[2] is not None:
+                    f.write(data[2])
+            return True, None
+        except Exception as ex:
+            return False, ex
 
-    def read_from_file(self, data: TFRead) -> t.Any | None:
-        pass
+    def read_from_file(self, data: TFRead, base_dir: list[str] = None) -> t.Any | None:
+        fpath = os.path.join(self.get_root(), self.get_file_path(data[0], data[1]))
+        with open(fpath, 'r') as f:
+            content = f.read(data[2])
+        return content
 
-    def create_files(self, files: dict[tuple[str, list[str]], t.Any | None]) -> int:
-        pass
-
-    def read_from_files(self, files: tuple[str, list[str], int | None]) -> dict[tuple[str, list[str]], t.Any]:
+    def read_from_files(self, files: t.Iterable[TFRead], base_dir: list[str] = None) -> t.Iterable[TFContent]:
         pass
 
     def print_to_file(self, file_name: str, dir_names: list[str], *values: t.Any, sep=' ', newline=True, append=True):

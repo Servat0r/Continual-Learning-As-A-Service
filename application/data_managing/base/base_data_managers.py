@@ -18,6 +18,24 @@ TFRead = t.TypeVar(
 )
 
 
+class FilesContentReader(t.Iterable[TFContent]):
+
+    def __init__(self, manager: BaseDataManager, files: t.Iterable[TFRead], base_dir: list[str] = None):
+        self.manager = manager
+        self.files = iter(files)
+        self.base_dir = base_dir
+
+    def __next__(self) -> TFContent | None:
+        fread = next(self.files, None)
+        if fread is not None:
+            return self.manager.read_from_file(fread, self.base_dir)
+        else:
+            return None
+
+    def __iter__(self) -> t.Iterator[TFContent]:
+        return self
+
+
 class BaseDataManager:
     """
     Data manager, holding a set of callbacks to call before/after user/workspace creation/deletion to interact
@@ -92,25 +110,29 @@ class BaseDataManager:
     def create_file(self, data: TFContent) -> TBoolExc:
         pass
 
-    def create_files(self, files: t.Iterable[TFContent]) -> int:
-        created = 0
+    def create_files(self, files: t.Iterable[TFContent], base_dir: list[str] = None) -> list[str]:
+        created = []
         for item in iter(files):
-            result, exc = self.create_file(item)
+            item2 = (
+                item[0],
+                base_dir + item[1] if base_dir is not None else item[1],
+                item[2]
+            )
+            result, exc = self.create_file(item2)
             if result:
-                created += 1
+                path = '/'.join(item[1] + [item[0]])
+                created.append(path)
             else:
                 print(exc)
         return created
 
     @abstractmethod
-    def read_from_file(self, data: TFRead) -> t.Any | None:
+    def read_from_file(self, data: TFRead, base_dir: list[str] = None) -> t.Any | None:
         pass
 
     @abstractmethod
-    def read_from_files(self, files: t.Iterable[TFRead]) -> t.Iterable[TFContent]:
-        result = {}
-
-        return result
+    def read_from_files(self, files: t.Iterable[TFRead], base_dir: list[str] = None) -> t.Iterable[TFContent]:
+        return FilesContentReader(self, files, base_dir)
 
     @abstractmethod
     def print_to_file(self, file_name: str, dir_names: list[str], *values: t.Any, sep=' ', newline=True, append=True):
@@ -125,23 +147,9 @@ class BaseDataManager:
         pass
 
 
-class FileContentIterator(t.Iterable[TFContent]):
-
-    def __init__(self, files: t.Iterable[TFRead]):
-        self.files = iter(files)
-
-    def __iter__(self) -> t.Iterator[TFContent]:
-        return self
-
-    def __next__(self):
-        item: TFRead = next(self.files)
-        result = BaseDataManager.get().read_from_file(item)
-        return item[0], item[1], result
-
-
 __all__ = [
     'TFRead',
     'TFContent',
     'BaseDataManager',
-    'FileContentIterator',
+    'FilesContentReader',
 ]

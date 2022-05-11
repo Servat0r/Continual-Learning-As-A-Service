@@ -112,8 +112,8 @@ def get_data_repo_desc(username, wname, name):
         return ResourceNotFound(resource=name)
 
 
-@data_repositories_bp.post('/<name>/')
-@data_repositories_bp.post('/<name>')
+@data_repositories_bp.post('/<name>/folders/')
+@data_repositories_bp.post('/<name>/folders')
 @token_auth.login_required
 def create_sub_folder(username, wname, name):
     """
@@ -143,6 +143,8 @@ def create_sub_folder(username, wname, name):
         return BadRequestSyntax(f"'folder_path' must be a string!")
 
     folders = folder_path.split('/') if folder_path is not None else None
+
+    folders = [val for val in folders if len(val) > 0]
 
     workspace = Workspace.canonicalize((username, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
@@ -175,20 +177,88 @@ def move_folder(username, wname, name):
     :param name:
     :return:
     """
-    pass
+    result, error = check_current_user_ownership(username,
+                                                 f"You cannot create a folder in another user ({username}) repository.")
+    if not result:
+        return error
+
+    data, error, opts, extras = checked_json(request, False, {'src_path', 'dest_path'})
+    if error:
+        return error(**data) if data else error()
+
+    src_path = data['src_path'].split('/')
+    dest_path = data['dest_path'].split('/')
+
+    if len(src_path) < 1 or len(dest_path) < 1:
+        return BadRequestSyntax(msg="Source and destination paths must have at least one item!")
+
+    src_parents = src_path[:-1]
+    dest_parents = dest_path[:-1]
+    src_name = src_path[-1]
+    dest_name = dest_path[-1]
+
+    workspace = Workspace.canonicalize((username, wname))
+    data_repository = BaseDataRepository.get_one(workspace, name)
+    if data_repository is None:
+        return ResourceNotFound(resource=name)
+    else:
+        result, exc = data_repository.move_directory(src_name, dest_name, src_parents, dest_parents)
+        if result:
+            return make_success_dict(data={'old_path': data['src_path'], 'new_path': data['dest_path']})
+        else:
+            return InternalFailure(msg=exc.args[0])
 
 
 @data_repositories_bp.delete('/<name>/folders/<path:path>/')
-@data_repositories_bp.delete('/<name>/<path:path>')
+@data_repositories_bp.delete('/<name>/folders/<path:path>')
 @token_auth.login_required
 def delete_sub_folder(username, wname, name, path):
-    pass
+    result, error = \
+        check_current_user_ownership(username,
+                                     f"You cannot create a folder in another user ({username}) repository.")
+    if not result:
+        return error
+
+    workspace = Workspace.canonicalize((username, wname))
+    data_repository = BaseDataRepository.get_one(workspace, name)
+
+    pathlist = path.split('/')
+    if len(pathlist) < 1:
+        return BadRequestSyntax(msg="Folder path must have at least one item!")
+
+    dir_name = pathlist[-1]
+    dir_parents = pathlist[:-1]
+
+    result, exc = data_repository.delete_directory(dir_name, dir_parents)
+    if result:
+        return make_success_dict()
+    else:
+        return InternalFailure(msg=exc.args[0])
 
 
 @data_repositories_bp.patch('/<name>/folders/')
 @data_repositories_bp.patch('/<name>/folders')
 @token_auth.login_required
 def send_files(username, wname, name):
+    """
+    RequestSyntax:
+    {
+        <form_of_files>
+    }
+
+    ResponseSyntax:
+    {
+        "created": [
+            <file1_name>,
+            <file2_name>,
+            ...             # for every created file
+        ]
+    }
+    :param username:
+    :param wname:
+    :param name:
+    :return:
+    """
     pass
 
 

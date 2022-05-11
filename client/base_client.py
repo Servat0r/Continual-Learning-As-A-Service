@@ -253,27 +253,53 @@ class BaseClient:
     # Data Repositories
     def create_data_repository(self, repo_name: str, repo_desc: str = None):
         if repo_name is None:
-            raise ValueError("Repository name cannot be None")
+            raise ValueError("Repository name cannot be None.")
         else:
             return self.post([self.data_repositories_base], data={'name': repo_name, 'description': repo_desc})
 
     def get_data_repository(self, repo_name: str):
         if repo_name is None:
-            raise ValueError("Repository name cannot be None")
+            raise ValueError("Repository name cannot be None.")
         else:
             return self.get([self.data_repositories_base, repo_name])
 
     def get_data_repository_desc(self, repo_name: str):
         if repo_name is None:
-            raise ValueError("Repository name cannot be None")
+            raise ValueError("Repository name cannot be None.")
         else:
             return self.get([self.data_repositories_base, repo_name, 'desc'])
 
     def delete_data_repository(self, repo_name: str):
         if repo_name is None:
-            raise ValueError("Repository name cannot be None")
+            raise ValueError("Repository name cannot be None.")
         else:
             return self.delete([self.data_repositories_base, repo_name])
+
+    def create_subdir(self, repo_name: str, folder_name: str, folder_path: list[str] = None):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        folder_path = [] if folder_path is None else folder_path
+        data = {
+            'name': folder_name,
+            'path': '/'.join(folder_path),
+        }
+        return self.post([self.data_repositories_base, repo_name, 'folders'], data=data)
+
+    def move_subdir(self, repo_name: str, src_path: str, dest_path: str):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        data = {
+            'src_path': src_path,
+            'dest_path': dest_path,
+        }
+        return self.patch([self.data_repositories_base, repo_name, 'folders'], data=data)
+
+    def delete_subdir(self, repo_name: str, path: str):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        return self.delete([self.data_repositories_base, repo_name, 'folders', path])
+
+    # TODO send files!
 
     # Generic Resources TODO Modificare!
     def add_generic_resource(self, name: str, typename: str, build_config_data: dict, description: str = None):

@@ -16,6 +16,23 @@ from application.mongo.base import MongoBaseUser, MongoBaseWorkspace
 from .base import *
 
 
+class _FilesPathsIterable(t.Iterable[TFContent]):
+    def __init__(self, repository: MongoDataRepository, files: t.Iterable[TFContent]):
+        self.repository = repository
+        self.files = iter(files)
+
+    def __iter__(self) -> t.Iterator[TFContent]:
+        return self
+
+    def __next__(self):
+        file = next(self.files, None)
+        if file:
+            file[1] = self.repository._complete_parents(file[1])
+            return file
+        else:
+            return None
+
+
 class MongoDataRepositoryMetadata(MongoBaseMetadata):
     pass
 
@@ -188,13 +205,6 @@ class MongoDataRepository(MongoBaseDataRepository):
             parents = self._complete_parents(parents)
             return manager.create_subdir(dir_name, parents)
 
-    def add_file(self, file_name: str, file_content, parents: list[str] = None) -> TBoolExc:
-        with self.resource_read():
-            manager = BaseDataManager.get()
-            parents = self._complete_parents(parents)
-            content: TFContent = (file_name, parents, file_content)
-            return manager.create_file(content)
-
     def move_directory(self, src_name: str, dest_name: str,
                        src_parents: list[str] = None, dest_parents: list[str] = None) -> TBoolExc:
         manager = BaseDataManager.get()
@@ -211,6 +221,20 @@ class MongoDataRepository(MongoBaseDataRepository):
         dir_parents = self._complete_parents(dir_parents)
         with self.resource_write():
             return manager.remove_subdir(dir_name, dir_parents)
+
+    def add_file(self, file_name: str, file_content,
+                 parents: list[str] = None, locked=False, parents_locked=False) -> TBoolExc:
+        with self.resource_read(locked, parents_locked):
+            manager = BaseDataManager.get()
+            parents = self._complete_parents(parents)
+            content: TFContent = (file_name, parents, file_content)
+            return manager.create_file(content)
+
+    def add_files(self, files: t.Iterable[TFContent], locked=False, parents_locked=False) -> list[str]:
+        with self.resource_read(locked, parents_locked):
+            manager = BaseDataManager.get()
+            base_dir = self._complete_parents()
+            return manager.create_files(files, base_dir)
 
 
 __all__ = [

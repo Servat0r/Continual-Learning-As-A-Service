@@ -157,7 +157,17 @@ if __name__ == '__main__':
 
     print_response(cl.create_data_repository(repository_name, repository_desc))
     print_response(cl.get_data_repository_desc(repository_name))
+
+    print_response(cl.create_subdir(repository_name, 'train1'))
+    print_response(cl.create_subdir(repository_name, 'train1.1', ['train1']))
+    print_response(cl.create_subdir(repository_name, 'train1.2'))
+
     print_response(cl.get_data_repository(repository_name))
+
+    print_response(cl.move_subdir(repository_name, 'train1.2', 'train1'))
+    print_response(cl.delete_subdir(repository_name, 'train1/train1.1'))
+    print_response(cl.delete_subdir(repository_name, 'train1'))
+
     print_response(cl.delete_data_repository(repository_name))
 
     if __benchmarks__ in __only__:
