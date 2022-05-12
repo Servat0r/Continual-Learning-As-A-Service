@@ -72,7 +72,7 @@ def make_shell_context():
         'DataType': DataType, 'Benchmark': MongoBenchmark,
         'Criterion': MongoCLCriterion, 'MetricSet': MongoStandardMetricSet,
         'Model': MongoModel, 'Optimizer': MongoCLOptimizer,
-        'Strategy': MongoStrategy,
+        'Strategy': MongoStrategy, 'Experiment': MongoCLExperiment,
 
         # helpers
         'user_n': user_n, 'wspace_n': wspace_n,

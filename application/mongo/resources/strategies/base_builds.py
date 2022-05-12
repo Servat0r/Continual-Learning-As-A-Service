@@ -8,7 +8,7 @@ from application.data_managing import BaseDataManager
 from application.models import User, Workspace
 
 from application.mongo.base import MongoBaseUser
-from application.mongo.data_managing import ExtendedCSVLogger
+from application.mongo.loggers import ExtendedCSVLogger
 
 from application.mongo.resources.metricsets import *
 from application.mongo.resources.criterions import *
@@ -26,8 +26,8 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
     }
 
     model = db.ReferenceField(MongoModelConfig, required=True)
-    optimizer = db.ReferenceField(MongoCLOptimizerConfig, required=True)     # TODO!
-    criterion = db.ReferenceField(MongoCLCriterionConfig, required=True)     # TODO!
+    optimizer = db.ReferenceField(MongoCLOptimizerConfig, required=True)     # TODO Embed!
+    criterion = db.ReferenceField(MongoCLCriterionConfig, required=True)     # TODO Embed!
     train_mb_size = db.IntField(default=1)
     train_epochs = db.IntField(default=1)
     eval_mb_size = db.IntField(default=None)
@@ -40,27 +40,24 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         pass
 
     @staticmethod
-    def get_evaluator(log_folder: bytes | str, metricset: StandardMetricSet) -> EvaluationPlugin:
+    def get_evaluator(log_folder: list[str], metricset: StandardMetricSet) -> EvaluationPlugin:
+        log_folder_path = os.path.join(*log_folder)
         return EvaluationPlugin(
             *metricset.get_value(),
             loggers=[
-                # ExtendedCSVLogger(),
-                CSVLogger(log_folder=log_folder),
+                ExtendedCSVLogger(log_folder=log_folder),
+                # CSVLogger(log_folder=log_folder_path),
                 InteractiveLogger(),
             ]
         )
 
     @staticmethod
-    def get_logging_path(context: UserWorkspaceResourceContext):
-        # TODO Pass it from experiment! (From context?)
-        workspace = Workspace.canonicalize(context)
-        return os.path.join(
-            BaseDataManager.get().get_root(),
-            *workspace.experiments_base_dir_parents(),
-            workspace.experiments_base_dir(),
-            'exp2',
-            'logs',
-        )
+    def get_logging_path(context: UserWorkspaceResourceContext) -> list[str]:
+        iname, values = context.head()
+        if not isinstance(values, list):
+            raise TypeError("Context parameter is not of the correct type!")
+        context.pop()
+        return [BaseDataManager.get().get_root()] + values
 
     @classmethod
     @abstractmethod
@@ -132,10 +129,10 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
         return super().create(data, tp, context, save)
 
-    def build(self, context: UserWorkspaceResourceContext):
-        model = self.model.build(context)
-        optim = self.optimizer.build(context)
-        criterion = self.criterion.build(context)
+    def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
+        model = self.model.build(context, locked=locked, parents_locked=parents_locked)
+        optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
+        criterion = self.criterion.build(context, locked=locked, parents_locked=parents_locked)
 
         log_folder = self.get_logging_path(context)
         metricset = self.metricset.build(context)

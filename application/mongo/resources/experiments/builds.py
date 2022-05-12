@@ -70,9 +70,9 @@ class StandardExperimentBuildConfig(MongoBuildConfig):
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
         return super().create(data, tp, context)
 
-    def build(self, context: ResourceContext):
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
 
-        strategy = self.strategy.build(context)
-        benchmark = self.benchmark.build(context)
+        strategy = self.strategy.build(context, locked=locked, parents_locked=parents_locked)
+        benchmark = self.benchmark.build(context, locked=locked, parents_locked=parents_locked)
         # noinspection PyArgumentList
         return self.target_type()(strategy, benchmark, self.status, self.run_config)

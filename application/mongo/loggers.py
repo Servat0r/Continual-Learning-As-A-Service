@@ -8,7 +8,6 @@ from avalanche.logging import StrategyLogger
 
 from application.utils import t
 from application.data_managing.base import BaseDataManager
-from application.resources.datatypes.experiments import BaseCLExperiment
 
 if t.TYPE_CHECKING:
     from avalanche.training import BaseStrategy
@@ -26,7 +25,7 @@ class ExtendedCSVLogger(StrategyLogger):
     _DFL_TRAIN_RESULTS_FILE_NAME = 'training_results.csv'
     _DFL_EVAL_RESULTS_FILE_NAME = 'eval_results.csv'
 
-    def __init__(self, experiment: BaseCLExperiment = None,
+    def __init__(self, log_folder: list[str],
                  train_file_name: str = _DFL_TRAIN_RESULTS_FILE_NAME,
                  eval_file_name: str = _DFL_EVAL_RESULTS_FILE_NAME):
 
@@ -34,9 +33,7 @@ class ExtendedCSVLogger(StrategyLogger):
 
         self.train_file_name = train_file_name
         self.eval_file_name = eval_file_name
-        self.experiment = None
-        self.log_folder = None
-        self.initialized = False
+        self.log_folder = log_folder
         self.manager = BaseDataManager.get()
         # current training experience id
         self.training_exp_id = None
@@ -48,25 +45,17 @@ class ExtendedCSVLogger(StrategyLogger):
         # validation metrics computed during training
         self.val_acc, self.val_loss = 0, 0
 
-        self.__later_init(experiment)
+        # create files
+        self.manager.create_file((self.train_file_name, self.log_folder, None))
+        self.manager.create_file((self.eval_file_name, self.log_folder, None))
 
-    def __later_init(self, experiment: BaseCLExperiment):
-        if not self.initialized and self.experiment is None and experiment is not None:
-            self.experiment = experiment
-            self.log_folder: list[str] = self.experiment.get_logging_path()
-
-            # create files
-            self.manager.create_file((self.train_file_name, self.log_folder, None))
-            self.manager.create_file((self.eval_file_name, self.log_folder, None))
-
-            # print csv headers
-            self.manager.print_to_file(self.train_file_name, self.log_folder,
-                                       'training_exp', 'epoch', 'training_accuracy', 'val_accuracy',
-                                       'training_loss', 'val_loss', sep=',', append=False, flush=True)
-            self.manager.print_to_file(self.eval_file_name, self.log_folder,
-                                       'eval_exp', 'training_exp', 'eval_accuracy', 'eval_loss',
-                                       'forgetting', sep=',', append=False, flush=True)
-            self.initialized = True
+        # print csv headers
+        self.manager.print_to_file(self.train_file_name, self.log_folder,
+                                   'training_exp', 'epoch', 'training_accuracy', 'val_accuracy',
+                                   'training_loss', 'val_loss', sep=',', append=False, flush=True)
+        self.manager.print_to_file(self.eval_file_name, self.log_folder,
+                                   'eval_exp', 'training_exp', 'eval_accuracy', 'eval_loss',
+                                   'forgetting', sep=',', append=False, flush=True)
 
     def log_single_metric(self, name, value, x_plot) -> None:
         pass
@@ -81,17 +70,21 @@ class ExtendedCSVLogger(StrategyLogger):
 
     def print_train_metrics(self, training_exp, epoch, train_acc,
                             val_acc, train_loss, val_loss):
+        if self.log_folder is None:
+            raise RuntimeError("Undefined log folder.")
         self.manager.print_to_file(self.train_file_name, self.log_folder,
                                    training_exp, epoch, self._val_to_str(train_acc),
                                    self._val_to_str(val_acc), self._val_to_str(train_loss),
-                                   self._val_to_str(val_loss), sep=',', append=False, flush=True)
+                                   self._val_to_str(val_loss), sep=',', append=True, flush=True)
 
     def print_eval_metrics(self, eval_exp, training_exp, eval_acc,
                            eval_loss, forgetting):
+        if self.log_folder is None:
+            raise RuntimeError("Undefined log folder.")
         self.manager.print_to_file(self.eval_file_name, self.log_folder,
                                    eval_exp, training_exp, self._val_to_str(eval_acc),
                                    self._val_to_str(eval_loss), self._val_to_str(forgetting),
-                                   sep=',', append=False, flush=True)
+                                   sep=',', append=True, flush=True)
 
     def after_training_epoch(self, strategy: 'BaseStrategy',
                              metric_values: t.List['MetricValue'], **kwargs):

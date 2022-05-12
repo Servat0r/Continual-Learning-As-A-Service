@@ -78,7 +78,7 @@ class SGDBuildConfig(MongoBuildConfig):
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
         return super().create(data, tp, context, save)
 
-    def build(self, context: ResourceContext):
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
         model = self.model.build(context)
         params = model.get_value().parameters()
         optimizer = SGD(params, self.learning_rate, self.momentum,
@@ -152,8 +152,8 @@ class AdamBuildConfig(MongoBuildConfig):
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
         return super().create(data, tp, context, save)
 
-    def build(self, context: ResourceContext):
-        model = self.model.build(context)
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
+        model = self.model.build(context, locked=locked, parents_locked=parents_locked)
         params = model.get_value().parameters()
         optimizer = Adam(params, lr=self.learning_rate, eps=self.eps, weight_decay=self.weight_decay)
         # noinspection PyArgumentList

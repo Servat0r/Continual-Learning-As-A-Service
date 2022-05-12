@@ -142,7 +142,7 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         return cls(**actuals)
 
     @abstractmethod
-    def build(self, context: ResourceContext):
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
         pass
 
     def update(self, data, context: ResourceContext) -> TBoolStr:
@@ -289,7 +289,7 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
     def build(self, context: ResourceContext,
               locked=False, parents_locked=False):
         with self.resource_read(locked=locked, parents_locked=parents_locked):
-            obj = self.build_config.build(context)
+            obj = self.build_config.build(context, locked=True, parents_locked=True)
             obj.set_metadata(
                 name=self.name,
                 owner=self.owner.username,

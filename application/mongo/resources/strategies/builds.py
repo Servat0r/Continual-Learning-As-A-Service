@@ -95,10 +95,10 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
         context.push(iname, values)
         return True, None
 
-    def build(self, context: UserWorkspaceResourceContext):
-        model = self.model.build(context)
-        optim = self.optimizer.build(context)
-        criterion = self.criterion.build(context)
+    def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
+        model = self.model.build(context, locked=locked, parents_locked=parents_locked)
+        optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
+        criterion = self.criterion.build(context, locked=locked, parents_locked=parents_locked)
 
         log_folder = self.get_logging_path(context)
         metricset = self.metricset.build(context)
@@ -161,10 +161,10 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
         context.push(iname, values)
         return True, None
 
-    def build(self, context: UserWorkspaceResourceContext):
-        model = self.model.build(context)
-        optim = self.optimizer.build(context)
-        criterion = self.criterion.build(context)
+    def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
+        model = self.model.build(context, locked=locked, parents_locked=parents_locked)
+        optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
+        criterion = self.criterion.build(context, locked=locked, parents_locked=parents_locked)
 
         log_folder = self.get_logging_path(context)
         metricset = self.metricset.build(context)

@@ -59,14 +59,14 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
         return super().create(data, tp, context, save)
 
-    def build(self, context: ResourceContext):
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
         model = SimpleMLP(
             num_classes=self.num_classes,
             input_size=self.input_size,
             hidden_size=self.hidden_size,
             hidden_layers=self.hidden_layers,
             drop_rate=self.drop_rate,
-        ).to(get_device())
+        )  # .to(get_device())
         # noinspection PyArgumentList
         return self.target_type()(model)
 

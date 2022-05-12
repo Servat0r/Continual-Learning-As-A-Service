@@ -33,7 +33,7 @@ class CrossEntropyLossBuildConfig(MongoBuildConfig):
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
         return super().create(data, tp, context, save)
 
-    def build(self, context: ResourceContext):
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
         criterion = CrossEntropyLoss()
         # noinspection PyArgumentList
         return self.target_type()(criterion)

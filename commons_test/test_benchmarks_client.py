@@ -21,7 +21,7 @@ metricset_build = {
     'name': "StandardMetricSet",
     'accuracy': {
         'minibatch': True,
-        'epoch': False,
+        'epoch': True,
         'experience': True,
         'stream': True,
     }
@@ -43,21 +43,29 @@ criterion_build = {
     'name': 'CrossEntropyLoss',
 }
 
-optimizer_name = 'AdamOne'
-optimizer_desc = '...'
-optimizer_build = {
+sgd_optimizer_name = 'SGDOne'
+sgd_optimizer_desc = '...'
+sgd_optimizer_build = {
+    'name': 'SGD',
+    'model': model_name,
+    'learning_rate': 0.001,
+    'momentum': 0.9,
+}
+
+adam_optimizer_name = 'AdamOne'
+adam_optimizer_desc = '...'
+adam_optimizer_build = {
     'name': 'Adam',
     'learning_rate': 0.001,
     'model': model_name,
-    # 'momentum': 0.9,
 }
 
 strategy_name = 'NaiveOne'  # 'CumulativeOne'
 strategy_desc = '...'
 strategy_build = {
-    'name': 'SynapticIntelligence',
+    'name': 'Naive',  # 'SynapticIntelligence',
     'model': model_name,
-    'optimizer': optimizer_name,
+    'optimizer': sgd_optimizer_name,
     'criterion': criterion_name,
     'metricset': metricset_name,
 
@@ -65,8 +73,8 @@ strategy_build = {
     'train_epochs': 10,
     'eval_mb_size': 128,
 
-    'si_lambda': [1.0],
-    'eps': 0.001,
+    # 'si_lambda': [1.0],
+    # 'eps': 0.001,
 }
 
 experiment_name = 'ExperimentOne'
@@ -203,14 +211,14 @@ if __name__ == '__main__':
         print_response(cl.create_model(model_name, model_build, model_desc))
         print_response(cl.build_model(model_name))
 
-    print_response(cl.create_optimizer(optimizer_name, optimizer_build, optimizer_desc))
-    print_response(cl.build_optimizer(optimizer_name))
+    print_response(cl.create_optimizer(sgd_optimizer_name, sgd_optimizer_build, sgd_optimizer_desc))
+    print_response(cl.build_optimizer(sgd_optimizer_name))
 
     print_response(cl.create_criterion(criterion_name, criterion_build, criterion_desc))
     print_response(cl.build_criterion(criterion_name))
 
     print_response(cl.create_strategy(strategy_name, strategy_build, strategy_desc))
-    print_response(cl.build_strategy(strategy_name))
+    # print_response(cl.build_strategy(strategy_name))
 
     print_response(cl.create_experiment(experiment_name, experiment_build, experiment_desc))
     print_response(cl.setup_experiment(experiment_name))
@@ -233,8 +241,6 @@ if __name__ == '__main__':
             break
 
     print_response(cl.delete_experiment(experiment_name))
-
-    # todo experiments!
 
     if __models__ not in __nodel__:
         # delete models

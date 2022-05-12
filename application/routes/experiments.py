@@ -49,7 +49,7 @@ def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
             else:
                 return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to run experiment.")
         except Exception as ex:
-            return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Error when executing experiment.")
+            return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg=f"Error when executing experiment: {ex.args[0]}.")
         finally:
             experiment_config.set_finished(locked=True)
 

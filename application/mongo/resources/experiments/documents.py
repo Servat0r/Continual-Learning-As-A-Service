@@ -66,6 +66,15 @@ class MongoCLExperimentConfig(MongoResourceConfig):
     def run_config(self) -> str:
         return self.build_config.run_config
 
+    def get_logging_path(self) -> list[str]:
+        workspace: Workspace = self.workspace
+        return workspace.experiments_base_dir_parents() \
+            + [
+                workspace.experiments_base_dir(),
+                str(self.id),
+                'logs',
+            ]
+
     def to_dict(self):
         return {
             'name': self.name,
@@ -146,6 +155,12 @@ class MongoCLExperimentConfig(MongoResourceConfig):
                             if save:
                                 obj.save(force_insert=True)
                     return obj
+
+    def build(self, context: UserWorkspaceResourceContext,
+              locked=False, parents_locked=False):
+        log_folder = self.get_logging_path()
+        context.push('log_folder', log_folder)
+        return super().build(context, locked, parents_locked)
 
 
 __all__ = [

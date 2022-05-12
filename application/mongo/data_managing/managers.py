@@ -79,22 +79,33 @@ class MongoLocalDataManager(BaseDataManager):
         except Exception as ex:
             return False, ex
 
-    def get_dir_path(self, dir_names: list[str] = None) -> str:
+    def get_dir_list(self, dir_names: list[str] = None) -> list[str]:
         if dir_names is None:
             dir_names = []
-        dir_names = tuple(dir_names)
-        return os.path.join(self.root_dir, *dir_names)
+        return [self.get_root()] + dir_names
+
+    def get_dir_path(self, dir_names: list[str] = None) -> str:
+        dir_list = self.get_dir_list(dir_names)
+        return os.path.join(*dir_list)
 
     def get_file_path(self, file_name: str, dir_names: list[str] = None) -> str:
         dir_path = self.get_dir_path(dir_names)
         return os.path.join(dir_path, file_name)
 
     def create_file(self, data: TFContent) -> TBoolExc:
+        dir_list = self.get_dir_list(data[1])
+        result, exc = self.create_subdir(dir_list[-1], dir_list[:-1])
+        if not result:
+            return result, exc
+
         fpath = os.path.join(self.get_root(), self.get_file_path(data[0], data[1]))
         fstorage = data[2]
         try:
             if fstorage is not None:
                 fstorage.save(fpath)
+            else:
+                with open(fpath, 'w') as f:
+                    pass
             return True, None
         except Exception as ex:
             return False, ex
