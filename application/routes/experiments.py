@@ -129,11 +129,17 @@ def get_experiment_status(username, wname, name):
     else:
         uri = experiment_config.uri
         if experiment_config.status != BaseCLExperiment.ENDED:
-            return make_success_dict(data={'status': experiment_config.status})
+            return make_success_dict(
+                HTTPStatus.LOCKED,
+                data={'status': experiment_config.status},
+            )
         elif not executor.futures.done(uri):
             status = executor.futures._state(uri)
             print(status)
-            return make_success_dict(data={'status': status})
+            return make_success_dict(
+                HTTPStatus.LOCKED,
+                data={'status': status},
+            )
         else:
             return make_success_dict(data={'status': experiment_config.status})
 
@@ -149,7 +155,7 @@ def get_experiment_results(username, wname, name):
         uri = experiment_config.uri
         if experiment_config.status != BaseCLExperiment.ENDED:
             return make_success_dict(
-                HTTPStatus.OK,
+                HTTPStatus.LOCKED,
                 msg="Experiment is still running and results are not available.",
             )
         else:
@@ -159,7 +165,7 @@ def get_experiment_results(username, wname, name):
                 if result is not None:
                     return result
             return make_success_dict(
-                HTTPStatus.OK,
+                HTTPStatus.NOT_FOUND,
                 msg="No results available for this experiment.",
             )
 

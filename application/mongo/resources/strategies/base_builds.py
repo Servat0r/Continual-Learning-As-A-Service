@@ -8,6 +8,8 @@ from application.data_managing import BaseDataManager
 from application.models import User, Workspace
 
 from application.mongo.base import MongoBaseUser
+from application.mongo.data_managing import ExtendedCSVLogger
+
 from application.mongo.resources.metricsets import *
 from application.mongo.resources.criterions import *
 from application.mongo.resources.optimizers import *
@@ -42,6 +44,7 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         return EvaluationPlugin(
             *metricset.get_value(),
             loggers=[
+                # ExtendedCSVLogger(),
                 CSVLogger(log_folder=log_folder),
                 InteractiveLogger(),
             ]

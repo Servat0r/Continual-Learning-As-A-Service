@@ -43,13 +43,13 @@ criterion_build = {
     'name': 'CrossEntropyLoss',
 }
 
-optimizer_name = 'SGDOne'
+optimizer_name = 'AdamOne'
 optimizer_desc = '...'
 optimizer_build = {
-    'name': 'SGD',
+    'name': 'Adam',
     'learning_rate': 0.001,
-    'momentum': 0.9,
     'model': model_name,
+    # 'momentum': 0.9,
 }
 
 strategy_name = 'NaiveOne'  # 'CumulativeOne'
@@ -60,6 +60,11 @@ strategy_build = {
     'optimizer': optimizer_name,
     'criterion': criterion_name,
     'metricset': metricset_name,
+
+    'train_mb_size': 64,
+    'train_epochs': 10,
+    'eval_mb_size': 128,
+
     'si_lambda': [1.0],
     'eps': 0.001,
 }

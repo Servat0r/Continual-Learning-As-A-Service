@@ -20,15 +20,17 @@ TFRead = t.TypeVar(
 
 class FilesContentReader(t.Iterable[TFContent]):
 
-    def __init__(self, manager: BaseDataManager, files: t.Iterable[TFRead], base_dir: list[str] = None):
+    def __init__(self, manager: BaseDataManager, files: t.Iterable[TFRead],
+                 base_dir: list[str] = None, binary=True):
         self.manager = manager
         self.files = iter(files)
         self.base_dir = base_dir
+        self.binary = binary
 
     def __next__(self) -> TFContent | None:
         fread = next(self.files, None)
         if fread is not None:
-            return self.manager.read_from_file(fread, self.base_dir)
+            return self.manager.read_from_file(fread, base_dir=self.base_dir, binary=self.binary)
         else:
             return None
 
@@ -127,22 +129,25 @@ class BaseDataManager:
         return created
 
     @abstractmethod
-    def read_from_file(self, data: TFRead, base_dir: list[str] = None) -> t.Any | None:
+    def read_from_file(self, data: TFRead, base_dir: list[str] = None, binary=True) -> t.Any | None:
         pass
 
-    def read_from_files(self, files: t.Iterable[TFRead], base_dir: list[str] = None) -> t.Iterable[TFContent]:
-        return FilesContentReader(self, files, base_dir)
+    def read_from_files(self, files: t.Iterable[TFRead],
+                        base_dir: list[str] = None, binary=True) -> t.Iterable[TFContent]:
+        return FilesContentReader(self, files, base_dir, binary)
 
     @abstractmethod
-    def print_to_file(self, file_name: str, dir_names: list[str], *values: t.Any, sep=' ', newline=True, append=True):
-        pass
-
-    @abstractmethod
-    def write_to_file(self, file_name: str, dir_names: list[str], content, append=True):
+    def print_to_file(self, file_name: str, dir_names: list[str], *values: t.Any,
+                      sep=' ', newline=True, append=True, flush=True) -> TBoolExc:
         pass
 
     @abstractmethod
-    def delete_file(self, file_name: str, dir_names: list[str], return_content=False) -> t.AnyStr | None:
+    def write_to_file(self, data: TFContent, append=True, binary=True) -> TBoolExc:
+        pass
+
+    @abstractmethod
+    def delete_file(self, file_name: str, dir_names: list[str], binary=True,
+                    return_content=False) -> t.AnyStr | None:
         pass
 
 

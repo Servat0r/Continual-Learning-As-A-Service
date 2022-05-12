@@ -11,6 +11,8 @@ services:
       - MONGO_INITDB_DATABASE
       - MONGODB_DATA_DIR
       - MONGODB_LOG_DIR
+    volumes:
+      - mongodb_data:/data/db
     ports:
       - "27017:27017"
 
@@ -24,8 +26,19 @@ services:
       - MONGODB_PASSWORD
       - MONGODB_HOSTNAME
     volumes:
-      - .:/code
+      - files_data:/home/CLaaS_Server/files
     depends_on:
       - mongodb
     ports:
       - "5000:5000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+volumes:
+  mongodb_data:
+    external: true
+  files_data:
+    external: true

@@ -1,5 +1,6 @@
 from __future__ import annotations
 import shutil
+import warnings
 
 from application import TFRead, TFContent
 from application.utils import t, TBoolExc, os
@@ -92,28 +93,53 @@ class MongoLocalDataManager(BaseDataManager):
         fpath = os.path.join(self.get_root(), self.get_file_path(data[0], data[1]))
         fstorage = data[2]
         try:
-            fstorage.save(fpath)
+            if fstorage is not None:
+                fstorage.save(fpath)
             return True, None
         except Exception as ex:
             return False, ex
 
-    def read_from_file(self, data: TFRead, base_dir: list[str] = None) -> t.Any | None:
+    def read_from_file(self, data: TFRead, base_dir: list[str] = None, binary=True) -> t.Any | None:
         fpath = os.path.join(self.get_root(), *data[1], data[0])
-        with open(fpath, 'rb') as f:    # TODO Aggiustare! (parametro per binary vs text)
+        mode = 'rb' if binary else 'r'
+        with open(fpath, mode) as f:
             content = f.read(data[2])
         return content
 
-    def print_to_file(self, file_name: str, dir_names: list[str], *values: t.Any, sep=' ', newline=True, append=True):
+    def print_to_file(self, file_name: str, dir_names: list[str], *values: t.Any,
+                      sep=' ', newline=True, append=True, flush=True) -> TBoolExc:
+        try:
+            fpath = os.path.join(self.get_root(), *dir_names, file_name)
+            with open(fpath, 'a' if append else 'w') as f:
+                end = None if newline else ''
+                print(*values, sep=sep, file=f, end=end, flush=flush)
+            return True, None
+        except Exception as ex:
+            return False, ex
+
+    def write_to_file(self, data: TFContent, append=True, binary=True) -> TBoolExc:
+        try:
+            fpath = os.path.join(self.get_root(), *data[1], data[0])
+            mode = ('a' if append else 'w') + ('b' if binary else '')
+            with open(fpath, mode) as f:
+                f.write(data[2])
+            return True, None
+        except Exception as ex:
+            return False, ex
+
+    def delete_file(self, file_name: str, dir_names: list[str], binary=True,
+                    return_content=False) -> t.AnyStr | None:
         fpath = os.path.join(self.get_root(), *dir_names, file_name)
-        with open(fpath, 'a' if append else 'w') as f:
-            end = None if newline else ''
-            print(*values, sep=sep, file=f, end=end)
-
-    def write_to_file(self, file_name: str, dir_names: list[str], content, append=True):
-        pass
-
-    def delete_file(self, file_name: str, dir_names: list[str], return_content=False) -> t.AnyStr | None:
-        pass
+        content = None
+        if os.path.exists(fpath):
+            if return_content:
+                mode = 'rb' if binary else 'r'
+                with open(fpath, mode) as f:
+                    content = f.read()
+            os.remove(fpath)
+        else:
+            warnings.warn(f"The file {fpath} does not exist.")
+        return content
 
 
 __all__ = ['MongoLocalDataManager']

@@ -12,6 +12,8 @@ RUN venv/bin/pip install gunicorn pymysql cryptography
 
 COPY application application
 COPY main.py boot.sh ./
+RUN mkdir files
+
 COPY .flaskenv .env ./
 RUN chmod +x boot.sh
 
