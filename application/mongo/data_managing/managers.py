@@ -90,25 +90,24 @@ class MongoLocalDataManager(BaseDataManager):
 
     def create_file(self, data: TFContent) -> TBoolExc:
         fpath = os.path.join(self.get_root(), self.get_file_path(data[0], data[1]))
+        fstorage = data[2]
         try:
-            with open(fpath, 'w') as f:
-                if data[2] is not None:
-                    f.write(data[2])
+            fstorage.save(fpath)
             return True, None
         except Exception as ex:
             return False, ex
 
     def read_from_file(self, data: TFRead, base_dir: list[str] = None) -> t.Any | None:
-        fpath = os.path.join(self.get_root(), self.get_file_path(data[0], data[1]))
-        with open(fpath, 'r') as f:
+        fpath = os.path.join(self.get_root(), *data[1], data[0])
+        with open(fpath, 'rb') as f:    # TODO Aggiustare! (parametro per binary vs text)
             content = f.read(data[2])
         return content
 
-    def read_from_files(self, files: t.Iterable[TFRead], base_dir: list[str] = None) -> t.Iterable[TFContent]:
-        pass
-
     def print_to_file(self, file_name: str, dir_names: list[str], *values: t.Any, sep=' ', newline=True, append=True):
-        pass
+        fpath = os.path.join(self.get_root(), *dir_names, file_name)
+        with open(fpath, 'a' if append else 'w') as f:
+            end = None if newline else ''
+            print(*values, sep=sep, file=f, end=end)
 
     def write_to_file(self, file_name: str, dir_names: list[str], content, append=True):
         pass

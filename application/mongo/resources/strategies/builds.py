@@ -111,7 +111,7 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
             evaluator=self.get_evaluator(log_folder, metricset),
         )
         # noinspection PyArgumentList
-        return self.target_type()(strategy)
+        return self.target_type()(strategy, model, optim, criterion, metricset)
 
 
 @MongoBuildConfig.register_build_config('LwF')
@@ -177,7 +177,7 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
             evaluator=self.get_evaluator(log_folder, metricset),
         )
         # noinspection PyArgumentList
-        return self.target_type()(strategy)
+        return self.target_type()(strategy, model, optim, criterion, metricset)
 
 
 __all__ = [

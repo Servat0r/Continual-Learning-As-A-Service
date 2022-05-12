@@ -196,6 +196,7 @@ class MongoDataRepository(MongoBaseDataRepository):
             'root': self.root,
             'workspace': self.workspace.to_dict(),
             'metadata': self.metadata.to_dict(),
+            'files': self.files,
         }
 
     # 9. Special methods
@@ -214,27 +215,58 @@ class MongoDataRepository(MongoBaseDataRepository):
             src_parents = self._complete_parents(src_parents)
             dest_parents = self._complete_parents(dest_parents)
             with self.resource_write():
-                return manager.move_subdir(src_name, dest_name, src_parents, dest_parents)
+                result, exc = manager.move_subdir(src_name, dest_name, src_parents, dest_parents)
+                if result:
+                    src_path = '/'.join(src_parents + [src_name])
+                    dest_path = '/'.join(dest_parents + [dest_name])
+                    fcopy = self.files.copy()
+                    for path, label in fcopy.items():
+                        print(path)
+                        if path.startswith(src_path):
+                            fcopy.pop(path)
+                            path = path.replace(src_path, dest_path, 1)
+                            fcopy[path] = label
+                    self.files = fcopy
+                    self.save()
+                return result, exc
 
     def delete_directory(self, dir_name: str, dir_parents: list[str] = None) -> TBoolExc:
         manager = BaseDataManager.get()
         dir_parents = self._complete_parents(dir_parents)
         with self.resource_write():
-            return manager.remove_subdir(dir_name, dir_parents)
+            result, exc = manager.remove_subdir(dir_name, dir_parents)
+            if result:
+                dir_path = '/'.join(dir_parents + [dir_name])
+                fcopy = self.files.copy()
+                for path in fcopy.keys():
+                    if path.startswith(dir_path):
+                        self.files.pop(path)
+                self.files = fcopy
+                self.save()
+            return result, exc
 
     def add_file(self, file_name: str, file_content,
                  parents: list[str] = None, locked=False, parents_locked=False) -> TBoolExc:
-        with self.resource_read(locked, parents_locked):
+        with self.resource_write(locked, parents_locked):
             manager = BaseDataManager.get()
             parents = self._complete_parents(parents)
             content: TFContent = (file_name, parents, file_content)
-            return manager.create_file(content)
+            result, exc = manager.create_file(content)
+            if result:
+                file_path = '/'.join(parents + [file_name])
+                self.files[file_path] = 0   # TODO Aggiungere label!
+                self.save()
+            return result, exc
 
     def add_files(self, files: t.Iterable[TFContent], locked=False, parents_locked=False) -> list[str]:
-        with self.resource_read(locked, parents_locked):
+        with self.resource_write(locked, parents_locked):
             manager = BaseDataManager.get()
             base_dir = self._complete_parents()
-            return manager.create_files(files, base_dir)
+            created = manager.create_files(files, base_dir)
+            for file_path in created:
+                self.files[file_path] = 0   # TODO Aggiungere label!
+                self.save()
+            return created
 
 
 __all__ = [

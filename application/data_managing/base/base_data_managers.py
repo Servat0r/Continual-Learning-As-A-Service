@@ -130,7 +130,6 @@ class BaseDataManager:
     def read_from_file(self, data: TFRead, base_dir: list[str] = None) -> t.Any | None:
         pass
 
-    @abstractmethod
     def read_from_files(self, files: t.Iterable[TFRead], base_dir: list[str] = None) -> t.Iterable[TFContent]:
         return FilesContentReader(self, files, base_dir)
 

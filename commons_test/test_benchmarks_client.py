@@ -55,13 +55,13 @@ optimizer_build = {
 strategy_name = 'NaiveOne'  # 'CumulativeOne'
 strategy_desc = '...'
 strategy_build = {
-    'name': 'Naive',  # 'Cumulative',  # 'SynapticIntelligence',
+    'name': 'SynapticIntelligence',
     'model': model_name,
     'optimizer': optimizer_name,
     'criterion': criterion_name,
     'metricset': metricset_name,
-    # 'si_lambda': [1.0],
-    # 'eps': 0.001,
+    'si_lambda': [1.0],
+    'eps': 0.001,
 }
 
 experiment_name = 'ExperimentOne'
@@ -73,8 +73,8 @@ experiment_build = {
 }
 
 
-_SLEEP_TIME = 3
-_N_SLEEPS = 2
+_SLEEP_TIME = 36
+_N_SLEEPS = 20
 
 if __name__ == '__main__':
 
@@ -222,7 +222,10 @@ if __name__ == '__main__':
 
     for i in range(_N_SLEEPS):
         sleep(_SLEEP_TIME)
-        print_response(cl.get_experiment_results(experiment_name))
+        response = cl.get_experiment_results(experiment_name)
+        print_response(response)
+        if response.status_code == HTTPStatus.OK:
+            break
 
     print_response(cl.delete_experiment(experiment_name))
 
