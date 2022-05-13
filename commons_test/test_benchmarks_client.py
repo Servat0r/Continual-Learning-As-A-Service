@@ -24,8 +24,37 @@ metricset_build = {
         'epoch': True,
         'experience': True,
         'stream': True,
-    }
+    },
+    'loss': {
+        'minibatch': True,
+        'epoch': True,
+        'experience': True,
+        'stream': True,
+    },
+    'forgetting': {
+        'experience': True,
+        'stream': True,
+    },
+    'cpu_usage': {
+        'minibatch': True,
+        'epoch': True,
+        'experience': True,
+        'stream': True,
+    },
+    'ram_usage': {
+        'minibatch': True,
+        'epoch': True,
+        'experience': True,
+        'stream': True,
+    },
+    'disk_usage': {
+        'experience': True,
+        'stream': True,
+    },
 }
+
+"""
+"""
 
 model_name = "SimpleMLPOne"
 model_type = "Model"
@@ -140,13 +169,14 @@ if __name__ == '__main__':
     if not _only_set:
         __only__ = __only__.union(_COLLS_.keys())
 
+    # noinspection PyShadowingNames
     def print_response(response):
         print(response.status_code, response.reason, response.json(), _SEP_, sep='\n')
 
     print(f"__only__ = {__only__}", f"__nodel__ = {__nodel__}", sep='\n')
 
     BaseClient.set_debug()
-    cl = BaseClient("192.168.1.120")
+    cl = BaseClient("localhost")  # "192.168.1.120")
     username = 'servator'
     email = 'abc@example.com'
     password = '1234?abcD'

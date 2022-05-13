@@ -64,6 +64,7 @@ def create_app(config_class=MongoConfig):
 
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
-        app.logger.info(f'{_NAME} startup')
+        app.logger.info(f"{_NAME} startup")
+        app.logger.info(f"Using '{get_device()}' device for training and evaluation")
 
     return app

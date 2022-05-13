@@ -66,12 +66,9 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
             hidden_size=self.hidden_size,
             hidden_layers=self.hidden_layers,
             drop_rate=self.drop_rate,
-        )  # .to(get_device())
+        )
         # noinspection PyArgumentList
         return self.target_type()(model)
-
-
-# MultiHeadMLP builder
 
 
 __all__ = ['SimpleMLPBuildConfig']
