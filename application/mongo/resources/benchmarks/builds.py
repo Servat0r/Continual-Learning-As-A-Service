@@ -75,8 +75,8 @@ class SplitMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
 
 
 # PathsDataset builder
-@MongoBuildConfig.register_build_config('PathsBenchmark')
-class PathsBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig):
+@MongoBuildConfig.register_build_config('DataManagerBenchmark')
+class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
     """
     This build config models a benchmark built starting from
     a set of data in a data repository, similarly to what
@@ -87,15 +87,29 @@ class PathsBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig):
         "data_repository": <data_repository_name>,
         "streams": {    # Benchmark streams
             "train": [  # train stream
-                {
-                    "root": <root_path>   # (within the data repository; if not given, it is intended as data repo root)
-                    "all": true/false   # if true, loads all files in the data repo; otherwise, loads the given ones;
-                    "files": [          # list of file paths (relative to root) to load;
-                        <path>,
-                        <path>,
-                        ...
-                    ]
-                }
+                # experience #1 #
+                [
+                    {
+                        "root": <root_path>,  # (within the data repository; if not given, it is intended as repo root)
+                        "all": true/false, # if true, loads all files in the data repo; otherwise, loads the given ones;
+                        "files": [         # list of file paths (relative to root) to load;
+                            <path>,
+                            <path>,
+                            ...
+                        ]
+                    },
+                    {
+                        "root": ...,
+                        "all": ...,
+                        "files": [
+                            ...
+                        ]
+                    },
+                    ...
+                ],
+                # experience #1 #
+                # experience #2 #
+                ...
             ],
             "test" [    # test stream
                 ...
@@ -105,10 +119,10 @@ class PathsBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig):
 
     }
     """
-
-    ...
+    pass
 
 
 __all__ = [
     'SplitMNISTBuildConfig',
+    'DataManagerBuildConfig',
 ]

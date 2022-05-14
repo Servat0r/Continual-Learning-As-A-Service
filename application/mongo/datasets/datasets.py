@@ -46,9 +46,8 @@ class DataManagerDataset(data.Dataset):
     def __init__(self,
                  manager: BaseDataManager,
                  data_repository: BaseDataRepository,  # data repository in which files are contained
-                 root: str = None,  # root (relative to base data repository folder)
-                 all_files: bool = True,  # pick all files?
-                 files: list[str] = None,  # <file_path> for each file
+                 desc: list[TDMDatasetDesc],
+                 # (root (relative to base data repository folder), pick all files?, <file_path> for each file)
                  loader: t.Callable = default_image_loader,  # image loader (default for the RGB one)
                  transform=None,
                  target_transform=None,
@@ -57,30 +56,32 @@ class DataManagerDataset(data.Dataset):
             raise ValueError("Data repository cannot be None!")
         self.manager = manager
         self.data_repository = data_repository
-        self.root = root
-        self.all = all_files
-        if self.all:
-            files, targets = self.data_repository.get_all_files(self.root, include_labels=True)   # already normalized!
-            self.files = files
-            self.targets = targets
-        else:
-            for i in range(len(files)):
-                # todo refactor to method for eliminating '/' at start and end!
-                f = files[i]
-                if len(f) < 1:
-                    raise RuntimeError("Invalid file path")
-                elif f[0] == '/':
-                    f = f[1:]
+        self.files: list[str] = []
+        self.targets: list[int] = []
+
+        for root, all_files, files in desc:
+            if all_files:
+                files, targets = self.data_repository.get_all_files(root, include_labels=True)   # already normalized!
+                self.files += files
+                self.targets += targets
+            else:
+                for i in range(len(files)):
+                    # todo refactor to method for eliminating '/' at start and end!
+                    f = files[i]
                     if len(f) < 1:
                         raise RuntimeError("Invalid file path")
-                    elif f[-1] == '/':
-                        f = f[:-1]
+                    elif f[0] == '/':
+                        f = f[1:]
                         if len(f) < 1:
                             raise RuntimeError("Invalid file path")
-                files[i] = self.root + '/' + f
+                        elif f[-1] == '/':
+                            f = f[:-1]
+                            if len(f) < 1:
+                                raise RuntimeError("Invalid file path")
+                    files[i] = root + '/' + f
 
-            self.files = files  # already normalized!
-            self.targets = [data_repository.get_file_label(fpath) for fpath in self.files]
+                self.files += files  # already normalized!
+                self.targets += [data_repository.get_file_label(fpath) for fpath in self.files]
 
         self.loader = loader
         self.transform = transform
@@ -119,7 +120,7 @@ def data_manager_dataset_stream(
         stream_name: str,
         manager: BaseDataManager,
         data_repository: BaseDataRepository,
-        files: list[TDMDatasetDesc],
+        files: list[list[TDMDatasetDesc]],
         loader: t.Callable = default_image_loader,
         transform=None,
         target_transform=None,
@@ -143,8 +144,8 @@ def data_manager_dataset_stream(
 
     datasets: list[AvalancheDataset] = []
     for i in range(len(files)):
-        root, all_files, flist = files[i]
-        dset = DataManagerDataset(manager, data_repository, root, all_files, flist, loader)
+        desc = files[i]
+        dset = DataManagerDataset(manager, data_repository, desc, loader)
         datasets.append(AvalancheDataset(
             dset, transform_groups=transform_groups, initial_transform_group=stream_name,
         ))
@@ -155,10 +156,10 @@ def data_manager_datasets_benchmark(
         manager: BaseDataManager,
         data_repository: BaseDataRepository,
 
-        train_build_data: list[TDMDatasetDesc],
-        eval_build_data: list[TDMDatasetDesc],
+        train_build_data: list[list[TDMDatasetDesc]],
+        eval_build_data: list[list[TDMDatasetDesc]],
 
-        other_build_data: dict[str, list[TDMDatasetDesc]] = None,
+        other_build_data: dict[str, list[list[TDMDatasetDesc]]] = None,
         complete_test_set_only: bool = False,
         loader: t.Callable = default_image_loader,
 
