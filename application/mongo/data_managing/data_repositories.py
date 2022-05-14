@@ -5,7 +5,7 @@ from application.utils import TBoolExc, TDesc, t
 from application.database import *
 from application.models import Workspace
 
-from application.data_managing.base import BaseDataRepository, BaseDataManager, TFContent, TFRead
+from application.data_managing.base import BaseDataRepository, BaseDataManager, TFContent
 from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType, ReferrableDataType
 
@@ -16,21 +16,10 @@ from application.mongo.base import MongoBaseUser, MongoBaseWorkspace
 from .base import *
 
 
-class _FilesPathsIterable(t.Iterable[TFContent]):
-    def __init__(self, repository: MongoDataRepository, files: t.Iterable[TFContent]):
-        self.repository = repository
-        self.files = iter(files)
-
-    def __iter__(self) -> t.Iterator[TFContent]:
-        return self
-
-    def __next__(self):
-        file = next(self.files, None)
-        if file:
-            file[1] = self.repository._complete_parents(file[1])
-            return file
-        else:
-            return None
+TFContentLabel = t.TypeVar(
+    'TFContentLabel',
+    bound=tuple[TFContent, int]  # (file, label)
+)
 
 
 class MongoDataRepositoryMetadata(MongoBaseMetadata):
@@ -180,6 +169,7 @@ class MongoDataRepository(MongoBaseDataRepository):
         dir_names = [
             owner.user_base_dir(),
             workspace.workspace_base_dir(),
+            'Data',
             self.get_root(),
         ]
         return manager.get_dir_path(dir_names)
@@ -191,12 +181,13 @@ class MongoDataRepository(MongoBaseDataRepository):
         return f"DataRepository_{self.get_id()}"
 
     def to_dict(self) -> TDesc:
+        files = {self.denormalize(k): v for k, v in self.files.items()}
         return {
             'name': self.name,
             'root': self.root,
             'workspace': self.workspace.to_dict(),
             'metadata': self.metadata.to_dict(),
-            'files': self.files,
+            'files': files,
         }
 
     # 9. Special methods
@@ -217,8 +208,13 @@ class MongoDataRepository(MongoBaseDataRepository):
             with self.resource_write():
                 result, exc = manager.move_subdir(src_name, dest_name, src_parents, dest_parents)
                 if result:
-                    src_path = '/'.join(src_parents + [src_name])
-                    dest_path = '/'.join(dest_parents + [dest_name])
+                    src_path = self.normalize('/'.join(src_parents + [src_name]))
+                    dest_path = self.normalize('/'.join(dest_parents + [dest_name]))
+                    self.files = {
+                        (k.replace(src_path, dest_path, 1) if k.startswith(src_path) else k): v
+                        for k, v in self.files.items()
+                    }
+                    """
                     fcopy = self.files.copy()
                     for path, label in fcopy.items():
                         print(path)
@@ -227,6 +223,7 @@ class MongoDataRepository(MongoBaseDataRepository):
                             path = path.replace(src_path, dest_path, 1)
                             fcopy[path] = label
                     self.files = fcopy
+                    """
                     self.save()
                 return result, exc
 
@@ -236,7 +233,7 @@ class MongoDataRepository(MongoBaseDataRepository):
         with self.resource_write():
             result, exc = manager.remove_subdir(dir_name, dir_parents)
             if result:
-                dir_path = '/'.join(dir_parents + [dir_name])
+                dir_path = self.normalize('/'.join(dir_parents + [dir_name]))
                 fcopy = self.files.copy()
                 for path in fcopy.keys():
                     if path.startswith(dir_path):
@@ -245,28 +242,66 @@ class MongoDataRepository(MongoBaseDataRepository):
                 self.save()
             return result, exc
 
-    def add_file(self, file_name: str, file_content,
+    def add_file(self, file_name: str, file_content, label: int,
                  parents: list[str] = None, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_write(locked, parents_locked):
             manager = BaseDataManager.get()
-            parents = self._complete_parents(parents)
-            content: TFContent = (file_name, parents, file_content)
+            complete_parents = self._complete_parents(parents)
+            content: TFContent = (file_name, complete_parents, file_content)
             result, exc = manager.create_file(content)
             if result:
-                file_path = '/'.join(parents + [file_name])
-                self.files[file_path] = 0   # TODO Aggiungere label!
+                file_path = self.normalize('/'.join(parents + [file_name]))
+                print(file_path)
+                self.files[file_path] = label
                 self.save()
             return result, exc
 
-    def add_files(self, files: t.Iterable[TFContent], locked=False, parents_locked=False) -> list[str]:
+    # TODO files -> t.Sequence !
+    def add_files(self, files: t.Iterable[TFContentLabel], locked=False, parents_locked=False) -> list[str]:
         with self.resource_write(locked, parents_locked):
-            manager = BaseDataManager.get()
             base_dir = self._complete_parents()
-            created = manager.create_files(files, base_dir)
-            for file_path in created:
-                self.files[file_path] = 0   # TODO Aggiungere label!
-                self.save()
+            created: list[str] = []
+
+            for item in iter(files):
+                file, label = item
+                item2 = (
+                    file[0],
+                    base_dir + file[1] if base_dir is not None else file[1],
+                    file[2],
+                )
+                result, exc = self.create_file(item2)
+                if result:
+                    path = '/'.join(file[1] + [file[0]])
+                    created.append(path)
+                    self.files[self.normalize(path)] = label
+                else:
+                    print(exc)
+
+            self.save()
             return created
+
+    def get_file_label(self, file_path: str,
+                       locked=False, parents_locked=False) -> int:
+        with self.resource_read(locked, parents_locked):
+            label = self.files.get(self.normalize(file_path))
+            return label
+
+    def get_all_files(self, root_path: str, include_labels=True,
+                      locked=False, parents_locked=False) -> tuple[list[str], t.Optional[list[int]]]:
+        result = []
+        labels = [] if include_labels else None
+        root_path = self.normalize(root_path)
+
+        with self.resource_read(locked, parents_locked):
+            for item in self.files.items():
+                file: str = item[0]
+                label: int = item[1]
+                if file.startswith(root_path):
+                    result.append(self.denormalize(file))
+                    if include_labels:
+                        labels.append(label)
+
+        return result, labels
 
 
 __all__ = [

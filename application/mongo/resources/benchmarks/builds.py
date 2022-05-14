@@ -74,6 +74,41 @@ class SplitMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
 # FashionMNIST builder
 
 
+# PathsDataset builder
+@MongoBuildConfig.register_build_config('PathsBenchmark')
+class PathsBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig):
+    """
+    This build config models a benchmark built starting from
+    a set of data in a data repository, similarly to what
+    happens for paths_benchmark.
+    The configuration has the following syntax:
+    {
+        "name": "PathsBenchmark",
+        "data_repository": <data_repository_name>,
+        "streams": {    # Benchmark streams
+            "train": [  # train stream
+                {
+                    "root": <root_path>   # (within the data repository; if not given, it is intended as data repo root)
+                    "all": true/false   # if true, loads all files in the data repo; otherwise, loads the given ones;
+                    "files": [          # list of file paths (relative to root) to load;
+                        <path>,
+                        <path>,
+                        ...
+                    ]
+                }
+            ],
+            "test" [    # test stream
+                ...
+            ],
+            ...         # other streams
+        }
+
+    }
+    """
+
+    ...
+
+
 __all__ = [
     'SplitMNISTBuildConfig',
 ]

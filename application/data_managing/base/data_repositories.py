@@ -21,6 +21,14 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
     def get_class():
         return BaseDataRepository.__data_repo_class__
 
+    @staticmethod
+    def normalize(s: str):
+        return s.replace('.', '\\')
+
+    @staticmethod
+    def denormalize(s: str):
+        return s.replace('\\', '.')
+
     # 2. Uri methods
     @classmethod
     @abstractmethod
@@ -117,7 +125,7 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
         pass
 
     @abstractmethod
-    def add_file(self, file_name: str, file_content, parents: list[str] = None) -> TBoolExc:
+    def add_file(self, file_name: str, file_content, label: int, parents: list[str] = None) -> TBoolExc:
         pass
 
     @abstractmethod
@@ -127,4 +135,12 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
 
     @abstractmethod
     def delete_directory(self, dir_name: str, dir_parents: list[str] = None) -> TBoolExc:
+        pass
+
+    @abstractmethod
+    def get_file_label(self, file_path: str) -> int:
+        pass
+
+    @abstractmethod
+    def get_all_files(self, root_path: str, include_labels=True) -> tuple[list[str], list[int]]:
         pass

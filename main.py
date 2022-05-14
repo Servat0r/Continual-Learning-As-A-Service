@@ -68,6 +68,9 @@ def make_shell_context():
         'DataRepo': BaseDataRepository.get_class(),
         'DataManager': BaseDataManager,
 
+        # datasets
+        'Dataset': DataManagerDataset,
+
         # resources
         'DataType': DataType, 'Benchmark': MongoBenchmark,
         'Criterion': MongoCLCriterion, 'MetricSet': MongoStandardMetricSet,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import shutil
 import warnings
+from PIL import Image
 
 from application import TFRead, TFContent
 from application.utils import t, TBoolExc, os
@@ -151,6 +152,12 @@ class MongoLocalDataManager(BaseDataManager):
         else:
             warnings.warn(f"The file {fpath} does not exist.")
         return content
+
+    def default_image_loader(self, impath: str):
+        return Image.open(impath).convert('RGB')
+
+    def greyscale_image_loader(self, impath: str):
+        return Image.open(impath).convert('L')
 
 
 __all__ = ['MongoLocalDataManager']

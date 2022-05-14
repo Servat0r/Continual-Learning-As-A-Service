@@ -10,6 +10,7 @@ from application.utils import TBoolExc, t, abstractmethod
 TFContent = t.TypeVar(
     'TFContent',
     bound=tuple[str, list[str], t.Optional[t.Any]],  # Any is file content or FileStorage
+    # TODO Add label!
 )
 
 TFRead = t.TypeVar(
@@ -87,6 +88,14 @@ class BaseDataManager:
         return cls.get_class().__manager__
 
     @abstractmethod
+    def default_image_loader(self, impath: str):
+        pass
+
+    @abstractmethod
+    def greyscale_image_loader(self, impath: str):
+        pass
+
+    @abstractmethod
     def create_subdir(self, dir_name: str, parents: list[str] = None) -> TBoolExc:
         pass
 
@@ -118,7 +127,7 @@ class BaseDataManager:
             item2 = (
                 item[0],
                 base_dir + item[1] if base_dir is not None else item[1],
-                item[2]
+                item[2],
             )
             result, exc = self.create_file(item2)
             if result:

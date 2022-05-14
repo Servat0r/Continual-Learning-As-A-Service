@@ -5,4 +5,5 @@ from .loggers import *
 
 from .models import *
 from .data_managing import *
+from .datasets import *
 from .resources import *
