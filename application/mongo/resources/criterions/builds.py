@@ -27,7 +27,11 @@ class CrossEntropyLossBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        return super().validate_input(data, dtype, context)
+        result, msg = super().validate_input(data, dtype, context)
+        if not result:
+            return result, msg
+        _, _ = context.pop()
+        return True, None
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):

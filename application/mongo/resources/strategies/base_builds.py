@@ -91,10 +91,10 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         iname, values = context.pop()
         params: TDesc = values['params']
 
-        train_mb_size = params.get('train_mb_size') or 0
-        train_epochs = params.get('train_epochs') or 0
-        eval_mb_size = params.get('eval_mb_size') or 0
-        eval_every = params.get('eval_every') or -1
+        train_mb_size = params.get('train_mb_size', 0)
+        train_epochs = params.get('train_epochs', 0)
+        eval_mb_size = params.get('eval_mb_size', 0)
+        eval_every = params.get('eval_every', -1)
         int_check = all(isinstance(param, int) for param in {
             train_mb_size, train_epochs, eval_mb_size, eval_every,
         })
@@ -117,17 +117,32 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         refs_check = all(res is not None for res in [model, optim, criterion, metricset])
         if not refs_check:
             return False, "One or more referred resource(s) do(es) not exist."
-        else:
-            params['model'] = model
-            params['optimizer'] = optim
-            params['criterion'] = criterion
-            params['metricset'] = metricset
-            context.push(iname, values)
-            return True, None
+        context.push(iname, values)
+        return True, None
 
     @classmethod
-    def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
-        return super().create(data, tp, context, save)
+    def create(cls, data: TDesc, tp: t.Type[DataType], context: UserWorkspaceResourceContext, save: bool = True):
+        ok, bc_name, params, extras = cls._filter_data(data)
+        model_name = params['model']
+        optim_name = params['optimizer']
+        criterion_name = params['criterion']
+        metricset_name = params['metricset']
+
+        owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
+        workspace = Workspace.canonicalize(context)
+
+        model = MongoModel.config_type().get_one(owner, workspace, model_name)
+        optim = MongoCLOptimizer.config_type().get_one(owner, workspace, optim_name)
+        criterion = MongoCLCriterion.config_type().get_one(owner, workspace, criterion_name)
+        metricset = MongoStandardMetricSet.config_type().get_one(owner, workspace, metricset_name)
+
+        params['model'] = model
+        params['optimizer'] = optim
+        params['criterion'] = criterion
+        params['metricset'] = metricset
+
+        # noinspection PyArgumentList
+        return cls(**params)
 
     def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
         model = self.model.build(context, locked=locked, parents_locked=parents_locked)

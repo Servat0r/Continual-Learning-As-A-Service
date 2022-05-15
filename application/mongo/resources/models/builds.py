@@ -47,11 +47,10 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
         result, msg = super().validate_input(data, dtype, context)
         if not result:
             return result, msg
-        _, values = context.head()
+        _, values = context.pop()
         params: TDesc = values['params']
         for param in params.values():
             if not isinstance(param, int):
-                context.pop()
                 return False, "One or more parameter(s) are not in the correct type."
         return True, None
 

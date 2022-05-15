@@ -121,6 +121,7 @@ def data_manager_dataset_stream(
         manager: BaseDataManager,
         data_repository: BaseDataRepository,
         files: list[list[TDMDatasetDesc]],
+        task_labels: int | list[int] = 0,
         loader: t.Callable = default_image_loader,
         transform=None,
         target_transform=None,
@@ -132,22 +133,28 @@ def data_manager_dataset_stream(
     :param manager:
     :param data_repository:
     :param files:
+    :param task_labels:
     :param loader:
     :param transform:
     :param target_transform:
     :param transform_groups:
     :return:
     """
+    n_experiences = len(files)
+    if isinstance(task_labels, int):
+        task_labels: list[int] = [task_labels for _ in range(n_experiences)]
+
     if transform_groups is None:
         transform_groups = {}
     transform_groups[stream_name] = (transform, target_transform)
 
     datasets: list[AvalancheDataset] = []
-    for i in range(len(files)):
+    for i in range(n_experiences):
         desc = files[i]
         dset = DataManagerDataset(manager, data_repository, desc, loader)
         datasets.append(AvalancheDataset(
-            dset, transform_groups=transform_groups, initial_transform_group=stream_name,
+            dset, task_labels=task_labels[i],
+            transform_groups=transform_groups, initial_transform_group=stream_name,
         ))
     return datasets
 
@@ -158,6 +165,7 @@ def data_manager_datasets_benchmark(
 
         train_build_data: list[list[TDMDatasetDesc]],
         eval_build_data: list[list[TDMDatasetDesc]],
+        task_labels: int | list[int] = 0,
 
         other_build_data: dict[str, list[list[TDMDatasetDesc]]] = None,
         complete_test_set_only: bool = False,
@@ -168,15 +176,22 @@ def data_manager_datasets_benchmark(
         other_transform_groups: dict[str, tuple[t.Any, t.Any]] = None,
 
 ) -> GenericCLScenario:
-    train_datasets = data_manager_dataset_stream('train', manager, data_repository, train_build_data, loader)
-    test_datasets = data_manager_dataset_stream('eval', manager, data_repository, eval_build_data, loader)
+    train_datasets = data_manager_dataset_stream(
+        'train', manager, data_repository,
+        train_build_data, task_labels=task_labels, loader=loader,
+    )
+    test_datasets = data_manager_dataset_stream(
+        'eval', manager, data_repository,
+        eval_build_data, task_labels=task_labels, loader=loader,
+    )
     other_stream_datasets: dict[str, list[AvalancheDataset]] | None = {}
     if other_build_data is None or len(other_build_data) == 0:
         other_stream_datasets = None
     else:
         for stream_name, stream_build in other_build_data.items():
             other_stream_datasets[stream_name] = data_manager_dataset_stream(
-                stream_name, manager, data_repository, stream_build, loader,
+                stream_name, manager, data_repository,
+                stream_build, task_labels=task_labels, loader=loader,
             )
     return dataset_benchmark(
         train_datasets, test_datasets, other_streams_datasets=other_stream_datasets,

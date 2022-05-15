@@ -115,7 +115,8 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
         result, msg = super().validate_input(data, dtype, context)
         if not result:
             return result, msg
-        _, values = context.head()
+
+        _, values = context.pop()
         params = values['params']
         print(params)
         for param in params.values():
@@ -128,13 +129,14 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
                         checked = False
                         break
             if not checked:
-                context.pop()
                 return False, "One or more metrics type are not in {<string>: <bool>} dict type."
         return True, None
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
-        return super().create(data, tp, context, save)
+        ok, bc_name, params, extras = cls._filter_data(data)
+        # noinspection PyArgumentList
+        return cls(**params)
 
     def build(self, context: ResourceContext, locked=False, parents_locked=False):
         metrics = []

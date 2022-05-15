@@ -47,16 +47,17 @@ class SGDBuildConfig(MongoBuildConfig):
         if not result:
             return result, msg
 
-        iname, values = context.head()
+        iname, values = context.pop()
         params: TDesc = values['params']
 
-        learning_rate = params.get('learning_rate') or 0.0
-        momentum = params.get('momentum') or 0.0
-        dampening = params.get('dampening') or 0.0
-        weight_decay = params.get('weight_decay') or 0.0
+        learning_rate = params.get('learning_rate', 0.0)
+        momentum = params.get('momentum', 0.0)
+        dampening = params.get('dampening', 0.0)
+        weight_decay = params.get('weight_decay', 0.0)
+        nesterov = params.get('nesterov', False)
 
         float_check = all(isinstance(param, float) for param in {
-            learning_rate, momentum, dampening, weight_decay,
+            learning_rate, momentum, dampening, weight_decay, nesterov,
         })
 
         if not float_check:
@@ -69,14 +70,31 @@ class SGDBuildConfig(MongoBuildConfig):
         model = MongoModelConfig.get_one(owner, workspace, model_name)
         if not model:
             return False, "One or more referred resource does not exist."
-        else:
-            params['model'] = model
-            context.push(iname, values)
-            return True, None
+        return True, None
 
     @classmethod
-    def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
-        return super().create(data, tp, context, save)
+    def create(cls, data: TDesc, tp: t.Type[DataType], context: UserWorkspaceResourceContext, save: bool = True):
+        ok, bc_name, params, extras = cls._filter_data(data)
+        learning_rate = params.get('learning_rate', 0.0)
+        momentum = params.get('momentum', 0.0)
+        dampening = params.get('dampening', 0.0)
+        weight_decay = params.get('weight_decay', 0.0)
+        nesterov = params.get('nesterov', False)
+
+        model_name = params['model']
+        owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
+        workspace = Workspace.canonicalize(context)
+
+        model = MongoModelConfig.get_one(owner, workspace, model_name)
+        # noinspection PyArgumentList
+        return cls(
+            learning_rate=learning_rate,
+            momentum=momentum,
+            dampening=dampening,
+            weight_decay=weight_decay,
+            nesterov=nesterov,
+            model=model,
+        )
 
     def build(self, context: ResourceContext, locked=False, parents_locked=False):
         model = self.model.build(context)
@@ -119,7 +137,7 @@ class AdamBuildConfig(MongoBuildConfig):
         if not result:
             return result, msg
 
-        iname, values = context.head()
+        iname, values = context.pop()
         params: TDesc = values['params']
 
         learning_rate = params.get('learning_rate', 0.0)
@@ -140,17 +158,28 @@ class AdamBuildConfig(MongoBuildConfig):
         model = MongoModelConfig.get_one(owner, workspace, model_name)
         if not model:
             return False, "One or more referred resource does not exist."
-        else:
-            params['model'] = model
-            params['learning_rate'] = learning_rate
-            params['eps'] = eps
-            params['weight_decay'] = weight_decay
-            context.push(iname, values)
-            return True, None
+        return True, None
 
     @classmethod
-    def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
-        return super().create(data, tp, context, save)
+    def create(cls, data: TDesc, tp: t.Type[DataType], context: UserWorkspaceResourceContext, save: bool = True):
+        ok, bc_name, params, extras = cls._filter_data(data)
+
+        learning_rate = params.get('learning_rate', 0.0)
+        eps = params.get('eps', 1e-8)
+        weight_decay = params.get('weight_decay', 0.0)
+
+        model_name = params['model']
+        owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
+        workspace = Workspace.canonicalize(context)
+        model = MongoModelConfig.get_one(owner, workspace, model_name)
+
+        # noinspection PyArgumentList
+        return cls(
+            learning_rate=learning_rate,
+            eps=eps,
+            weight_decay=weight_decay,
+            model=model,
+        )
 
     def build(self, context: ResourceContext, locked=False, parents_locked=False):
         model = self.model.build(context, locked=locked, parents_locked=parents_locked)

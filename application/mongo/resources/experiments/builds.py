@@ -59,16 +59,27 @@ class StandardExperimentBuildConfig(MongoBuildConfig):
 
         if strategy is None or benchmark is None:
             return False, "One or more referred resource(s) do(es) not exist."
-        else:
-            params['strategy'] = strategy
-            params['benchmark'] = benchmark
-            params['run_config'] = run_config_name
-            context.push(iname, values)
-            return True, None
+        return True, None
 
     @classmethod
-    def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
-        return super().create(data, tp, context)
+    def create(cls, data: TDesc, tp: t.Type[DataType], context: UserWorkspaceResourceContext, save: bool = True):
+        ok, bc_name, params, extras = cls._filter_data(data)
+
+        strategy_name = params['strategy']
+        benchmark_name = params['benchmark']
+        run_config_name = params.get('run_config', BaseCLExperimentRunConfig.DFL_RUN_CONFIG_NAME)
+
+        owner = t.cast(MongoUser, User.canonicalize(context.get_username()))
+        workspace = t.cast(MongoWorkspace, Workspace.canonicalize(context))
+
+        strategy = MongoStrategyConfig.get_one(owner, workspace, strategy_name)
+        benchmark = MongoBenchmarkConfig.get_one(owner, workspace, benchmark_name)
+
+        params['run_config'] = run_config_name
+        params['strategy'] = strategy
+        params['benchmark'] = benchmark
+        # noinspection PyArgumentList
+        return cls(**params)
 
     def build(self, context: ResourceContext, locked=False, parents_locked=False):
 

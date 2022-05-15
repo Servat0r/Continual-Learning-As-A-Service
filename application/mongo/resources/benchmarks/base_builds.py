@@ -22,12 +22,16 @@ class MongoBaseBenchmarkBuildConfig(MongoBuildConfig):
     @classmethod
     @abstractmethod
     def get_required(cls) -> set[str]:
-        return super().get_required()
+        return (super(MongoBaseBenchmarkBuildConfig, cls) or set()).get_required()
 
     @classmethod
     @abstractmethod
     def get_optionals(cls) -> set[str]:
-        return (super().get_optionals() or set()).union('data_repository')
+        return (super(MongoBaseBenchmarkBuildConfig, cls).get_optionals() or set()).union('data_repository')
+
+    @abstractmethod
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
+        return super(MongoBaseBenchmarkBuildConfig, self).build(context, locked, parents_locked)
 
 
 __all__ = [

@@ -76,7 +76,7 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
         iname, values = context.pop()
         params: TDesc = values['params']
         si_lambda = params['si_lambda']
-        eps = params.get('eps') or 0.0000001
+        eps = params.get('eps', 0.0000001)
 
         si_checked = True
         if isinstance(si_lambda, list):
@@ -92,7 +92,6 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
         if not isinstance(eps, float):
             return False, "Parameter 'eps' is not of the correct type."
 
-        context.push(iname, values)
         return True, None
 
     def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
@@ -158,7 +157,6 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
         if not isinstance(temperature, float):
             return False, "Parameter 'temperature' is not of the correct type."
 
-        context.push(iname, values)
         return True, None
 
     def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):

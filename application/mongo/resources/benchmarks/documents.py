@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from application.utils import t, datetime, TBoolExc
+from application.utils import t, datetime, TBoolExc, TBoolStr
 from application.models import User, Workspace
+from application.data_managing import BaseDataRepository
 
 from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType, ReferrableDataType, BaseMetadata
@@ -54,6 +55,10 @@ class MongoBenchmarkConfig(MongoResourceConfig):
         return {data_repository} if data_repository is not None else super().parents
 
     @classmethod
+    def validate_input(cls, data, context: UserWorkspaceResourceContext) -> TBoolStr:
+        return super(MongoBenchmarkConfig, cls).validate_input(data, context)
+
+    @classmethod
     def create(cls, data, context: UserWorkspaceResourceContext, save: bool = True,
                parents_locked=False, **metadata):
         result, msg = cls.validate_input(data, context)
@@ -76,7 +81,7 @@ class MongoBenchmarkConfig(MongoResourceConfig):
             metadata['created'] = now
             metadata['last_modified'] = now
 
-            def __create():
+            def __create(cls):
                 # noinspection PyArgumentList
                 obj = cls(
                     name=name,
@@ -92,13 +97,19 @@ class MongoBenchmarkConfig(MongoResourceConfig):
                             obj.save(force_insert=True)
                 return obj
 
-            data_repository = build_config.data_repository
+            print('Inia inia')
+            data_repository = BaseDataRepository.get_one(workspace=workspace, name=data['build'].get('data_repository'))
+            print(data_repository)
+            print('Alala alala')
+
+            build_config.data_repository = data_repository
+            # data_repository = build_config.data_repository
             if data_repository is not None:
                 with data_repository.sub_resource_create(parents_locked=parents_locked):
-                    return __create()
+                    return __create(cls=cls)
             else:
                 with workspace.sub_resource_create(parents_locked=parents_locked):
-                    return __create()
+                    return __create(cls=cls)
 
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
