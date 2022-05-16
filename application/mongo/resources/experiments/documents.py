@@ -1,8 +1,9 @@
 from __future__ import annotations
 from datetime import datetime
+from flask import Response
 
-from application.utils import t
-
+from application.database import db
+from application.utils import t, TBoolExc
 from application.models import User, Workspace
 
 from application.resources.contexts import UserWorkspaceResourceContext
@@ -16,6 +17,8 @@ from application.mongo.base import MongoBaseUser, MongoBaseWorkspace
 from application.mongo.resources.mongo_base_configs import *
 from application.mongo.resources.strategies import MongoStrategyConfig
 from application.mongo.resources.benchmarks import MongoBenchmarkConfig
+
+from .executions import *
 
 
 class CLExperimentMetadata(MongoBaseMetadata):
@@ -33,6 +36,8 @@ class MongoCLExperimentConfig(MongoResourceConfig):
         ]
     }
 
+    executions = db.ListField(db.EmbeddedDocumentField(MongoCLExperimentExecutionConfig), default=[])
+    current_exec_id = db.IntField(default=0)
     # TODO Executions!
 
     @staticmethod
@@ -66,17 +71,32 @@ class MongoCLExperimentConfig(MongoResourceConfig):
     def run_config(self) -> str:
         return self.build_config.run_config
 
-    def get_logging_path(self) -> list[str]:
+    def get_execution(self, exec_id: int):
+        if exec_id > self.current_exec_id:
+            raise ValueError(f"{exec_id} is out of existing executions range.")
+        else:
+            return self.executions[exec_id-1]
+
+    def get_last_execution(self):
+        return self.get_execution(self.current_exec_id)
+
+    def _next_exec_id(self):
+        return self.current_exec_id + 1
+
+    def base_dir(self) -> list[str]:
         workspace: Workspace = self.workspace
         return workspace.experiments_base_dir_parents() \
             + [
                 workspace.experiments_base_dir(),
-                str(self.id),
-                'logs',
+                f"Experiment_{self.id}",
             ]
 
-    def to_dict(self):
-        return {
+    def get_logging_path(self, exec_id: int = None) -> list[str]:
+        exec_id = self._next_exec_id() if exec_id is None else exec_id
+        return self.base_dir() + [str(exec_id), 'logs']
+
+    def to_dict(self, settings=False):
+        base_result = {
             'name': self.name,
             'description': self.description,
             'owner': self.owner.to_dict(),
@@ -85,7 +105,11 @@ class MongoCLExperimentConfig(MongoResourceConfig):
             'strategy': self.strategy.name,
             'status': self.status,
             'run_config': self.run_config,
+            'current_exec_id': self.current_exec_id,
         }
+        if not settings:
+            base_result['executions'] = [execution.to_dict() for execution in self.executions]
+        return base_result
     
     def setup(self, locked=False, parents_locked=False) -> bool:
         with self.resource_read(locked=locked, parents_locked=parents_locked):
@@ -96,21 +120,42 @@ class MongoCLExperimentConfig(MongoResourceConfig):
             else:
                 return self.modify({}, build_config__status=BaseCLExperiment.READY)
 
-    # TODO ExperimentExecution operations!
-    def set_started(self, locked=False, parents_locked=False) -> bool:
-        with self.resource_read(locked=locked, parents_locked=parents_locked):
+    def set_started(self, locked=False, parents_locked=False) -> int | None:
+        with self.resource_write(locked=locked, parents_locked=parents_locked):
+            exec_id = self.current_exec_id + 1
+            # noinspection PyArgumentList
+            execution = MongoCLExperimentExecutionConfig(experiment=self, exec_id=exec_id, started=True)
             if self.status != BaseCLExperiment.READY:
                 raise RuntimeError("Experiment is not ready: must setup before start running!")
             else:
-                return self.modify({}, build_config__status=BaseCLExperiment.RUNNING)
+                result = self.modify(
+                    {}, build_config__status=BaseCLExperiment.RUNNING,
+                    inc__current_exec_id=1,
+                    push__executions=execution,
+                )
+                if result:
+                    return exec_id
+                else:
+                    return None
 
-    # TODO ExperimentExecution operations and thread/process stopping!
-    def set_finished(self, locked=False, parents_locked=False) -> bool:
+    def set_finished(self, response: Response, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_read(locked=locked, parents_locked=parents_locked):
-            if self.status != BaseCLExperiment.RUNNING:
-                raise RuntimeError("Experiment is not running!")
-            else:
-                return self.modify({}, build_config__status=BaseCLExperiment.ENDED)
+            try:
+                execution = self.get_last_execution()
+                if self.status != BaseCLExperiment.RUNNING:
+                    raise RuntimeError("Experiment is not running!")
+                else:
+                    self.build_config.status = BaseCLExperiment.ENDED
+                    execution.completed = True
+                    status_code = response.status_code
+                    payload = response.get_json()
+                    execution.status_code = status_code
+                    execution.payload = payload
+                    self.save()
+                    return True, None
+            except Exception as ex:
+                print(ex)
+                return False, ex
 
     @classmethod
     def create(cls, data, context: UserWorkspaceResourceContext, save: bool = True,

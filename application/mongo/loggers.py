@@ -22,7 +22,7 @@ class ExtendedCSVLogger(StrategyLogger):
     the local FileSystem).
     """
 
-    _DFL_TRAIN_RESULTS_FILE_NAME = 'training_results.csv'
+    _DFL_TRAIN_RESULTS_FILE_NAME = 'train_results.csv'
     _DFL_EVAL_RESULTS_FILE_NAME = 'eval_results.csv'
 
     def __init__(self, log_folder: list[str],
@@ -167,14 +167,17 @@ class ExtendedCSVLogger(StrategyLogger):
         """
         if self.in_train_phase is None:
             self.in_train_phase = False
+        print("BEFORE EVAL", *metric_values, sep='\n')
 
     def before_training(self, strategy: 'BaseStrategy',
                         metric_values: t.List['MetricValue'], **kwargs):
         self.in_train_phase = True
+        print("BEFORE TRAINING", *metric_values, sep='\n')
 
     def after_training(self, strategy: 'BaseStrategy',
                        metric_values: t.List['MetricValue'], **kwargs):
         self.in_train_phase = False
+        print("AFTER TRAINING", *metric_values, sep='\n')
 
     def close(self):
         pass

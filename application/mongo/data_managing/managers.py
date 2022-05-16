@@ -1,10 +1,11 @@
 from __future__ import annotations
+import torch
 import shutil
 import warnings
 from PIL import Image
 
 from application import TFRead, TFContent
-from application.utils import t, TBoolExc, os
+from application.utils import t, TBoolExc, os, Module
 
 from application.data_managing import BaseDataManager
 
@@ -105,6 +106,7 @@ class MongoLocalDataManager(BaseDataManager):
             if fstorage is not None:
                 fstorage.save(fpath)
             else:
+                # noinspection PyUnusedLocal
                 with open(fpath, 'w') as f:
                     pass
             return True, None
@@ -112,11 +114,21 @@ class MongoLocalDataManager(BaseDataManager):
             return False, ex
 
     def read_from_file(self, data: TFRead, base_dir: list[str] = None, binary=True) -> t.Any | None:
-        fpath = os.path.join(self.get_root(), *data[1], data[0])
+        base_dir = [] if base_dir is None else base_dir
+        fpath = os.path.join(self.get_root(), *base_dir, *data[1], data[0])
         mode = 'rb' if binary else 'r'
-        with open(fpath, mode) as f:
-            content = f.read(data[2])
-        return content
+        if os.path.exists(fpath):
+            with open(fpath, mode) as f:
+                content = f.read(data[2])
+            return content
+        else:
+            return None
+
+    # TODO Controllare se necessario!
+    def get_file_pointer(self, file_name: str, dir_names: list[str], binary=True) -> t.TextIO | t.BinaryIO | None:
+        fpath = os.path.join(self.get_root(), *dir_names, file_name)
+        mode = 'rb' if binary else 'r'
+        return open(fpath, mode)
 
     def print_to_file(self, file_name: str, dir_names: list[str], *values: t.Any,
                       sep=' ', newline=True, append=True, flush=True) -> TBoolExc:
@@ -152,6 +164,18 @@ class MongoLocalDataManager(BaseDataManager):
         else:
             warnings.warn(f"The file {fpath} does not exist.")
         return content
+
+    def save_model(self, model: Module, dir_names: list[str], model_name='model.pt') -> TBoolExc:
+        try:
+            fpath = os.path.join(self.get_root(), *dir_names, model_name)
+            result, exc = self.create_file((model_name, [self.get_root()] + dir_names, None))
+            if not result:
+                exc.args[0] = f"Failed to create file '{model_name}': {exc.args[0]}."
+                return result, exc
+            torch.save(model, fpath)
+            return True, None
+        except Exception as ex:
+            return False, ex
 
     def default_image_loader(self, impath: str):
         return Image.open(impath).convert('RGB')

@@ -140,7 +140,7 @@ def create_sub_folder(username, wname, name):
     folder_path = data.get('path')
 
     if (folder_path is not None) and not isinstance(folder_path, str):
-        return BadRequestSyntax(f"'folder_path' must be a string!")
+        return BadRequestSyntax(msg=f"'folder_path' must be a string!")
 
     folders = folder_path.split('/') if folder_path is not None else None
 

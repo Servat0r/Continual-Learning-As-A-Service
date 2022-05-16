@@ -1,4 +1,5 @@
-from flask import Blueprint, request, Response
+from __future__ import annotations
+from flask import Blueprint, request, Response, send_file
 from http import HTTPStatus
 
 from application.errors import *
@@ -30,28 +31,44 @@ experiments_bp = Blueprint('experiments', __name__,
 def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
                          context: UserWorkspaceResourceContext) -> Response:
 
+    response = None
     with experiment_config.resource_write():
         try:
             experiment: BaseCLExperiment = experiment_config.build(context, locked=True)
             if experiment is None:
-                return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to initialize experiment!")
-
-            result = experiment_config.set_started(locked=True)
-            if not result:
-                return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to start experiment.")
-
-            result = experiment.run()
-
-            if result is None:
-                return ResourceNotFound(msg="Experiment run configuration does not exist.")
-            elif result:
-                return make_success_dict(msg="Experiment correctly executed.")
+                response = make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to initialize experiment!")
             else:
-                return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to run experiment.")
+                start_result = experiment_config.set_started(locked=True)
+                if start_result is None:
+                    response = make_error(
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                        msg=f"Failed to start experiment #{start_result}.")
+                else:
+                    result = experiment.run(
+                        experiment_config.get_last_execution().base_dir(),
+                    )
+                    if result is None:
+                        response = ResourceNotFound(msg="Experiment run configuration does not exist.")
+                    elif result:
+                        response = make_success_dict(msg=f"Experiment #{start_result} correctly executed.")
+                    else:
+                        response = make_error(
+                            HTTPStatus.INTERNAL_SERVER_ERROR,
+                            msg=f"Failed to run experiment #{start_result}.")
+            return response
         except Exception as ex:
-            return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg=f"Error when executing experiment: {ex.args[0]}.")
+            response = make_error(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                msg=f"Error when executing experiment #{start_result}: {ex.args[0]}.")
+            return response
         finally:
-            experiment_config.set_finished(locked=True)
+            res, exc = experiment_config.set_finished(response=response, locked=True)
+            if not res:
+                response = make_error(
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    msg=f"Error when setting experiment #{start_result} status to 'ENDED': {ex.args[0]}.",
+                )
+                return response
 
 
 @experiments_bp.post('/')
@@ -129,46 +146,55 @@ def get_experiment_status(username, wname, name):
     else:
         uri = experiment_config.uri
         if experiment_config.status != BaseCLExperiment.ENDED:
-            return make_success_dict(
-                HTTPStatus.LOCKED,
-                data={'status': experiment_config.status},
+            return ResourceInUse(
+                msg="Experiment is still running.",
+                payload={'status': experiment_config.status},
             )
         elif not executor.futures.done(uri):
             # noinspection PyProtectedMember
             status = executor.futures._state(uri)
             print(status)
-            return make_success_dict(
-                HTTPStatus.LOCKED,
-                data={'status': status},
+            return ResourceInUse(
+                msg="Experiment has completed but its handler has not yet terminated.",
+                payload={'status': status},
             )
         else:
             return make_success_dict(data={'status': experiment_config.status})
 
 
-@experiments_bp.get('/<name>/results/')
-@experiments_bp.get('/<name>/results')
+@experiments_bp.get('/<name>/results/exec/')
+@experiments_bp.get('/<name>/results/exec')
 @token_auth.login_required
 def get_experiment_results(username, wname, name):
     experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    exec_id = experiment_config.current_exec_id
+    return get_experiment_execution_results(username, wname, name, exec_id)
+
+
+@experiments_bp.get('/<name>/results/exec/<int:exec_id>/')
+@experiments_bp.get('/<name>/results/exec/<int:exec_id>')
+@token_auth.login_required
+def get_experiment_execution_results(username, wname, name, exec_id):
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
     if err_response:
         return err_response
+    elif exec_id <= len(experiment_config.executions):
+        if exec_id == experiment_config.current_exec_id:
+            uri = experiment_config.uri
+            if experiment_config.status != BaseCLExperiment.ENDED:
+                return ResourceInUse(msg="Experiment is still running and results are not available.")
+            else:
+                executor.futures.pop(uri)
+
+        execution = experiment_config.get_execution(exec_id)
+        # todo restituire to_dict()!
+        data = execution.to_dict()
+        return make_success_dict(
+            msg="Results successfully retrieved.",
+            data=data,
+        )
     else:
-        uri = experiment_config.uri
-        if experiment_config.status != BaseCLExperiment.ENDED:
-            return make_success_dict(
-                HTTPStatus.LOCKED,
-                msg="Experiment is still running and results are not available.",
-            )
-        else:
-            future = executor.futures.pop(uri)
-            if future is not None:
-                result = future.result()
-                if result is not None:
-                    return result
-            return make_success_dict(
-                HTTPStatus.NOT_FOUND,
-                msg="No results available for this experiment.",
-            )
+        return ResourceNotFound(resource=f"execution<{exec_id}>")
 
 
 @experiments_bp.get('/<name>/settings/')
@@ -179,7 +205,7 @@ def get_experiment_settings(username, wname, name):
     if err_response:
         return err_response
     else:
-        data = experiment_config.to_dict()
+        data = experiment_config.to_dict(settings=True)
         print(data)
         return make_success_dict(data=data)
 
@@ -188,14 +214,63 @@ def get_experiment_settings(username, wname, name):
 @experiments_bp.get('/<name>/model')
 @token_auth.login_required
 def get_experiment_model(username, wname, name):
-    return RouteNotImplemented()
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    if err_response:
+        return err_response
+    else:
+        exec_id = experiment_config.current_exec_id
+        return get_experiment_execution_model(username, wname, name, exec_id)
+
+
+@experiments_bp.get('/<name>/model/<int:exec_id>/')
+@experiments_bp.get('/<name>/model/<int:exec_id>')
+@token_auth.login_required
+def get_experiment_execution_model(username, wname, name, exec_id):
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    if err_response:
+        return err_response
+    else:
+        execution = experiment_config.get_execution(exec_id)
+        if execution.completed:
+            try:
+                model_fd = execution.get_final_model(descriptor=True)
+                print(type(model_fd))
+                return send_file(model_fd, attachment_filename='model.pt')
+            except Exception as ex:
+                return InternalFailure(msg=f"Error when sending model file: '{ex.args[0]}'.")
+        else:
+            return ResourceInUse(msg="Experiment is still running and results are not available.")
 
 
 @experiments_bp.get('/<name>/results/csv/')
 @experiments_bp.get('/<name>/results/csv')
 @token_auth.login_required
 def get_experiment_csv_results(username, wname, name):
-    return RouteNotImplemented()
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    if err_response:
+        return err_response
+    else:
+        exec_id = experiment_config.current_exec_id
+        return get_experiment_execution_csv_results(username, wname, name, exec_id)
+
+
+@experiments_bp.get('/<name>/results/csv/<int:exec_id>/')
+@experiments_bp.get('/<name>/results/csv/<int:exec_id>')
+@token_auth.login_required
+def get_experiment_execution_csv_results(username, wname, name, exec_id):
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    if err_response:
+        return err_response
+    else:
+        execution = experiment_config.get_execution(exec_id)
+        completed, results = execution.get_csv_results()
+        if completed:
+            if results is not None:
+                return make_success_dict(data=results)
+            else:
+                return ResourceNotFound(msg="Experiment has completed but csv files are still not available.")
+        else:
+            return ResourceInUse(msg="Experiment is still running and csv results are not available.")
 
 
 @experiments_bp.delete('/<name>/')

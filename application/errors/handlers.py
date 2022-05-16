@@ -26,7 +26,7 @@ class ServerResponseError(object):
         self.dfl_msg = dfl_msg
         self.fmt_len = fmt_len
 
-    def __call__(self, msg: str | None = None, **kwargs) -> Response:
+    def __call__(self, msg: str | None = None, payload: dict = None, **kwargs) -> Response:
         """
         Returns an instance of this error with the specified message, or the default one if not specified.
         :param msg: Custom error message to send.
@@ -41,7 +41,7 @@ class ServerResponseError(object):
                     raise ValueError(f"Insufficient format parameters ({self.fmt_len} expected, {len(kwargs)} given).")
                 else:
                     return make_error(self.status, msg.format(**kwargs), err_type=self.name)
-        return make_error(self.status, msg, err_type=self.name)
+        return make_error(self.status, msg, err_type=self.name, payload=payload)
 
 
 # Authentication Errors 401
@@ -171,6 +171,13 @@ ResourceNotFound = ServerResponseError(
     fmt_len=1,
 )
 
+# Locked (423)
+ResourceInUse = ServerResponseError(
+    HTTPStatus.LOCKED,
+    'ResourceInUse',
+    "Resource '{resource}' in use by another one.",
+)
+
 # Server Errors 500, 503
 InternalFailure = ServerResponseError(
     HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -212,6 +219,7 @@ __all__ = [
     'NotExistingUser',
     'ExistingUser',
     'ResourceNotFound',
+    'ResourceInUse',
     'InternalFailure',
     'ServiceUnavailable',
     'RouteNotImplemented',

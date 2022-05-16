@@ -398,6 +398,18 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
             )
             return obj
 
+    def get_name(self):
+        return self.name
+
+    def get_owner(self):
+        return self.owner
+
+    def get_workspace(self):
+        return self.workspace
+
+    def get_description(self):
+        return self.description if self.description is not None else ''
+
     def update_last_modified(self, time: datetime = None, save: bool = True):
         self.metadata.update_last_modified(time)
         if save:

@@ -3,37 +3,11 @@ Interface for CL experiments.
 """
 from __future__ import annotations
 
-from application.utils import ABC, TDesc, t, abstractmethod, Module
+from application.utils import TDesc, t, abstractmethod
+from application.resources.utils import JSONSerializable, URIBasedResource
 from application.resources.base import ReferrableDataType
 
 from .metricsets import BaseMetricSet
-
-
-class CLExperimentMixin(ABC):
-
-    @abstractmethod
-    def get_metricset(self) -> BaseMetricSet:
-        pass
-
-    @abstractmethod
-    def get_benchmark(self):
-        pass
-
-    @abstractmethod
-    def get_strategy(self):
-        pass
-
-    @abstractmethod
-    def get_model(self):
-        pass
-
-    @abstractmethod
-    def get_optimizer(self):
-        pass
-
-    @abstractmethod
-    def get_criterion(self):
-        pass
 
 
 class BaseCLExperimentRunConfig:
@@ -76,11 +50,11 @@ class BaseCLExperimentRunConfig:
             return cls.get_by_name(obj)
 
     @abstractmethod
-    def run(self, experiment: BaseCLExperiment) -> bool:
+    def run(self, experiment: BaseCLExperiment, model_directory: list[str]) -> bool:
         pass
 
 
-class BaseCLExperiment(CLExperimentMixin, ReferrableDataType, ABC):
+class BaseCLExperiment(ReferrableDataType):
 
     # 1. Fields
     CREATED = 'CREATED'
@@ -91,18 +65,43 @@ class BaseCLExperiment(CLExperimentMixin, ReferrableDataType, ABC):
     # 3. General classmethods
 
     # 6. Instance methods
+
+    @abstractmethod
+    def get_metricset(self) -> BaseMetricSet:
+        pass
+
+    @abstractmethod
+    def get_benchmark(self):
+        pass
+
+    @abstractmethod
+    def get_strategy(self):
+        pass
+
+    @abstractmethod
+    def get_model(self):
+        pass
+
+    @abstractmethod
+    def get_optimizer(self):
+        pass
+
+    @abstractmethod
+    def get_criterion(self):
+        pass
+
     def set_metadata(self, **kwargs):
         super().set_metadata(**kwargs)
 
     def get_metadata(self, key: str | None = None) -> TDesc | t.Any:
         return super().get_metadata(key)
 
-    def run(self) -> bool | None:
+    def run(self, model_directory: list[str]) -> bool | None:
         run_config = self.get_run_configuration()
         if run_config is None:
             return None
         else:
-            return run_config.run(self)
+            return run_config.run(self, model_directory=model_directory)
 
     def is_running(self):
         return self.get_status() == self.RUNNING
@@ -131,19 +130,22 @@ class BaseCLExperiment(CLExperimentMixin, ReferrableDataType, ABC):
         pass
 
 
-class BaseCLExperimentExecution(CLExperimentMixin):
+class BaseCLExperimentExecution(JSONSerializable, URIBasedResource):
 
     @abstractmethod
-    def get_csv_results(self):
+    def get_exec_id(self) -> int:
         pass
 
     @abstractmethod
-    def get_final_model(self) -> Module:
+    def get_csv_results(self) -> tuple[bool, t.Optional[TDesc]]:
+        pass
+
+    @abstractmethod
+    def get_final_model(self, descriptor=False):
         pass
 
 
 __all__ = [
-    'CLExperimentMixin',
     'BaseCLExperimentRunConfig',
     'BaseCLExperiment',
     'BaseCLExperimentExecution',

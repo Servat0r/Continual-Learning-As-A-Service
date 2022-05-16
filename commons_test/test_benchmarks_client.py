@@ -1,5 +1,7 @@
+import os
 from sys import argv
 from time import sleep
+from requests_toolbelt.multipart import decoder
 
 from client import *
 
@@ -44,10 +46,6 @@ metricset_build = {
     'ram_usage': {
         'minibatch': True,
         'epoch': True,
-        'experience': True,
-        'stream': True,
-    },
-    'disk_usage': {
         'experience': True,
         'stream': True,
     },
@@ -144,6 +142,8 @@ if __name__ == '__main__':
     __nodel__ = set()
     _only_set = False
 
+    os.makedirs(os.path.join('ignore', 'models'), exist_ok=True)
+
     if len(argv) > 1:
         for i in range(1, len(argv)):
             if argv[i].startswith(_UW_ONLY_):
@@ -176,7 +176,7 @@ if __name__ == '__main__':
     print(f"__only__ = {__only__}", f"__nodel__ = {__nodel__}", sep='\n')
 
     BaseClient.set_debug()
-    cl = BaseClient("localhost")  # "192.168.1.120")
+    cl = BaseClient("192.168.1.120")
     username = 'servator'
     email = 'abc@example.com'
     password = '1234?abcD'
@@ -251,24 +251,41 @@ if __name__ == '__main__':
     # print_response(cl.build_strategy(strategy_name))
 
     print_response(cl.create_experiment(experiment_name, experiment_build, experiment_desc))
-    print_response(cl.setup_experiment(experiment_name))
-    print_response(cl.start_experiment(experiment_name))
 
-    sleep(5)
-    print_response(cl.get_experiment_settings(experiment_name))
+    for i in range(1):
+        print(f"Starting execution #{i+1} ...")
 
-    sleep(5)
-    print_response(cl.get_experiment_status(experiment_name))
+        print_response(cl.setup_experiment(experiment_name))
+        print_response(cl.start_experiment(experiment_name))
 
-    sleep(5)
-    print_response(cl.get_experiment_csv_results(experiment_name))
+        sleep(5)
+        print_response(cl.get_experiment_settings(experiment_name))
 
-    for i in range(_N_SLEEPS):
-        sleep(_SLEEP_TIME)
-        response = cl.get_experiment_results(experiment_name)
-        print_response(response)
-        if response.status_code == HTTPStatus.OK:
-            break
+        sleep(5)
+        print_response(cl.get_experiment_status(experiment_name))
+
+        for _ in range(_N_SLEEPS):
+            sleep(_SLEEP_TIME)
+            response = cl.get_experiment_results(experiment_name)
+            print_response(response)
+            if response.status_code == HTTPStatus.OK:
+                break
+
+        print_response(cl.get_experiment_results(experiment_name))
+
+        csv_response = cl.get_experiment_csv_results(experiment_name)
+        if csv_response.status_code % 100 == 2:     # success
+            for part in decoder.MultipartDecoder(csv_response.text, csv_response.encoding).parts:
+                print(part.text)
+        else:
+            print_response(csv_response)
+
+        model_response = cl.get_experiment_model(experiment_name)
+        with open(os.path.join('ignore', 'models', f"model_{i+1}.pt"), 'wb') as f:
+            f.write(model_response.content)
+        print(f"Saved {i+1}-th model!")
+
+        print(f"Ended execution #{i+1} ...")
 
     print_response(cl.delete_experiment(experiment_name))
 

@@ -4,7 +4,7 @@ Data managers for handling interaction between the used FS and Users / Workspace
 from __future__ import annotations
 import os
 
-from application.utils import TBoolExc, t, abstractmethod
+from application.utils import TBoolExc, t, abstractmethod, Module
 
 
 TFContent = t.TypeVar(
@@ -121,7 +121,7 @@ class BaseDataManager:
     def create_file(self, data: TFContent) -> TBoolExc:
         pass
 
-    def create_files(self, files: t.Iterable[TFContent], base_dir: list[str] = None) -> list[str]:
+    def create_files(self, files: list[TFContent], base_dir: list[str] = None) -> list[str]:
         created = []
         for item in iter(files):
             item2 = (
@@ -141,6 +141,9 @@ class BaseDataManager:
     def read_from_file(self, data: TFRead, base_dir: list[str] = None, binary=True) -> t.Any | None:
         pass
 
+    def get_file_pointer(self, file_name: str, dir_names: list[str], binary=True) -> t.TextIO | t.BinaryIO | None:
+        pass
+
     def read_from_files(self, files: t.Iterable[TFRead],
                         base_dir: list[str] = None, binary=True) -> t.Iterable[TFContent]:
         return FilesContentReader(self, files, base_dir, binary)
@@ -157,6 +160,10 @@ class BaseDataManager:
     @abstractmethod
     def delete_file(self, file_name: str, dir_names: list[str], binary=True,
                     return_content=False) -> t.AnyStr | None:
+        pass
+
+    @abstractmethod
+    def save_model(self, model: Module, dir_names: list[str], model_name='model.pt') -> TBoolExc:
         pass
 
 

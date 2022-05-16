@@ -50,11 +50,11 @@ def login():
 
     result, msg = validate_username(username)
     if not result:
-        return InvalidUsername(msg)
+        return InvalidUsername(msg=msg)
 
     result, msg = validate_password(password)
     if not result:
-        return InvalidPassword(msg)
+        return InvalidPassword(msg=msg)
 
     user = User.get_by_name(username)
     if not user:

@@ -473,7 +473,7 @@ class BaseClient:
         return self.get([self.experiments_base, name, 'status'])
 
     def get_experiment_results(self, name: str):
-        return self.get([self.experiments_base, name, 'results'])
+        return self.get([self.experiments_base, name, 'results', 'exec'])
 
     def get_experiment_settings(self, name: str):
         return self.get([self.experiments_base, name, 'settings'])

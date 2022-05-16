@@ -45,7 +45,7 @@ def create_workspace(username):
     current_user = token_auth.current_user()
 
     if current_user.username != username:
-        return ForbiddenOperation("You cannot create a workspace for another user!")
+        return ForbiddenOperation(msg="You cannot create a workspace for another user!")
 
     workspace = Workspace.create(data['name'], current_user)
     if workspace:
@@ -133,7 +133,7 @@ def delete_workspace(username, wname):
         return ResourceNotFound(resource=wname)
 
     if (current_user.username != username) or (workspace.owner.username != username):
-        return ForbiddenOperation("You cannot delete another user's workspace!")
+        return ForbiddenOperation(msg="You cannot delete another user's workspace!")
 
     result, ex = workspace.delete()
     if result:
@@ -156,7 +156,7 @@ def get_workspace_status(username, wname):
     if not workspace:
         return ResourceNotFound(resource=wname)
 
-    return {'status': workspace.status}
+    return make_success_dict(data={'status': workspace.status})
 
 
 @workspaces_bp.patch('<workspace:wname>/status/')
@@ -197,7 +197,7 @@ def set_workspace_status(username, wname):
         return ResourceNotFound(resource=wname)
 
     if (current_user.username != username) or (workspace.owner.id != current_user.id):
-        return ForbiddenOperation("You cannot set the status of another user's workspace!")
+        return ForbiddenOperation(msg="You cannot set the status of another user's workspace!")
 
     status = data['status']
     if status == Workspace.OPEN:
@@ -229,7 +229,7 @@ def get_workspace_requirements(username, wname):    # TODO Completare!
         return ResourceNotFound(resource=wname)
 
     if (current_user.username != username) or (workspace.owner_id != current_user.id):
-        return ForbiddenOperation("You cannot get workspace requirements for another user's workspace!")
+        return ForbiddenOperation(msg="You cannot get workspace requirements for another user's workspace!")
 
     requirements = {'message': 'NotImplemented'}
     return make_success_kwargs(requirements=requirements)

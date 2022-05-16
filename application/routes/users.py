@@ -21,13 +21,13 @@ users_bp = Blueprint('users', __name__, url_prefix='/users')
 @users_bp.app_errorhandler(HTTPStatus.INTERNAL_SERVER_ERROR)
 def internal_server_error(error):
     print(type(error))
-    return InternalFailure(str(error))
+    return InternalFailure(msg=str(error))
 
 
 @users_bp.app_errorhandler(HTTPStatus.SERVICE_UNAVAILABLE)
 def service_unavailable(error):
     print(type(error))
-    return ServiceUnavailable(str(error))
+    return ServiceUnavailable(msg=str(error))
 
 
 @users_bp.post('/')
@@ -67,15 +67,15 @@ def register():
 
         result, msg = validate_username(username)
         if not result:
-            return InvalidUsername(msg)
+            return InvalidUsername(msg=msg)
 
         result, msg = validate_email(email, _CHECK_DNS)
         if not result:
-            return InvalidEmail(msg)
+            return InvalidEmail(msg=msg)
 
         result, msg = validate_password(password)
         if not result:
-            return InvalidPassword(msg)
+            return InvalidPassword(msg=msg)
 
         if User.get_by_name(username) is not None:
             return ExistingUser(user=username)
@@ -84,9 +84,9 @@ def register():
         else:
             user = User.create(username, email, password)
             if user:
-                return make_success_kwargs(HTTPStatus.CREATED, f"User '{user.get_name()}' correctly registered.")
+                return make_success_kwargs(HTTPStatus.CREATED, msg=f"User '{user.get_name()}' correctly registered.")
             else:
-                return InternalFailure(f"Error when registering user.")
+                return InternalFailure(msg=f"Error when registering user.")
 
 
 @users_bp.get('/')
@@ -112,7 +112,7 @@ def get_all_users():
 
     all_users = User.all()
     if len(all_users) == 0:
-        return make_success_kwargs(HTTPStatus.NO_CONTENT, "No user registered.")
+        return make_success_kwargs(HTTPStatus.NOT_FOUND, msg="No user registered.")
     else:
         data = {}
         for user in all_users:
@@ -193,17 +193,17 @@ def edit_user(username):
         hasUsername = True
         result, msg = validate_username(data['username'])
         if not result:
-            return InvalidUsername(msg)
+            return InvalidUsername(msg=msg)
 
     if 'email' in opts:
         email = data['email']
         result, msg = validate_email(email, _CHECK_DNS)
         if not result:
-            return InvalidEmail(msg)
+            return InvalidEmail(msg=msg)
 
     current_user = token_auth.current_user()
     if (hasUsername and current_user.username != username) or ((not hasUsername) and current_user.email != email):
-        return ForbiddenOperation("You don't have permission to modify another user profile, either because your"
+        return ForbiddenOperation(msg="You don't have permission to modify another user profile, either because your"
                                   " username or your email or both do not match.")
     else:
         try:
@@ -211,10 +211,10 @@ def edit_user(username):
             if len(result) == 0:
                 return make_success_kwargs(HTTPStatus.NOT_MODIFIED)
             else:
-                return make_success_kwargs(HTTPStatus.OK, f"User {username} successfully updated.", **result)
+                return make_success_kwargs(HTTPStatus.OK, msg=f"User {username} successfully updated.", **result)
         except NotUniqueError as nue:
             print(nue)
-            return ForbiddenOperation("Username or email are in use by another profile.")
+            return ForbiddenOperation(msg="Username or email are in use by another profile.")
 
 
 @users_bp.patch('/<user:username>/password/')
@@ -255,14 +255,14 @@ def edit_password(username):
 
         result, msg = validate_password(old_password)
         if not result:
-            return InvalidPassword(msg)
+            return InvalidPassword(msg=msg)
 
         result, msg = validate_password(new_password)
         if not result:
-            return InvalidPassword(msg)
+            return InvalidPassword(msg=msg)
 
         if not current_user.check_correct_password(old_password):
-            return InvalidPassword(f"Old password is incorrect.")
+            return InvalidPassword(msg=f"Old password is incorrect.")
         elif old_password == new_password:
             return make_success_kwargs(HTTPStatus.NOT_MODIFIED)
         else:
@@ -299,9 +299,13 @@ def delete_user(username):
         if not result:
             return InternalFailure(msg=exc.args[0])
         else:
-            return make_success_kwargs(HTTPStatus.OK, msg=f"User '{username}' successfully deleted.", username=username)
+            return make_success_kwargs(
+                HTTPStatus.OK,
+                msg=f"User '{username}' successfully deleted.",
+                username=username,
+            )
     else:
-        return ForbiddenOperation("You don't have the permission to delete another user!")
+        return ForbiddenOperation(msg="You don't have the permission to delete another user!")
 
 
 __all__ = [
