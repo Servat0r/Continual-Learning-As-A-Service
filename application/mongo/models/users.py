@@ -157,7 +157,10 @@ class MongoUser(MongoBaseUser):
         return result
 
     def save(self, create=False):
-        db.Document.save(self, force_insert=create)
+        if create:
+            db.Document.save(self, force_insert=True)
+        else:
+            db.Document.save(self, save_condition={'id': self.id})
 
     def set_password(self, password: str, save: bool = True):
         """

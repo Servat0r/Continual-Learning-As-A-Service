@@ -197,7 +197,7 @@ class MongoCLExperimentConfig(MongoResourceConfig):
                     if obj is not None:
                         with obj.resource_create(parents_locked=True):
                             if save:
-                                obj.save(force_insert=True)
+                                obj.save(create=True)
                     return obj
 
     def build(self, context: UserWorkspaceResourceContext,

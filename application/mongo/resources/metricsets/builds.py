@@ -32,33 +32,31 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
     Build config for an Evaluation Plugin metrics set based ONLY on helper functions:
         accuracy_metrics
         loss_metrics
-        bwt_metrics
         forgetting_metrics
-        forward_transfer_metrics
-        confusion_matrix_metrics
+
+        timing_metrics
+        ram_usage_metrics
         cpu_usage_metrics
         disk_usage_metrics
         gpu_usage_metrics
-        ram_usage_metrics
-        timing_metrics
+
+        bwt_metrics
+        forward_transfer_metrics
         MAC_metrics
-        labels_repartition_metrics
-        mean_scores_metrics
     """
     accuracy = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
     loss = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
-    bwt = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
     forgetting = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
-    forward_transfer = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
-    confusion_matrix = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+
+    timing = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    ram_usage = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
     cpu_usage = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
     disk_usage = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
     gpu_usage = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
-    ram_usage = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
-    timing = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+
+    bwt = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
+    forward_transfer = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
     MAC = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
-    labels_repartition = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
-    mean_scores = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -69,18 +67,17 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
         return {
             'accuracy',
             'loss',
-            'bwt',
             'forgetting',
-            'forward_transfer',
-            'confusion_matrix',
+
+            'timing',
+            'ram_usage',
             'cpu_usage',
             'disk_usage',
             'gpu_usage',
-            'ram_usage',
-            'timing',
+
+            'bwt',
+            'forward_transfer',
             'MAC',
-            'labels_repartition',
-            'mean_scores',
         }
 
     __values__ = {
@@ -140,11 +137,13 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
 
     def build(self, context: ResourceContext, locked=False, parents_locked=False):
         metrics = []
+        metric_names: list[str] = []
         for name in self.names():
             vals = dict(eval(f"self.{name}") or {})
             if len(vals) > 0:
                 ms = eval(f"{self.get_metrics_helper_name(name)}")(**vals)
                 metrics.append(ms)
+                metric_names.append(name)
         metrics = tuple(metrics)
         # noinspection PyArgumentList
-        return self.target_type()(*metrics)
+        return self.target_type()(metric_names, *metrics)

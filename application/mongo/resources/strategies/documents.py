@@ -94,7 +94,7 @@ class MongoStrategyConfig(MongoResourceConfig):
                             if obj is not None:
                                 with obj.resource_create(parents_locked=True):
                                     if save:
-                                        obj.save(force_insert=True)
+                                        obj.save(create=True)
                             return obj
 
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:

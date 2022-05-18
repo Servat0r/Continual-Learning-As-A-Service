@@ -372,7 +372,7 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
                 if obj is not None:
                     with obj.resource_create(parents_locked=True):
                         if save:
-                            obj.save(force_insert=True)
+                            obj.save(create=True)
                 return obj
 
     @classmethod
@@ -461,6 +461,12 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
             return self.build_config.update(data, context)
 
         return True, None
+
+    def save(self, create=False):
+        if create:
+            db.Document.save(self, force_insert=create)
+        else:
+            db.Document.save(self, save_condition={'id': self.id})
 
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked=locked, parents_locked=parents_locked):

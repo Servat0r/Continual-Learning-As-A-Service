@@ -45,7 +45,7 @@ class MongoDummyDocument(MongoResourceConfig):
                 metadata=DummyMetadata(created=now, last_modified=now),
             )
             if save:
-                obj.save(force_insert=True)
+                obj.save(create=True)
             return obj
 
     @classmethod
@@ -128,7 +128,7 @@ class MongoSuperDummyDocument(MongoResourceConfig):
                 metadata=SuperDummyMetadata(created=now, last_modified=now),
             )
             if save:
-                obj.save(force_insert=True)
+                obj.save(create=True)
             return obj
 
     @classmethod

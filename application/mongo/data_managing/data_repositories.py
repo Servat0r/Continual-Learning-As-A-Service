@@ -169,7 +169,10 @@ class MongoDataRepository(MongoBaseDataRepository):
         return manager.get_dir_path(dir_names)
 
     def save(self, create=False):
-        db.Document.save(self, force_insert=create)
+        if create:
+            db.Document.save(self, force_insert=True)
+        else:
+            db.Document.save(self, save_condition={'id': self.id})
 
     def data_repo_base_dir(self) -> str:
         return f"DataRepository_{self.get_id()}"

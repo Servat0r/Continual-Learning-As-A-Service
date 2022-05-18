@@ -146,10 +146,6 @@ class MongoWorkspace(MongoBaseWorkspace):
 
                 context = UserWorkspaceResourceContext(self.owner.get_name(), self.get_name())
 
-                for experiment in (self.all_experiments() or []):
-                    print(experiment)
-                    experiment.delete(context, parents_locked=True)
-
                 for repository in self.data_repositories():
                     print(repository)
                     # noinspection PyArgumentList
@@ -223,7 +219,10 @@ class MongoWorkspace(MongoBaseWorkspace):
                 return False, ex.args[0]
 
     def save(self, create=False):
-        db.Document.save(self, force_insert=create)
+        if create:
+            db.Document.save(self, force_insert=create)
+        else:
+            db.Document.save(self, save_condition={'id': self.id})
 
     def update_last_modified(self, time: datetime = None, save: bool = True):
         self.metadata.update_last_modified(time)
