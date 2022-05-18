@@ -77,8 +77,6 @@ def add_new_resource(username, workspace, typename: str | t.Type[DataType]) -> R
 def build_resource(username, workspace, typename: str | t.Type[DataType], name) -> Response:
     """
     Base method for building a "generic" resource.
-    TODO NO JSON!
-    TODO All parameters must be retrieved from URL!
     :param username:
     :param workspace:
     :param typename:
@@ -183,8 +181,6 @@ def update_resource(username, workspace, typename: str | t.Type[DataType], name,
 
 def delete_resource(username, workspace, typename: str | t.Type[DataType], name) -> Response:
     """
-    TODO NO JSON!
-    TODO All parameters must be retrieved from URL!
     :param username:
     :param workspace:
     :param typename:

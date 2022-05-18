@@ -1,23 +1,26 @@
 from __future__ import annotations
-from .utils import *
 from http import HTTPStatus
+from typing import Any
+from .utils import *
 
 
 class BaseClient:
-    AUTH = "auth"
     FILES = "files"
     STREAM = "transfers"
+
+    AUTH = "auth"
     USERS = "users"
     WORKSPACES = "workspaces"
-    RESOURCES = "resources"
+    DATA = "data"
+
     BENCHMARKS = "benchmarks"
     METRICSETS = "metricsets"
     MODELS = "models"
     OPTIMIZERS = "optimizers"
     CRITERIONS = "criterions"
     STRATEGIES = "strategies"
+
     EXPERIMENTS = "experiments"
-    DATA = "data"
 
     __debug_urls__: bool = False
 
@@ -62,10 +65,6 @@ class BaseClient:
         return f'{self.workspaces_base}/{self.workspace}/{self.DATA}'
 
     @property
-    def resources_base(self):
-        return f"{self.base_url}/{self.RESOURCES}"
-
-    @property
     def benchmarks_base(self):
         return f"{self.workspaces_base}/{self.workspace}/{self.BENCHMARKS}"
 
@@ -97,7 +96,10 @@ class BaseClient:
     def get_url(*args):
         return '/'.join(args) + '/'
 
-    def request(self, method: str, url_items: str | list[str], data=None, auth=True, headers=None, params=None):
+    def request(
+            self, method: str, url_items: str | list[str], data=None,
+            auth=True, headers=None, params=None, files=None,
+    ):
         if isinstance(url_items, str):
             url = url_items
         elif isinstance(url_items, list):
@@ -107,31 +109,31 @@ class BaseClient:
         if self.__debug_urls__:
             print(f"Sending request ({method} @ {url}) ...")
         return requests.request(
-            method, url,
-            params=params, json=data, headers=headers,
+            method, url, params=params,
+            files=files, json=data, headers=headers,
             auth=(self.auth if auth else None),
         )
 
-    def get(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None):
-        return self.request('get', url_items, data=data, auth=auth, headers=headers, params=params)
+    def get(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
+        return self.request('get', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
 
-    def post(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None):
-        return self.request('post', url_items, data=data, auth=auth, headers=headers, params=params)
+    def post(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
+        return self.request('post', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
 
-    def put(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None):
-        return self.request('put', url_items, data=data, auth=auth, headers=headers, params=params)
+    def put(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
+        return self.request('put', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
 
-    def patch(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None):
-        return self.request('patch', url_items, data=data, auth=auth, headers=headers, params=params)
+    def patch(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
+        return self.request('patch', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
 
-    def delete(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None):
-        return self.request('delete', url_items, data=data, auth=auth, headers=headers, params=params)
+    def delete(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
+        return self.request('delete', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
 
-    def head(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None):
-        return self.request('head', url_items, data=data, auth=auth, headers=headers, params=params)
+    def head(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
+        return self.request('head', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
 
-    def options(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None):
-        return self.request('options', url_items, data=data, auth=auth, headers=headers, params=params)
+    def options(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
+        return self.request('options', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
 
     def __init__(self, host: str = 'localhost', port: int = 5000, scheme: str = 'http'):
         self.scheme = scheme  # 'cached'
@@ -299,24 +301,20 @@ class BaseClient:
             raise ValueError("Repository name cannot be None.")
         return self.delete([self.data_repositories_base, repo_name, 'folders', path])
 
-    # TODO send files!
-
-    # Generic Resources TODO Modificare!
-    def add_generic_resource(self, name: str, typename: str, build_config_data: dict, description: str = None):
-        data = {
-            'name': name,
-            'type': typename,
-            'build': build_config_data,
-        }
-        if description is not None:
-            data['description'] = description
-        return self.post([self.resources_base, self.username, self.workspace], data=data)
-
-    def build_generic_resource(self, name: str, typename: str):
-        return self.get([self.resources_base, self.username, self.workspace, typename, name])
-
-    def delete_generic_resource(self, name: str, typename: str):
-        return self.delete([self.resources_base, self.username, self.workspace, typename, name])
+    def send_files(
+            self,
+            repo_name: str,
+            files_and_labels: list[tuple[str, str, int]],   # source_path, dest_path, label
+            base_path: list[str],
+    ):
+        translated: list[tuple[str, tuple[str, Any]]] = [
+            (str(label), (dest_path.replace('\\', '/'), open(src_path, 'rb')))
+            for src_path, dest_path, label in files_and_labels
+        ]
+        return self.patch(
+            [self.data_repositories_base, repo_name, 'folders', 'files'] + base_path,
+            files=translated,
+        )
 
     # Benchmarks
     def create_benchmark(self, name: str, build_config_data: dict, description: str = None):

@@ -64,7 +64,6 @@ class MongoEmbeddedBuildConfig(db.EmbeddedDocument):
         """
         result: TDesc = {}
         data_copy = data.copy()
-        # TODO Refactor to 'name' and 'data' fields and analyze 'data' subdict!
 
         bc_name = data_copy.get('name')
         if bc_name is not None:
@@ -175,7 +174,6 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         """
         result: TDesc = {}
         data_copy = data.copy()
-        # TODO Refactor to 'name' and 'data' fields and analyze 'data' subdict!
 
         bc_name = data_copy.get('name')
         if bc_name is not None:

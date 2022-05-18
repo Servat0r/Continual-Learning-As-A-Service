@@ -148,14 +148,6 @@ class Workspace(JSONSerializable, URIBasedResource):
     def data_repositories(self):
         pass
 
-    @abstractmethod
-    def all_experiments(self):
-        pass
-
-    @abstractmethod
-    def running_experiments(self):
-        pass
-
     # 8. Status methods
     @abstractmethod
     def open(self, save: bool = True):

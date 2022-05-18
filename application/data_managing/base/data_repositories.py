@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 from application.utils import TBoolExc, t, abstractmethod
+from application.models import User, Workspace
+from .base_data_managers import TFContent
+
 from application.resources.utils import *
 from application.resources.contexts import *
-from application.models import User, Workspace
+
+
+TFContentLabel = t.TypeVar(
+    'TFContentLabel',
+    bound=tuple[TFContent, int]  # (file, label)
+)
 
 
 class BaseDataRepository(JSONSerializable, URIBasedResource):
@@ -126,6 +134,10 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
 
     @abstractmethod
     def add_file(self, file_name: str, file_content, label: int, parents: list[str] = None) -> TBoolExc:
+        pass
+
+    @abstractmethod
+    def add_files(self, files: t.Iterable[TFContentLabel], locked=False, parents_locked=False) -> list[str]:
         pass
 
     @abstractmethod

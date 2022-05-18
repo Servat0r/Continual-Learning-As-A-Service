@@ -1,5 +1,4 @@
 from __future__ import annotations
-from torch.nn import Module
 
 from application import TDesc, t
 from application.database import db

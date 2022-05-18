@@ -38,7 +38,6 @@ class MongoCLExperimentConfig(MongoResourceConfig):
 
     executions = db.ListField(db.EmbeddedDocumentField(MongoCLExperimentExecutionConfig), default=[])
     current_exec_id = db.IntField(default=0)
-    # TODO Executions!
 
     @staticmethod
     def meta_type() -> t.Type[BaseMetadata]:

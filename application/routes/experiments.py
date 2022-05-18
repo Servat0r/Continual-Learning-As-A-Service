@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+import sys
+import traceback
 from flask import Blueprint, request, Response, send_file
 from http import HTTPStatus
 
@@ -31,6 +34,7 @@ experiments_bp = Blueprint('experiments', __name__,
 def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
                          context: UserWorkspaceResourceContext) -> Response:
 
+    context.stack = []
     response = None
     with experiment_config.resource_write():
         try:
@@ -57,6 +61,8 @@ def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
                             msg=f"Failed to run experiment #{start_result}.")
             return response
         except Exception as ex:
+            exc_info = sys.exc_info()
+            traceback.print_exception(*exc_info)
             response = make_error(
                 HTTPStatus.INTERNAL_SERVER_ERROR,
                 msg=f"Error when executing experiment #{start_result}: {ex.args[0]}.")
@@ -187,7 +193,6 @@ def get_experiment_execution_results(username, wname, name, exec_id):
                 executor.futures.pop(uri)
 
         execution = experiment_config.get_execution(exec_id)
-        # todo restituire to_dict()!
         data = execution.to_dict()
         return make_success_dict(
             msg="Results successfully retrieved.",

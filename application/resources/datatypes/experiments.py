@@ -50,7 +50,7 @@ class BaseCLExperimentRunConfig:
             return cls.get_by_name(obj)
 
     @abstractmethod
-    def run(self, experiment: BaseCLExperiment, model_directory: list[str]) -> bool:
+    def run(self, experiment: BaseCLExperiment, model_directory: list[str] = None) -> bool:
         pass
 
 
@@ -96,7 +96,7 @@ class BaseCLExperiment(ReferrableDataType):
     def get_metadata(self, key: str | None = None) -> TDesc | t.Any:
         return super().get_metadata(key)
 
-    def run(self, model_directory: list[str]) -> bool | None:
+    def run(self, model_directory: list[str] = None) -> bool | None:
         run_config = self.get_run_configuration()
         if run_config is None:
             return None

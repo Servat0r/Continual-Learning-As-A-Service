@@ -10,7 +10,6 @@ from application.utils import TBoolExc, t, abstractmethod, Module
 TFContent = t.TypeVar(
     'TFContent',
     bound=tuple[str, list[str], t.Optional[t.Any]],  # Any is file content or FileStorage
-    # TODO Add label!
 )
 
 TFRead = t.TypeVar(

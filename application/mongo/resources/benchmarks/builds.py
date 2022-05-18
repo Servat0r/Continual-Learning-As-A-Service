@@ -239,12 +239,6 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         "data_repository": <data_repository_name>,
         "img_type": "greyscale"/"RGB",       # image type (determines which image loader to use)
         "complete_test_set_only": true/false,
-        "task_labels": [                    # task labels (one for experience, common to all streams)
-            0,  # experience #1
-            2,  # experience #2
-            8,  # experience #3
-            ...
-        ]
         "train_stream": [  # train stream
             # experience #1 #
             [
@@ -326,7 +320,6 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         default={},
     )
     # Other parameters
-    task_labels = db.ListField(db.IntField(), default=None)
     img_type = db.StringField(choices=(L, RGB), default=RGB)
     complete_test_set_only = db.BooleanField(default=False)
 
@@ -358,7 +351,7 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
     @classmethod
     def get_optionals(cls) -> set[str]:
         return super(DataManagerBuildConfig, cls).get_optionals().union({
-            'data_repository', 'task_labels',
+            'data_repository',
             'complete_test_set_only',
             'other_streams', 'img_type',
             'train_transform', 'train_target_transform',
@@ -402,7 +395,6 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         other_streams_dict = params.get('other_streams', {})                            # dict[str, # list[list[dict]]]
 
         img_type = params.get('img_type', DataManagerBuildConfig.RGB)                       # string
-        task_labels = params.get('task_labels', None)                                       # list[int]| [int] | None
         complete_test_set_only = params.get('complete_test_set_only', False)                # boolean
 
         train_transform = params.get('train_transform', DataManagerBuildConfig.TO_TENSOR)   # string
@@ -425,14 +417,6 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         if not isinstance(complete_test_set_only, bool):
             return False, "'complete_test_set_only' must be a boolean."
 
-        # list[int] / int field(s)
-        if task_labels is not None:
-            if not isinstance(task_labels, list):
-                return False, "'task_labels' must be a list."
-            all_int = all(isinstance(label, int) for label in task_labels)
-            if not all_int:
-                return False, "All items in 'task_labels' must be integer."
-
         # list[list[dict]] / dict[str, list[list[dict]] ] fields
         for stream_list in [train_stream_list, test_stream_list]:
             result, msg = cls._validate_stream_list(stream_list, context)
@@ -443,7 +427,7 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
             result, msg = cls._validate_stream_list(stream_list, context)
             if not result:
                 return False, msg
-            other_streams_dict[stream_name]: list[DataStreamExperienceConfig] = stream_list  # todo cut!
+            other_streams_dict[stream_name]: list[DataStreamExperienceConfig] = stream_list
 
         return True, None
 
@@ -462,67 +446,63 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
             stream_list = cls._create_stream_list(stream_list_config, context)
             other_streams_dict[stream_name] = stream_list
 
-        params['train_stream'] = []  # train_stream_list
-        params['test_stream'] = []  # test_stream_list
-        params['other_streams'] = {}  # other_streams_dict
+        params['train_stream'] = train_stream_list
+        params['test_stream'] = test_stream_list
+        params['other_streams'] = other_streams_dict
 
         # noinspection PyArgumentList
         benchmark_config = cls(**params)
 
-        for tstream in train_stream_list:
-            benchmark_config.train_stream.append(tstream)
+        #for tstream in train_stream_list:
+        #    benchmark_config.train_stream.append(tstream)
 
-        for tstream in test_stream_list:
-            benchmark_config.test_stream.append(tstream)
+        #for tstream in test_stream_list:
+        #    benchmark_config.test_stream.append(tstream)
 
-        for stream_name, stream_value in other_streams_dict.items():
-            benchmark_config.other_streams[stream_name] = stream_value
+        #for stream_name, stream_value in other_streams_dict.items():
+        #    benchmark_config.other_streams[stream_name] = stream_value
 
         return benchmark_config
 
     def build(self, context: ResourceContext, locked=False, parents_locked=False):
-        train_build_data: list[list[TDMDatasetDesc]] = [config.get_tuple_configs() for config in self.train_stream]
-        test_build_data: list[list[TDMDatasetDesc]] = [config.get_tuple_configs() for config in self.test_stream]
+        try:
+            train_build_data: list[list[TDMDatasetDesc]] = [config.get_tuple_configs() for config in self.train_stream]
+            test_build_data: list[list[TDMDatasetDesc]] = [config.get_tuple_configs() for config in self.test_stream]
 
-        other_build_data: dict[str, : list[list[TDMDatasetDesc]]] = \
-            None if self.other_streams is None or len(self.other_streams) == 0 else {}
+            other_build_data: dict[str, : list[list[TDMDatasetDesc]]] = \
+                None if self.other_streams is None or len(self.other_streams) == 0 else {}
 
-        if other_build_data is not None:
-            for stream_name, stream_desc in self.other_streams.items():
-                other_build_data[stream_name] = [config.get_tuple_configs() for config in stream_desc]
+            if other_build_data is not None:
+                for stream_name, stream_desc in self.other_streams.items():
+                    other_build_data[stream_name] = [config.get_tuple_configs() for config in stream_desc]
 
-        if self.task_labels is None:
-            task_labels = 0
-        elif len(self.task_labels) == 1:
-            task_labels = self.task_labels[0]
-        else:
-            task_labels = self.task_labels
+            loader = self.get_loader()
 
-        loader = self.get_loader()
+            train_transform = self.get_transform(self.train_transform)
+            train_target_transform = self.get_transform(self.train_target_transform)
 
-        train_transform = self.get_transform(self.train_transform)
-        train_target_transform = self.get_transform(self.train_target_transform)
+            eval_transform = self.get_transform(self.eval_transform)
+            eval_target_transform = self.get_transform(self.eval_target_transform)
 
-        eval_transform = self.get_transform(self.eval_transform)
-        eval_target_transform = self.get_transform(self.eval_target_transform)
-
-        benchmark = data_manager_datasets_benchmark(
-            BaseDataManager.get(),
-            self.data_repository,
-            train_build_data,
-            test_build_data,
-            task_labels,
-            other_build_data,
-            self.complete_test_set_only,
-            loader,
-            train_transform,
-            train_target_transform,
-            eval_transform,
-            eval_target_transform,
-            other_transform_groups=None,  # todo implement in build config!
-        )
-        # noinspection PyArgumentList
-        return self.target_type()(benchmark)
+            benchmark = data_manager_datasets_benchmark(
+                BaseDataManager.get(),
+                self.data_repository,
+                train_build_data,
+                test_build_data,
+                other_build_data,
+                self.complete_test_set_only,
+                loader,
+                train_transform,
+                train_target_transform,
+                eval_transform,
+                eval_target_transform,
+                other_transform_groups=None,  # todo implement in build config!
+            )
+            # noinspection PyArgumentList
+            return self.target_type()(benchmark)
+        except Exception as ex:
+            print(ex)
+            return None
 
 
 __all__ = [

@@ -8,7 +8,7 @@ from client import *
 repository_name = "RepositoryOne"
 repository_desc = "An example of data repository."
 
-benchmark_name = "SplitMNISTOne"
+benchmark_name = "SplitFashionMNISTOne"
 benchmark_type = "Benchmark"
 benchmark_desc = "An example of SplitMNIST benchmark."
 benchmark_build = {
@@ -50,9 +50,6 @@ metricset_build = {
         'stream': True,
     },
 }
-
-"""
-"""
 
 model_name = "SimpleMLPOne"
 model_type = "Model"
@@ -177,11 +174,17 @@ if __name__ == '__main__':
 
     BaseClient.set_debug()
     cl = BaseClient("192.168.1.120")
-    username = 'servator'
+    username = 'user1'  # 'servator'
     email = 'abc@example.com'
     password = '1234?abcD'
     new_email = 'def@example.com'
     new_password = '4321?abcD'
+
+    cl.username = username
+    cl.email = email
+    cl.workspace = 'wspace1'
+
+    # cl.login(username, password)
 
     if __users__ in __only__:
         # register and login
@@ -201,22 +204,183 @@ if __name__ == '__main__':
     print_response(cl.create_data_repository(repository_name, repository_desc))
     print_response(cl.get_data_repository_desc(repository_name))
 
-    print_response(cl.create_subdir(repository_name, 'train1'))
-    print_response(cl.create_subdir(repository_name, 'train1.1', ['train1']))
-    print_response(cl.create_subdir(repository_name, 'train1.2'))
+    print_response(cl.create_subdir(repository_name, 'fashion_mnist'))
+    print_response(cl.create_subdir(repository_name, 'train', ['fashion_mnist']))
+    print_response(cl.create_subdir(repository_name, 'test'))
 
     print_response(cl.get_data_repository(repository_name))
 
-    print_response(cl.move_subdir(repository_name, 'train1.2', 'train1'))
-    print_response(cl.delete_subdir(repository_name, 'train1/train1.1'))
-    print_response(cl.delete_subdir(repository_name, 'train1'))
+    print_response(cl.move_subdir(repository_name, 'test', 'fashion_mnist'))
+
+    train_base_dir = ['fashion_mnist', 'train']
+    test_base_dir = ['fashion_mnist', 'test']
+
+    for i in range(1):
+        for j in range(2):
+
+            files_train_dict: list[tuple[str, str, int]] = []
+            basedir = os.path.join('ignore', 'fashion_mnist', 'train', f"{2*i+j}")
+            for fname in os.listdir(basedir)[:600]:
+                files_train_dict.append((os.path.join(basedir, fname), '/'.join([str(2*i+j), fname]), 2*i+j))
+            print_response(cl.send_files(repository_name, files_train_dict, train_base_dir))
+
+            files_test_dict: list[tuple[str, str, int]] = []
+            basedir = os.path.join('ignore', 'fashion_mnist', 'test', f"{2*i+j}")
+            for fname in os.listdir(basedir)[:600]:
+                files_test_dict.append((os.path.join(basedir, fname), '/'.join([str(2*i+j), fname]), 2*i+j))
+            print_response(cl.send_files(repository_name, files_test_dict, test_base_dir))
+
+    """
+    _fmnist_bmark_data = {
+        'name': 'DataManagerBenchmark',
+        'data_repository': repository_name,
+        'img_type': 'greyscale',
+        'train_stream': [
+            [
+                {
+                    'root': 'fashion_mnist/train/0',
+                    'all': True,
+                },
+                {
+                    'root': 'fashion_mnist/train/1',
+                    'all': True,
+                }
+            ]
+        ],
+        'test_stream': [
+            [
+                {
+                    'root': 'fashion_mnist/test/0',
+                    'all': True,
+                },
+                {
+                    'root': 'fashion_mnist/test/1',
+                    'all': True,
+                }
+            ]
+        ]
+    }
+    """
+
+    _fmnist_bmark_data = {
+        'name': "DataManagerBenchmark",
+        'data_repository': repository_name,
+        'img_type': 'greyscale',
+        'train_stream': [
+            [
+                {
+                    'root': 'fashion_mnist/train/0',
+                    'all': True,
+                },
+                {
+                    'root': 'fashion_mnist/train/1',
+                    'all': True,
+                }
+            ],
+            [
+                {
+                    'root': 'fashion_mnist/train/2',
+                    'all': True,
+                },
+                {
+                    'root': 'fashion_mnist/train/3',
+                    'all': True,
+                }
+            ],
+            [
+                {
+                    'root': 'fashion_mnist/train/4',
+                    'all': True,
+                },
+                {
+                    'root': 'fashion_mnist/train/5',
+                    'all': True,
+                }
+            ],
+            [
+                {
+                    'root': 'fashion_mnist/train/6',
+                    'all': True,
+                },
+                {
+                    'root': 'fashion_mnist/train/7',
+                    'all': True,
+                }
+            ],
+            [
+                {
+                    'root': 'fashion_mnist/train/8',
+                    'all': True,
+                },
+                {
+                    'root': 'fashion_mnist/train/9',
+                    'all': True,
+                }
+            ],
+        ],
+        'test_stream': [
+            [
+                {
+                    'root': 'fashion_mnist/test/0',
+                    'all': True,
+                },
+                {
+                    'root': 'fashion_mnist/test/1',
+                    'all': True,
+                }
+            ],
+            [
+                {
+                    'root': 'fashion_mnist/test/2',
+                    'all': True,
+                },
+                {
+                    'root': 'fashion_mnist/test/3',
+                    'all': True,
+                }
+            ],
+            [
+                {
+                    'root': 'fashion_mnist/test/4',
+                    'all': True,
+                },
+                {
+                    'root': 'fashion_mnist/test/5',
+                    'all': True,
+                }
+            ],
+            [
+                {
+                    'root': 'fashion_mnist/test/6',
+                    'all': True,
+                },
+                {
+                    'root': 'fashion_mnist/test/7',
+                    'all': True,
+                }
+            ],
+            [
+                {
+                    'root': 'fashion_mnist/test/8',
+                    'all': True,
+                },
+                {
+                    'root': 'fashion_mnist/test/9',
+                    'all': True,
+                }
+            ],
+        ],
+    }
+    print_response(cl.delete_subdir(repository_name, 'fashion_mnist/train'))
+    print_response(cl.delete_subdir(repository_name, 'fashion_mnist'))
 
     print_response(cl.delete_data_repository(repository_name))
 
     if __benchmarks__ in __only__:
         # create and build benchmarks
-        print_response(cl.create_benchmark(benchmark_name, benchmark_build, benchmark_desc))
+        print_response(cl.create_benchmark(benchmark_name, _fmnist_bmark_data, benchmark_desc))
         print_response(cl.build_benchmark(benchmark_name))
+        """
         print_response(cl.rename_benchmark(benchmark_name, f"New_{benchmark_name}"))
         print_response(
             cl.update_benchmark(
@@ -230,6 +394,7 @@ if __name__ == '__main__':
                 }
             )
         )
+        """
 
     if __metric_sets__ in __only__:
         # create and build metricsets

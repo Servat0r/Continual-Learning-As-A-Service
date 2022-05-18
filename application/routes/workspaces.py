@@ -209,32 +209,6 @@ def set_workspace_status(username, wname):
     return make_success_dict(data={'status': workspace.status})
 
 
-@workspaces_bp.get('/<workspace:wname>/requirements/')
-@workspaces_bp.get('/<workspace:wname>/requirements')
-@token_auth.login_required
-def get_workspace_requirements(username, wname):    # TODO Completare!
-    """
-
-    :param username:
-    :param wname:
-    :return:
-    """
-
-    current_user = token_auth.current_user()
-    context = UserWorkspaceResourceContext(username, wname)
-    uri = Workspace.dfl_uri_builder(context)
-    workspace = Workspace.get_by_uri(uri)
-
-    if not workspace:
-        return ResourceNotFound(resource=wname)
-
-    if (current_user.username != username) or (workspace.owner_id != current_user.id):
-        return ForbiddenOperation(msg="You cannot get workspace requirements for another user's workspace!")
-
-    requirements = {'message': 'NotImplemented'}
-    return make_success_kwargs(requirements=requirements)
-
-
 __all__ = [
     'workspaces_bp',
     'create_workspace',
@@ -244,5 +218,4 @@ __all__ = [
     'delete_workspace',
     'get_workspace_status',
     'set_workspace_status',
-    'get_workspace_requirements',
 ]

@@ -918,7 +918,6 @@ Benchmarks: <base>/users/<username>/workspaces/<workspace>/benchmarks
 			...
 
 
-# TODO COMPLETE!
 Models: <base>/users/<username>/workspaces/<workspace>/models
 	create_model:
 		POST /
@@ -950,7 +949,6 @@ Models: <base>/users/<username>/workspaces/<workspace>/models
 		...
 
 
-# TODO COMPLETE!
 Strategies: <base>/users/<username>/workspaces/<workspace>/strategies
 	create_strategy:
 		...
@@ -965,7 +963,6 @@ Strategies: <base>/users/<username>/workspaces/<workspace>/strategies
 		...
 
 
-# TODO COMPLETE!
 Optimizers: <base>/users/<username>/workspaces/<workspace>/optimizers
 	create_optimizer:
 		...
@@ -977,7 +974,6 @@ Optimizers: <base>/users/<username>/workspaces/<workspace>/optimizers
 		...
 
 
-# TODO COMPLETE!
 Losses: <base>/users/<username>/workspaces/<workspace>/losses
 	create_loss:
 		...

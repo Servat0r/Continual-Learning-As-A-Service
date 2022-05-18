@@ -28,11 +28,6 @@ class ResourceContext:
             filter(lambda key: tps[key] == name, tps.keys())
         )
 
-    # TODO Eliminare!
-    def check_names(self, names: dict[str, str]):
-        return set(self.types().keys()).issubset(set(names.keys()))
-
-    # TODO Completare! E sistemare i ResourceContext in modo più razionale (e.g. rispetto ai tipi!)
     def push(self, name: str, obj, set_type=False, type_name=None):
         self.stack.append({name: obj})
         if set_type:

@@ -1,3 +1,4 @@
+import os
 from http import HTTPStatus
 from application import *
 
@@ -84,5 +85,7 @@ def make_shell_context():
 
 
 if __name__ == '__main__':
-    print('DataType:\n', DataType.get_all_typenames(), '\n')
+    debug = bool(get_env('DEBUG', 0, int))
+    if debug:
+        app.logger.info(f"Current working directory: {os.getcwd()}")
     app.run('0.0.0.0')

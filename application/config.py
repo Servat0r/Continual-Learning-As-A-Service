@@ -29,7 +29,7 @@ def get_env(key: str, default=None, transf: t.Callable = lambda x: x):
             return default
 
 
-USE_MONGODB_AUTH = bool(get_env('USE_MONGODB_AUTH', 0, int))  # todo reset to false!
+USE_MONGODB_AUTH = bool(get_env('USE_MONGODB_AUTH', 0, int))
 
 
 # Base configuration class for Flask app
@@ -66,7 +66,7 @@ class MongoDefaultConfig(SimpleConfig):
     MONGODB_HOST = get_env("MONGODB_HOSTNAME", 'localhost')
     MONGODB_PORT = get_env("MONGODB_PORT", 27017, int)
 
-    MONGODB_CONNECT = bool(get_env("MONGODB_CONNECT", 0, int))  # TODO Change to False for "multi-service" Docker app!
+    MONGODB_CONNECT = bool(get_env("MONGODB_CONNECT", 0, int))
 
 
 class MongoAuthConfig(MongoDefaultConfig):

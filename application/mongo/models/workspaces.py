@@ -137,6 +137,7 @@ class MongoWorkspace(MongoBaseWorkspace):
                 MetricSetClass = t.cast(ReferrableDataType, DataType.get_type('StandardMetricSet')).config_type()
                 CLOptimizerClass = t.cast(ReferrableDataType, DataType.get_type('CLOptimizer')).config_type()
                 CLCriterionClass = t.cast(ReferrableDataType, DataType.get_type('CLCriterion')).config_type()
+                BenchmarkClass = t.cast(ReferrableDataType, DataType.get_type('Benchmark')).config_type()
 
                 cl_models = ModelClass.get(self.owner, self)
                 msets = MetricSetClass.get(self.owner, self)
@@ -169,6 +170,11 @@ class MongoWorkspace(MongoBaseWorkspace):
                 for crit in crits:
                     print(crit)
                     crit.delete(context, parents_locked=True)
+
+                bmarks = BenchmarkClass.get(owner=self.owner, workspace=self)
+                for bmark in bmarks:
+                    print(bmark)
+                    bmark.delete(context, parents_locked=True)
 
                 manager = BaseDataManager.get()
                 manager.remove_subdir(
@@ -233,14 +239,8 @@ class MongoWorkspace(MongoBaseWorkspace):
         }
 
     # 7. Query-like methods
-    def data_repositories(self):    # TODO!
-        return list(BaseDataRepository.get(self))
-
-    def all_experiments(self):
-        return []   # todo not implemented!
-
-    def running_experiments(self):
-        return []   # todo not implemented!
+    def data_repositories(self):
+        return list(BaseDataRepository.get(workspace=self))
 
     # 8. Status methods
     def open(self, save: bool = True):

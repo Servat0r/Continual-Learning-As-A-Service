@@ -1,11 +1,21 @@
+from http import HTTPStatus
 from flask import Blueprint, request
+from werkzeug.datastructures import FileStorage
 
 from application.errors import *
 from application.utils import checked_json, make_success_dict
+from application.data_managing import TFContentLabel
 from application.models import Workspace
 
 from .auth import token_auth, check_current_user_ownership
 from application.data_managing import BaseDataRepository
+
+
+_MissingFile = ServerResponseError(
+    HTTPStatus.BAD_REQUEST,
+    'MissingFile',
+    "Request lacks an attached file object.",
+)
 
 
 data_repositories_bp = Blueprint('data_repositories', __name__,
@@ -187,7 +197,11 @@ def move_folder(username, wname, name):
         return error(**data) if data else error()
 
     src_path = data['src_path'].split('/')
+    src_path = [item for item in src_path if len(item) > 0]
+
     dest_path = data['dest_path'].split('/')
+    dest_path = [item for item in dest_path if len(item) > 0]
+
 
     if len(src_path) < 1 or len(dest_path) < 1:
         return BadRequestSyntax(msg="Source and destination paths must have at least one item!")
@@ -223,6 +237,7 @@ def delete_sub_folder(username, wname, name, path):
     data_repository = BaseDataRepository.get_one(workspace, name)
 
     pathlist = path.split('/')
+    pathlist = [item for item in pathlist if len(item) > 0]
     if len(pathlist) < 1:
         return BadRequestSyntax(msg="Folder path must have at least one item!")
 
@@ -236,10 +251,10 @@ def delete_sub_folder(username, wname, name, path):
         return InternalFailure(msg=exc.args[0])
 
 
-@data_repositories_bp.patch('/<name>/folders/')
-@data_repositories_bp.patch('/<name>/folders')
+@data_repositories_bp.patch('/<name>/folders/files/<path:path>/')
+@data_repositories_bp.patch('/<name>/folders/files/<path:path>')
 @token_auth.login_required
-def send_files(username, wname, name):
+def send_files(username, wname, name, path):
     """
     RequestSyntax:
     {
@@ -257,9 +272,49 @@ def send_files(username, wname, name):
     :param username:
     :param wname:
     :param name:
+    :param path:
     :return:
     """
-    pass
+    result, error = \
+        check_current_user_ownership(username,
+                                     f"You cannot create a folder in another user ({username}) repository.")
+    if not result:
+        return error
+
+    workspace = Workspace.canonicalize((username, wname))
+    data_repository = BaseDataRepository.get_one(workspace, name)
+
+    base_path_list: list[str] = path.split('/')
+    base_path_list = [item for item in base_path_list if len(item) > 0]
+
+    filestores = request.files
+    data = {'success': [], 'n_success': 0}
+    total = 0
+    if len(filestores) < 1:
+        return _MissingFile()
+    else:
+        for label in filestores:
+            files: list[FileStorage] = filestores.getlist(label)
+            total += len(files)
+            files_and_labels: list[TFContentLabel] = []
+            for fstorage in files:
+
+                pathlist = fstorage.filename.split('/')
+                pathlist = [item for item in pathlist if len(item) > 0]
+                dir_path_list = base_path_list + pathlist[:-1]
+
+                file_name = pathlist[-1]
+                files_and_labels.append(
+                    ((file_name, dir_path_list, fstorage), int(label))
+                )
+            successes = data_repository.add_files(files_and_labels)
+            data['success'] += successes
+            data['n_success'] += len(successes)
+
+        if data['n_success'] >= total:
+            return make_success_dict(data=data)
+        else:
+            return InternalFailure(msg="At least one file has not correctly updated.", payload=data)
 
 
 __all__ = [

@@ -5,7 +5,7 @@ from application.utils import TBoolExc, TDesc, t
 from application.database import *
 from application.models import Workspace
 
-from application.data_managing.base import BaseDataRepository, BaseDataManager, TFContent
+from application.data_managing.base import BaseDataRepository, BaseDataManager, TFContent, TFContentLabel
 from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType, ReferrableDataType
 
@@ -14,12 +14,6 @@ from application.mongo.mongo_base_metadata import MongoBaseMetadata
 from application.mongo.base import MongoBaseUser, MongoBaseWorkspace
 
 from .base import *
-
-
-TFContentLabel = t.TypeVar(
-    'TFContentLabel',
-    bound=tuple[TFContent, int]  # (file, label)
-)
 
 
 class MongoDataRepositoryMetadata(MongoBaseMetadata):
@@ -256,20 +250,16 @@ class MongoDataRepository(MongoBaseDataRepository):
                 self.save()
             return result, exc
 
-    # TODO files -> t.Sequence !
     def add_files(self, files: t.Iterable[TFContentLabel], locked=False, parents_locked=False) -> list[str]:
         with self.resource_write(locked, parents_locked):
-            base_dir = self._complete_parents()
             created: list[str] = []
 
             for item in iter(files):
                 file, label = item
-                item2 = (
-                    file[0],
-                    base_dir + file[1] if base_dir is not None else file[1],
-                    file[2],
+                result, exc = self.add_file(
+                    file_name=file[0], file_content=file[2], label=label,
+                    parents=file[1], locked=True, parents_locked=True,
                 )
-                result, exc = self.create_file(item2)
                 if result:
                     path = '/'.join(file[1] + [file[0]])
                     created.append(path)

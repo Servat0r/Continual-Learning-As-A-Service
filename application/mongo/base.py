@@ -29,12 +29,6 @@ class MongoBaseUser(User, RWLockableDocument):
 
 class MongoBaseWorkspace(Workspace, RWLockableDocument):
 
-    # TODO Aggiungere quando saranno pronti i DataRepository in quel modo
-    """
-    def data_repositories(self):
-        pass
-    """
-
     meta = {
         'abstract': True,
         'allow_inheritance': True,
