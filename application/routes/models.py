@@ -19,15 +19,15 @@ def create_model(username, wname):
     return add_new_resource(username, wname, _DFL_MODEL_NAME_)
 
 
-@models_bp.get('/<name>/')
-@models_bp.get('/<name>')
+@models_bp.get('/<resource:name>/')
+@models_bp.get('/<resource:name>')
 @token_auth.login_required
 def build_model(username, wname, name):
     return build_resource(username, wname, _DFL_MODEL_NAME_, name)
 
 
-@models_bp.patch('/<name>/')
-@models_bp.patch('/<name>/')
+@models_bp.patch('/<resource:name>/')
+@models_bp.patch('/<resource:name>/')
 @token_auth.login_required
 def update_model(username, wname, name):
     """
@@ -46,8 +46,8 @@ def update_model(username, wname, name):
         return update_resource(username, wname, _DFL_MODEL_NAME_, name, data)
 
 
-@models_bp.delete('/<name>/')
-@models_bp.delete('/<name>')
+@models_bp.delete('/<resource:name>/')
+@models_bp.delete('/<resource:name>')
 @token_auth.login_required
 def delete_model(username, wname, name):
     return delete_resource(username, wname, _DFL_MODEL_NAME_, name)

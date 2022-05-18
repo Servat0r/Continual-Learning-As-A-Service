@@ -3,6 +3,7 @@ from datetime import datetime
 
 from application.database import db
 from application.utils import TBoolStr, TBoolExc, TDesc, abstractmethod, t
+from application.validation import *
 from application.models import User, Workspace
 
 from application.resources.contexts import ResourceContext, UserWorkspaceResourceContext
@@ -95,10 +96,15 @@ class MongoEmbeddedBuildConfig(db.EmbeddedDocument):
         :return:
         """
         ok, bc_name, params, extras = cls._filter_data(data)
+        result, msg = validate_workspace_resource_experiment(bc_name)
+
+        if not result:
+            return False, f"Invalid resource name: '{bc_name}'."
         if not ok:
             return False, "Missing one or more required parameter(s)."
         if len(extras) > 0 and not cls.has_extras():
             return False, "Unexpected extra arguments."
+
         context.push('args', {'name': bc_name, 'params': params, 'extras': extras})
         return True, None
 
@@ -206,6 +212,10 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         :return:
         """
         ok, bc_name, params, extras = cls._filter_data(data)
+        result, msg = validate_workspace_resource_experiment(bc_name)
+
+        if not result:
+            return False, f"Invalid resource name: '{bc_name}'."
         if not ok:
             return False, "Missing one or more required parameter(s)."
         if len(extras) > 0 and not cls.has_extras():
@@ -381,6 +391,10 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
         if not all(fname in data for fname in required):
             return False, 'Missing parameter(s).'
         else:
+            name = data['name']
+            result, msg = validate_workspace_resource_experiment(name)
+            if not result:
+                return False, f"Invalid resource name: '{msg}'."
             config = MongoBuildConfig.get_by_name(data['build'])
             return t.cast(MongoBuildConfig, config).validate_input(data['build'], cls.target_type(), context)
 
@@ -435,6 +449,10 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
         new_name = data.get('name')
         new_desc = data.get('description')
         new_build_config = data.get('build')
+
+        result, msg = validate_workspace_resource_experiment(new_name)
+        if not result:
+            return False, f"Invalid resource (new) name: '{new_name}'."
 
         if new_name is not None:
             data.pop('name')

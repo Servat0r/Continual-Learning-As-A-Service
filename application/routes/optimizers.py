@@ -19,15 +19,15 @@ def create_optimizer(username, wname):
     return add_new_resource(username, wname, _DFL_OPTIM_NAME_)
 
 
-@optimizers_bp.get('/<name>/')
-@optimizers_bp.get('/<name>')
+@optimizers_bp.get('/<resource:name>/')
+@optimizers_bp.get('/<resource:name>')
 @token_auth.login_required
 def build_optimizer(username, wname, name):
     return build_resource(username, wname, _DFL_OPTIM_NAME_, name)
 
 
-@optimizers_bp.patch('/<name>/')
-@optimizers_bp.patch('/<name>/')
+@optimizers_bp.patch('/<resource:name>/')
+@optimizers_bp.patch('/<resource:name>/')
 @token_auth.login_required
 def update_optimizer(username, wname, name):
     """
@@ -46,8 +46,8 @@ def update_optimizer(username, wname, name):
         return update_resource(username, wname, _DFL_OPTIM_NAME_, name, data)
 
 
-@optimizers_bp.delete('/<name>/')
-@optimizers_bp.delete('/<name>')
+@optimizers_bp.delete('/<resource:name>/')
+@optimizers_bp.delete('/<resource:name>')
 @token_auth.login_required
 def delete_optimizer(username, wname, name):
     return delete_resource(username, wname, _DFL_OPTIM_NAME_, name)

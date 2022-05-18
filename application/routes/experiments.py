@@ -29,7 +29,6 @@ experiments_bp = Blueprint('experiments', __name__,
                            url_prefix='/users/<user:username>/workspaces/<workspace:wname>/experiments')
 
 
-# todo spostare!
 @executor.job
 def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
                          context: UserWorkspaceResourceContext) -> Response:
@@ -84,8 +83,8 @@ def create_experiment(username, wname):
     return add_new_resource(username, wname, _DFL_EXPERIMENT_NAME)
 
 
-@experiments_bp.patch('/<name>/setup/')
-@experiments_bp.patch('/<name>/setup')
+@experiments_bp.patch('/<experiment:name>/setup/')
+@experiments_bp.patch('/<experiment:name>/setup')
 @token_auth.login_required
 def setup_experiment(username, wname, name):
 
@@ -100,8 +99,8 @@ def setup_experiment(username, wname, name):
         return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Setup failed.")  # todo che errore?
 
 
-@experiments_bp.patch('/<name>/')
-@experiments_bp.patch('/<name>')
+@experiments_bp.patch('/<experiment:name>/')
+@experiments_bp.patch('/<experiment:name>')
 @token_auth.login_required
 def set_experiment_status(username, wname, name):
     """
@@ -142,8 +141,8 @@ def __start_experiment(experiment_config: MongoCLExperimentConfig, context: User
     return make_success_dict(msg="Experiment successfully started!")
 
 
-@experiments_bp.get('/<name>/status/')
-@experiments_bp.get('/<name>/status')
+@experiments_bp.get('/<experiment:name>/status/')
+@experiments_bp.get('/<experiment:name>/status')
 @token_auth.login_required
 def get_experiment_status(username, wname, name):
     experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
@@ -168,8 +167,8 @@ def get_experiment_status(username, wname, name):
             return make_success_dict(data={'status': experiment_config.status})
 
 
-@experiments_bp.get('/<name>/results/exec/')
-@experiments_bp.get('/<name>/results/exec')
+@experiments_bp.get('/<experiment:name>/results/exec/')
+@experiments_bp.get('/<experiment:name>/results/exec')
 @token_auth.login_required
 def get_experiment_results(username, wname, name):
     experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
@@ -177,8 +176,8 @@ def get_experiment_results(username, wname, name):
     return get_experiment_execution_results(username, wname, name, exec_id)
 
 
-@experiments_bp.get('/<name>/results/exec/<int:exec_id>/')
-@experiments_bp.get('/<name>/results/exec/<int:exec_id>')
+@experiments_bp.get('/<experiment:name>/results/exec/<int:exec_id>/')
+@experiments_bp.get('/<experiment:name>/results/exec/<int:exec_id>')
 @token_auth.login_required
 def get_experiment_execution_results(username, wname, name, exec_id):
     experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
@@ -202,8 +201,8 @@ def get_experiment_execution_results(username, wname, name, exec_id):
         return ResourceNotFound(resource=f"execution<{exec_id}>")
 
 
-@experiments_bp.get('/<name>/settings/')
-@experiments_bp.get('/<name>/settings')
+@experiments_bp.get('/<experiment:name>/settings/')
+@experiments_bp.get('/<experiment:name>/settings')
 @token_auth.login_required
 def get_experiment_settings(username, wname, name):
     experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
@@ -215,8 +214,8 @@ def get_experiment_settings(username, wname, name):
         return make_success_dict(data=data)
 
 
-@experiments_bp.get('/<name>/model/')
-@experiments_bp.get('/<name>/model')
+@experiments_bp.get('/<experiment:name>/model/')
+@experiments_bp.get('/<experiment:name>/model')
 @token_auth.login_required
 def get_experiment_model(username, wname, name):
     experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
@@ -227,8 +226,8 @@ def get_experiment_model(username, wname, name):
         return get_experiment_execution_model(username, wname, name, exec_id)
 
 
-@experiments_bp.get('/<name>/model/<int:exec_id>/')
-@experiments_bp.get('/<name>/model/<int:exec_id>')
+@experiments_bp.get('/<experiment:name>/model/<int:exec_id>/')
+@experiments_bp.get('/<experiment:name>/model/<int:exec_id>')
 @token_auth.login_required
 def get_experiment_execution_model(username, wname, name, exec_id):
     experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
@@ -247,8 +246,8 @@ def get_experiment_execution_model(username, wname, name, exec_id):
             return ResourceInUse(msg="Experiment is still running and results are not available.")
 
 
-@experiments_bp.get('/<name>/results/csv/')
-@experiments_bp.get('/<name>/results/csv')
+@experiments_bp.get('/<experiment:name>/results/csv/')
+@experiments_bp.get('/<experiment:name>/results/csv')
 @token_auth.login_required
 def get_experiment_csv_results(username, wname, name):
     experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
@@ -259,8 +258,8 @@ def get_experiment_csv_results(username, wname, name):
         return get_experiment_execution_csv_results(username, wname, name, exec_id)
 
 
-@experiments_bp.get('/<name>/results/csv/<int:exec_id>/')
-@experiments_bp.get('/<name>/results/csv/<int:exec_id>')
+@experiments_bp.get('/<experiment:name>/results/csv/<int:exec_id>/')
+@experiments_bp.get('/<experiment:name>/results/csv/<int:exec_id>')
 @token_auth.login_required
 def get_experiment_execution_csv_results(username, wname, name, exec_id):
     experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
@@ -278,8 +277,8 @@ def get_experiment_execution_csv_results(username, wname, name, exec_id):
             return ResourceInUse(msg="Experiment is still running and csv results are not available.")
 
 
-@experiments_bp.delete('/<name>/')
-@experiments_bp.delete('/<name>')
+@experiments_bp.delete('/<experiment:name>/')
+@experiments_bp.delete('/<experiment:name>')
 @token_auth.login_required
 def delete_experiment(username, wname, name):
     return delete_resource(username, wname, _DFL_EXPERIMENT_NAME, name)

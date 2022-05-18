@@ -19,8 +19,8 @@ def create_metric_set(username, wname):
     return add_new_resource(username, wname, _DFL_METRICSET_NAME_)
 
 
-@metricsets_bp.get('/<name>/')
-@metricsets_bp.get('/<name>')
+@metricsets_bp.get('/<resource:name>/')
+@metricsets_bp.get('/<resource:name>')
 @token_auth.login_required
 def build_metric_set(username, wname, name):
     """
@@ -32,8 +32,8 @@ def build_metric_set(username, wname, name):
     return build_resource(username, wname, _DFL_METRICSET_NAME_, name)
 
 
-@metricsets_bp.patch('/<name>/')
-@metricsets_bp.patch('/<name>/')
+@metricsets_bp.patch('/<resource:name>/')
+@metricsets_bp.patch('/<resource:name>/')
 @token_auth.login_required
 def update_metricset(username, wname, name):
     """
@@ -52,8 +52,8 @@ def update_metricset(username, wname, name):
         return update_resource(username, wname, _DFL_METRICSET_NAME_, name, data)
 
 
-@metricsets_bp.delete('/<name>/')
-@metricsets_bp.delete('/<name>')
+@metricsets_bp.delete('/<resource:name>/')
+@metricsets_bp.delete('/<resource:name>')
 @token_auth.login_required
 def delete_metric_set(username, wname, name):
     """

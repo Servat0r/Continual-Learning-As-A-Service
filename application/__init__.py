@@ -30,6 +30,8 @@ def create_app(config_class=MongoConfig):
     # Put HERE the custom converters!
     app.url_map.converters['user'] = UsernameConverter
     app.url_map.converters['workspace'] = WorkspaceExperimentConverter
+    app.url_map.converters['resource'] = WorkspaceExperimentConverter
+    app.url_map.converters['experiment'] = WorkspaceExperimentConverter
 
     from application.routes import blueprints
 

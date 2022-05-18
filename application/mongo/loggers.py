@@ -17,7 +17,7 @@ if t.TYPE_CHECKING:
 
 class ExtendedCSVLogger(StrategyLogger):
     """
-    An extended CSVLogger that logs accuracy and loss metrics into customized
+    An extended CSVLogger that most of the implemented metrics into customized
     training and eval results csv files and is compatible with data manager
     (i.e., it uses BaseDataManager file and directory API), thus synchronizing
     with general experiment data storage (e.g. in Workspaces directories on
@@ -27,69 +27,72 @@ class ExtendedCSVLogger(StrategyLogger):
     _DFL_TRAIN_RESULTS_FILE_NAME = 'train_results.csv'
     _DFL_EVAL_RESULTS_FILE_NAME = 'eval_results.csv'
 
-    _MNAMES_TRANSLATIONS = {
-        'accuracy': {
-            'minibatch': 'Top1_Acc_MB',
-            'epoch': 'Top1_Acc_Epoch',
-            'experience': 'Top1_Acc_Exp',
-            'stream': 'Top1_Acc_Stream',
-        },
-        'loss': {
-            'minibatch': "Loss_MB",
-            'epoch': "Loss_Epoch",
-            'experience': "Loss_Exp",
-            'stream': "Loss_Stream",
-        },
-        'forgetting': {
-            'experience': "ExperienceForgetting",
-            'stream': "StreamForgetting",
-        },
+    # noinspection PyUnusedLocal
+    @staticmethod
+    def mnames_translations(gpu_id: int = 0, **kwargs):
+        return {
+            'accuracy': {
+                'minibatch': 'Top1_Acc_MB',
+                'epoch': 'Top1_Acc_Epoch',
+                'experience': 'Top1_Acc_Exp',
+                'stream': 'Top1_Acc_Stream',
+            },
+            'loss': {
+                'minibatch': "Loss_MB",
+                'epoch': "Loss_Epoch",
+                'experience': "Loss_Exp",
+                'stream': "Loss_Stream",
+            },
+            'forgetting': {
+                'experience': "ExperienceForgetting",
+                'stream': "StreamForgetting",
+            },
 
-        'timing': {
-            'minibatch': "Time_MB",
-            'epoch': "Time_Epoch",
-            'experience': "Time_Exp",
-            'stream': "Time_Stream",
-        },
-        'ram_usage': {
-            'minibatch': "MaxRAMUsage_MB",
-            'epoch': "MaxRAMUsage_Epoch",
-            'experience': "MaxRAMUsage_Exp",
-            'stream': "MaxRAMUsage_Stream",
-        },
-        'cpu_usage': {
-            'minibatch': "CPUUsage_MB",
-            'epoch': "CPUUsage_Epoch",
-            'experience': "CPUUsage_Exp",
-            'stream': "CPUUsage_Stream",
-        },
-        'disk_usage': {
-            'minibatch': "",
-            'epoch': "",
-            'experience': "",
-            'stream': "",
-        },
-        'gpu_usage': {
-            'minibatch': "",
-            'epoch': "",
-            'experience': "",
-            'stream': "",
-        },
+            'timing': {
+                'minibatch': "Time_MB",
+                'epoch': "Time_Epoch",
+                'experience': "Time_Exp",
+                'stream': "Time_Stream",
+            },
+            'ram_usage': {
+                'minibatch': "MaxRAMUsage_MB",
+                'epoch': "MaxRAMUsage_Epoch",
+                'experience': "MaxRAMUsage_Exp",
+                'stream': "MaxRAMUsage_Stream",
+            },
+            'cpu_usage': {
+                'minibatch': "CPUUsage_MB",
+                'epoch': "CPUUsage_Epoch",
+                'experience': "CPUUsage_Exp",
+                'stream': "CPUUsage_Stream",
+            },
+            'disk_usage': {
+                'minibatch': "DiskUsage_MB",
+                'epoch': "DiskUsage_Epoch",
+                'experience': "DiskUsage_Exp",
+                'stream': "DiskUsage_Stream",
+            },
+            'gpu_usage': {
+                'minibatch': f"MaxGPU{gpu_id}Usage_MB",
+                'epoch': f"MaxGPU{gpu_id}Usage_Epoch",
+                'experience': f"MaxGPU{gpu_id}Usage_Experience",
+                'stream': f"MaxGPU{gpu_id}Usage_Stream",
+            },
 
-        'bwt': {
-            'experience': "",
-            'stream': "",
-        },
-        'forward_transfer': {
-            'experience': "",
-            'stream': "",
-        },
-        'MAC': {
-            'minibatch': "",
-            'epoch': "",
-            'experience': "",
-        },
-    }
+            'bwt': {
+                'experience': "ExperienceBWT",
+                'stream': "StreamBWT",
+            },
+            'forward_transfer': {
+                'experience': "ExperienceForwardTransfer",
+                'stream': "StreamForwardTransfer",
+            },
+            'MAC': {
+                'minibatch': "MAC_MB",
+                'epoch': "MAC_Epoch",
+                'experience': "MAC_Exp",
+            },
+        }
 
     _MNAMES_ORDER: list[str] = [
         'accuracy',
@@ -229,7 +232,7 @@ class ExtendedCSVLogger(StrategyLogger):
 
         for name in self.metric_names:
             current_value = 0
-            val_start = self._MNAMES_TRANSLATIONS.get(name).get(mtype)
+            val_start = self.mnames_translations().get(name).get(mtype)
             if val_start is not None:
                 for val in metric_values:
                     if val.name.startswith(val_start):
@@ -242,28 +245,6 @@ class ExtendedCSVLogger(StrategyLogger):
             self.training_exp_id, strategy.clock.train_exp_epochs, *vals_to_print,
         )
 
-        """
-        for val in metric_values:
-            if 'train_stream' in val.name:
-                if val.name.startswith('Top1_Acc_Epoch'):
-                    train_acc = val.value
-                elif val.name.startswith('Loss_Epoch'):
-                    train_loss = val.value
-                elif val.name.startswith('CPUUsage_Epoch'):
-                    train_cpu = val.value
-                elif val.name.startswith('DiskUsage_Epoch'):
-                    train_disk = val.value
-                elif val.name.startswith('MaxRAMUsage_Epoch'):
-                    train_ram = val.value
-
-        self.print_train_metrics(self.training_exp_id,
-                                 strategy.clock.train_exp_epochs,
-                                 train_acc, self.val_acc, train_loss,
-                                 self.val_loss, train_cpu, self.val_cpu,
-                                 train_disk, self.val_disk,
-                                 train_ram, self.val_ram)
-        """
-
     def after_eval_exp(self, strategy: 'BaseStrategy',
                        metric_values: t.List['MetricValue'], **kwargs):
         super().after_eval_exp(strategy, metric_values, **kwargs)
@@ -274,7 +255,7 @@ class ExtendedCSVLogger(StrategyLogger):
         
         for name in self.metric_names:
             current_value = 0
-            val_start = self._MNAMES_TRANSLATIONS.get(name).get(mtype)
+            val_start = self.mnames_translations().get(name).get(mtype)
             if val_start is not None:
                 for val in metric_values:
                     if val.name.startswith(val_start):
@@ -284,34 +265,6 @@ class ExtendedCSVLogger(StrategyLogger):
                 self.val_dict[name] = current_value
             else:
                 vals_to_print.append(current_value)
-
-        """
-        for val in metric_values:
-            if self.in_train_phase:  # validation within training
-                if val.name.startswith('Top1_Acc_Exp'):
-                    self.val_acc = val.value
-                elif val.name.startswith('Loss_Exp'):
-                    self.val_loss = val.value
-                elif val.name.startswith('CPUUsage_Exp'):
-                    self.val_cpu = val.value
-                elif val.name.startswith('DiskUsage_Exp'):
-                    self.val_disk = val.value
-                elif val.name.startswith('MaxRAMUsage_Exp'):
-                    self.val_ram = val.value
-            else:
-                if val.name.startswith('Top1_Acc_Exp'):
-                    acc = val.value
-                elif val.name.startswith('Loss_Exp'):
-                    loss = val.value
-                elif val.name.startswith('ExperienceForgetting'):
-                    forgetting = val.value
-                elif val.name.startswith('CPUUsage_Exp'):
-                    cpu = val.value
-                elif val.name.startswith('DiskUsage_Exp'):
-                    disk = val.value
-                elif val.name.startswith('MaxRAMUsage_Exp'):
-                    ram = val.value
-        """
 
         if not self.in_train_phase:
             self.print_eval_metrics(

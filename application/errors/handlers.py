@@ -123,6 +123,20 @@ InvalidPassword = ServerResponseError(
     f" among '$', '%', '&', '?', '@' and '#'.",
 )
 
+InvalidResourceName = ServerResponseError(
+    HTTPStatus.BAD_REQUEST,
+    'InvalidResourceName',
+    f"Workspace/Resource/Experiment name must contain only alphanumeric characters, hyphens (-)" +
+    f" and underscores (_), and cannot contain multiple consecutive characters among the latter ones.",
+)
+
+InvalidPath = ServerResponseError(
+    HTTPStatus.BAD_REQUEST,
+    'InvalidPath',
+    f"Allowed path must not contain any of the following characters:" +
+    f" '<', '>', ':', '\"', '\\', '|', '?', '*'.",
+)
+
 InvalidParameterCombination = ServerResponseError(
     HTTPStatus.BAD_REQUEST,
     'InvalidParameterCombination',
@@ -203,24 +217,32 @@ __all__ = [
     'InvalidToken',
     'ExpiredToken',
     'MissingToken',
+
     'PermissionDenied',
     'ForbiddenOperation',
     'BadJSONSyntax',
     'BadRequestSyntax',
     'MalformedQueryString',
+
     'MissingParameter',
     'InvalidUsername',
     'InvalidEmail',
     'InvalidPassword',
+
+    'InvalidResourceName',
+    'InvalidPath',
+
     'InvalidParameterCombination',
     'InvalidParameterValue',
     'InvalidParameter',
     'InvalidQueryParameter',
+
     'NotExistingUser',
     'ExistingUser',
     'ResourceNotFound',
     'ResourceInUse',
     'InternalFailure',
     'ServiceUnavailable',
+
     'RouteNotImplemented',
 ]

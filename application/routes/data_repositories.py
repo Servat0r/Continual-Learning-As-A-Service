@@ -4,6 +4,7 @@ from werkzeug.datastructures import FileStorage
 
 from application.errors import *
 from application.utils import checked_json, make_success_dict
+from application.validation import *
 from application.data_managing import TFContentLabel
 from application.models import Workspace
 
@@ -36,8 +37,10 @@ def create_data_repository(username, wname):
     :param wname:
     :return:
     """
-    result, error = check_current_user_ownership(username,
-                                                 f"You cannot create a data repository for another user ({username}).")
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot create a data repository for another user ({username}).",
+    )
     if not result:
         return error
 
@@ -51,6 +54,9 @@ def create_data_repository(username, wname):
     workspace = Workspace.canonicalize((username, wname))
     name = data['name']
     description = data.get('description')
+    result, msg = validate_workspace_resource_experiment(name)
+    if not result:
+        return InvalidResourceName(msg)
 
     data_repository = BaseDataRepository.create(name, workspace, desc=description)
     if data_repository:
@@ -59,13 +65,15 @@ def create_data_repository(username, wname):
         return InternalFailure(msg=f"Failed to create data repository '{name}'.")
 
 
-@data_repositories_bp.delete('/<name>/')
-@data_repositories_bp.delete('/<name>')
+@data_repositories_bp.delete('/<resource:name>/')
+@data_repositories_bp.delete('/<resource:name>')
 @token_auth.login_required
 def delete_repo(username, wname, name):
 
-    result, error = check_current_user_ownership(username,
-                                                 f"You cannot delete another user ('{username}') data repository.")
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot delete another user ('{username}') data repository.",
+    )
     if not result:
         return error
 
@@ -83,12 +91,14 @@ def delete_repo(username, wname, name):
         return ResourceNotFound(resource=name)
 
 
-@data_repositories_bp.get('/<name>/')
-@data_repositories_bp.get('/<name>')
+@data_repositories_bp.get('/<resource:name>/')
+@data_repositories_bp.get('/<resource:name>')
 @token_auth.login_required
 def get_data_repo(username, wname, name):
-    result, error = check_current_user_ownership(username,
-                                                 f"You cannot create a data repository for another user ({username}).")
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot create a data repository for another user ({username}).",
+    )
     if not result:
         return error
 
@@ -102,12 +112,14 @@ def get_data_repo(username, wname, name):
         return ResourceNotFound(resource=name)
 
 
-@data_repositories_bp.get('/<name>/desc/')
-@data_repositories_bp.get('/<name>/desc')
+@data_repositories_bp.get('/<resource:name>/desc/')
+@data_repositories_bp.get('/<resource:name>/desc')
 @token_auth.login_required
 def get_data_repo_desc(username, wname, name):
-    result, error = check_current_user_ownership(username,
-                                                 f"You cannot create a data repository for another user ({username}).")
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot create a data repository for another user ({username}).",
+    )
     if not result:
         return error
 
@@ -122,8 +134,8 @@ def get_data_repo_desc(username, wname, name):
         return ResourceNotFound(resource=name)
 
 
-@data_repositories_bp.post('/<name>/folders/')
-@data_repositories_bp.post('/<name>/folders')
+@data_repositories_bp.post('/<resource:name>/folders/')
+@data_repositories_bp.post('/<resource:name>/folders')
 @token_auth.login_required
 def create_sub_folder(username, wname, name):
     """
@@ -149,6 +161,14 @@ def create_sub_folder(username, wname, name):
     folder_name = data['name']
     folder_path = data.get('path')
 
+    result, msg = validate_workspace_resource_experiment(folder_name)
+    if not result:
+        return InvalidResourceName(msg)
+
+    result, msg = validate_path(folder_path)
+    if not result:
+        return InvalidPath(msg)
+
     if (folder_path is not None) and not isinstance(folder_path, str):
         return BadRequestSyntax(msg=f"'folder_path' must be a string!")
 
@@ -168,8 +188,8 @@ def create_sub_folder(username, wname, name):
         return ResourceNotFound(resource=name)
 
 
-@data_repositories_bp.patch('/<name>/folders/')
-@data_repositories_bp.patch('/<name>/folders')
+@data_repositories_bp.patch('/<resource:name>/folders/')
+@data_repositories_bp.patch('/<resource:name>/folders')
 @token_auth.login_required
 def move_folder(username, wname, name):
     """
@@ -187,8 +207,10 @@ def move_folder(username, wname, name):
     :param name:
     :return:
     """
-    result, error = check_current_user_ownership(username,
-                                                 f"You cannot create a folder in another user ({username}) repository.")
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot create a folder in another user ({username}) repository.",
+    )
     if not result:
         return error
 
@@ -196,10 +218,21 @@ def move_folder(username, wname, name):
     if error:
         return error(**data) if data else error()
 
-    src_path = data['src_path'].split('/')
+    src_path_str = data['src_path']
+    dest_path_str = data['dest_path']
+    
+    result, msg = validate_path(src_path_str)
+    if not result:
+        return InvalidPath(msg)
+
+    result, msg = validate_path(dest_path_str)
+    if not result:
+        return InvalidPath(msg)
+
+    src_path = src_path_str.split('/')
     src_path = [item for item in src_path if len(item) > 0]
 
-    dest_path = data['dest_path'].split('/')
+    dest_path = dest_path_str.split('/')
     dest_path = [item for item in dest_path if len(item) > 0]
 
 
@@ -223,8 +256,8 @@ def move_folder(username, wname, name):
             return InternalFailure(msg=exc.args[0])
 
 
-@data_repositories_bp.delete('/<name>/folders/<path:path>/')
-@data_repositories_bp.delete('/<name>/folders/<path:path>')
+@data_repositories_bp.delete('/<resource:name>/folders/<path:path>/')
+@data_repositories_bp.delete('/<resource:name>/folders/<path:path>')
 @token_auth.login_required
 def delete_sub_folder(username, wname, name, path):
     result, error = \
@@ -232,6 +265,10 @@ def delete_sub_folder(username, wname, name, path):
                                      f"You cannot create a folder in another user ({username}) repository.")
     if not result:
         return error
+
+    result, msg = validate_path(path)
+    if not result:
+        return InvalidPath(msg)
 
     workspace = Workspace.canonicalize((username, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
@@ -251,8 +288,8 @@ def delete_sub_folder(username, wname, name, path):
         return InternalFailure(msg=exc.args[0])
 
 
-@data_repositories_bp.patch('/<name>/folders/files/<path:path>/')
-@data_repositories_bp.patch('/<name>/folders/files/<path:path>')
+@data_repositories_bp.patch('/<resource:name>/folders/files/<path:path>/')
+@data_repositories_bp.patch('/<resource:name>/folders/files/<path:path>')
 @token_auth.login_required
 def send_files(username, wname, name, path):
     """
@@ -275,14 +312,19 @@ def send_files(username, wname, name, path):
     :param path:
     :return:
     """
-    result, error = \
-        check_current_user_ownership(username,
-                                     f"You cannot create a folder in another user ({username}) repository.")
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot create a folder in another user ({username}) repository.",
+    )
     if not result:
         return error
 
     workspace = Workspace.canonicalize((username, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
+
+    result, msg = validate_path(path)
+    if not result:
+        return InvalidPath(msg)
 
     base_path_list: list[str] = path.split('/')
     base_path_list = [item for item in base_path_list if len(item) > 0]
@@ -299,7 +341,12 @@ def send_files(username, wname, name, path):
             files_and_labels: list[TFContentLabel] = []
             for fstorage in files:
 
-                pathlist = fstorage.filename.split('/')
+                file_path = fstorage.filename
+                result, msg = validate_path(file_path)
+                if not result:
+                    return InvalidPath(msg)
+
+                pathlist = file_path.split('/')
                 pathlist = [item for item in pathlist if len(item) > 0]
                 dir_path_list = base_path_list + pathlist[:-1]
 

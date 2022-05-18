@@ -19,8 +19,8 @@ def create_benchmark(username, wname):
     return add_new_resource(username, wname, _DFL_BENCHMARK_NAME_)
 
 
-@benchmarks_bp.get('/<name>/')
-@benchmarks_bp.get('/<name>')
+@benchmarks_bp.get('/<resource:name>/')
+@benchmarks_bp.get('/<resource:name>')
 @token_auth.login_required
 def build_benchmark(username, wname, name):
     """
@@ -32,8 +32,8 @@ def build_benchmark(username, wname, name):
     return build_resource(username, wname, _DFL_BENCHMARK_NAME_, name)
 
 
-@benchmarks_bp.patch('/<name>/')
-@benchmarks_bp.patch('/<name>/')
+@benchmarks_bp.patch('/<resource:name>/')
+@benchmarks_bp.patch('/<resource:name>/')
 @token_auth.login_required
 def update_benchmark(username, wname, name):
     """
@@ -52,8 +52,8 @@ def update_benchmark(username, wname, name):
         return update_resource(username, wname, _DFL_BENCHMARK_NAME_, name, data)
 
 
-@benchmarks_bp.delete('/<name>/')
-@benchmarks_bp.delete('/<name>')
+@benchmarks_bp.delete('/<resource:name>/')
+@benchmarks_bp.delete('/<resource:name>')
 @token_auth.login_required
 def delete_benchmark(username, wname, name):
     """

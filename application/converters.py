@@ -18,7 +18,7 @@ class UsernameConverter(BaseConverter):
 class WorkspaceExperimentConverter(BaseConverter):
 
     def to_python(self, value: str):
-        result, msg = validate_workspace_experiment(value)
+        result, msg = validate_workspace_resource_experiment(value)
         if result:
             return value
         else:
@@ -41,9 +41,23 @@ class AlphaNumConverter(BaseConverter):
         return BaseConverter.to_url(self, value)
 
 
+class AllowedPathConverter(BaseConverter):
+
+    def to_python(self, value: str):
+        result, msg = validate_path(value)
+        if result:
+            return value
+        else:
+            raise WerkzeugValidationError(msg)
+
+    def to_url(self, value) -> str:
+        return BaseConverter.to_url(self, value)
+
+
 __all__ = [
     'UsernameConverter',
     'WorkspaceExperimentConverter',
     'AlphaNumConverter',
+    'AllowedPathConverter',
     'WerkzeugValidationError',
 ]

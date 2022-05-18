@@ -41,8 +41,10 @@ def add_new_resource(username, workspace, typename: str | t.Type[DataType]) -> R
     :param typename:
     :return:
     """
-    result, error = check_current_user_ownership(username,
-                                                 f"You cannot add a new {typename} for another user ({username}).")
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot add a new {typename} for another user ({username}).",
+    )
     if not result:
         return error
 
@@ -83,8 +85,10 @@ def build_resource(username, workspace, typename: str | t.Type[DataType], name) 
     :param name:
     :return:
     """
-    result, error = check_current_user_ownership(username,
-                                                 f"You cannot build a {typename} for another user ({username}).")
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot build a {typename} for another user ({username}).",
+    )
     if not result:
         return error
 
@@ -146,8 +150,10 @@ def update_resource(username, workspace, typename: str | t.Type[DataType], name,
     :param updata:
     :return:
     """
-    result, error = check_current_user_ownership(username,
-                                                 f"You cannot update a {typename} for another user ({username}).")
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot update a {typename} for another user ({username}).",
+    )
     if not result:
         return error
 
@@ -187,8 +193,10 @@ def delete_resource(username, workspace, typename: str | t.Type[DataType], name)
     :param name:
     :return:
     """
-    result, error = check_current_user_ownership(username,
-                                                 f"You cannot delete a {typename} for another user ({username}).")
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot delete a {typename} for another user ({username}).",
+    )
     if not result:
         return error
 

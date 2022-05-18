@@ -13,8 +13,6 @@ from .strategies import *
 
 from .experiments import *
 
-from .specials import *
-
 blueprints = {
     auth_bp,
     users_bp,
@@ -29,6 +27,4 @@ blueprints = {
     strategies_bp,
 
     experiments_bp,
-
-    specials_bp,
 }

@@ -19,15 +19,15 @@ def create_criterion(username, wname):
     return add_new_resource(username, wname, _DFL_CRITERION_NAME)
 
 
-@criterions_bp.get('/<name>/')
-@criterions_bp.get('/<name>')
+@criterions_bp.get('/<resource:name>/')
+@criterions_bp.get('/<resource:name>')
 @token_auth.login_required
 def build_criterion(username, wname, name):
     return build_resource(username, wname, _DFL_CRITERION_NAME, name)
 
 
-@criterions_bp.patch('/<name>/')
-@criterions_bp.patch('/<name>')
+@criterions_bp.patch('/<resource:name>/')
+@criterions_bp.patch('/<resource:name>')
 @token_auth.login_required
 def update_criterion(username, wname, name):
     data, error, opts, extras = checked_json(request, True)
@@ -40,8 +40,8 @@ def update_criterion(username, wname, name):
         return update_resource(username, wname, _DFL_CRITERION_NAME, name, data)
 
 
-@criterions_bp.delete('/<name>/')
-@criterions_bp.delete('/<name>')
+@criterions_bp.delete('/<resource:name>/')
+@criterions_bp.delete('/<resource:name>')
 @token_auth.login_required
 def delete_criterion(username, wname, name):
     return delete_resource(username, wname, _DFL_CRITERION_NAME, name)

@@ -35,7 +35,7 @@ class MongoWorkspace(MongoBaseWorkspace):
     }
 
     owner = db.ReferenceField(MongoBaseUser, required=True)
-    name = db.StringField(max_length=WORKSPACE_EXPERIMENT_MAX_CHARS, required=True)
+    name = db.StringField(required=True)
     status = db.StringField(max_length=8, required=True)
     metadata = db.EmbeddedDocumentField(WorkspaceMetadata, required=True)
 
@@ -92,7 +92,7 @@ class MongoWorkspace(MongoBaseWorkspace):
         if owner is None:
             return None
 
-        result, msg = validate_workspace_experiment(name)
+        result, msg = validate_workspace_resource_experiment(name)
         if not result:
             raise ValueError(msg)
 

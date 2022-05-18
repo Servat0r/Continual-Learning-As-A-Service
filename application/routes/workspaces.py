@@ -5,6 +5,7 @@ from http import HTTPStatus
 
 from application.errors import *
 from application.utils import *
+from application.validation import *
 
 from application.resources.contexts import UserWorkspaceResourceContext
 from application.models import User, Workspace
@@ -46,6 +47,11 @@ def create_workspace(username):
 
     if current_user.username != username:
         return ForbiddenOperation(msg="You cannot create a workspace for another user!")
+
+    wname = data['name']
+    result, msg = validate_workspace_resource_experiment(wname)
+    if not result:
+        return InvalidResourceName(payload={'resource_name': wname})
 
     workspace = Workspace.create(data['name'], current_user)
     if workspace:
@@ -111,7 +117,12 @@ def rename_workspace(username, wname):
         context = UserWorkspaceResourceContext(username, wname)
         uri = Workspace.dfl_uri_builder(context)
         workspace = Workspace.get_by_uri(uri)
+
         new_name = data['new_name']
+        result, msg = validate_workspace_resource_experiment(new_name)
+        if not result:
+            return InvalidResourceName(payload={'resource_name': new_name})
+
         result, msg = workspace.rename(wname, new_name)
         if not result:
             return InternalFailure(msg=msg)

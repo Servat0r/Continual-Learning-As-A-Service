@@ -1,8 +1,11 @@
 """
-Validation functions for url elements (username, password, workspace name etc.)
+Validation functions for url elements (username, password, workspace/resource/experiment name,
+allowed data repository paths etc.)
 """
 from __future__ import annotations
 from pyisemail import is_email
+
+from .utils import TBoolStr
 
 
 # Validation help
@@ -26,11 +29,13 @@ def _requirements(subject: str, desc: str) -> str:
     return f"{subject} must contain {desc}."
 
 
-def validation_function_template(value: str, subject: str, min_chars: int = None,
-                                 max_chars: int = None) -> tuple[bool, str | None]:
+def base_validation_function(
+        value: str, subject: str, min_chars: int = None,
+        max_chars: int = None, not_empty: bool = True,
+) -> TBoolStr:
     if value is None:
         return False, _not_none(subject)
-    elif len(value) == 0:
+    elif not_empty and len(value) == 0:
         return False, _not_empty(subject)
     elif (min_chars is not None) and (len(value) < min_chars):
         return False, _min_chars(subject, min_chars)
@@ -47,8 +52,8 @@ _USERNAME_REQS = \
     "Username must contain only alphanumeric characters and hyphens and cannot have multiple consecutive hyphens."
 
 
-def validate_username(username: str) -> tuple[bool, str | None]:
-    result, msg = validation_function_template(username, "Username", USERNAME_MIN_CHARS, USERNAME_MAX_CHARS)
+def validate_username(username: str) -> TBoolStr:
+    result, msg = base_validation_function(username, "Username", USERNAME_MIN_CHARS, USERNAME_MAX_CHARS)
     if not result:
         return result, msg
     else:
@@ -64,8 +69,7 @@ def validate_username(username: str) -> tuple[bool, str | None]:
 
 
 # Email validation
-def validate_email(email: str, check_dns: bool = False) -> tuple[bool, str | None]:
-    result, msg = False, ''
+def validate_email(email: str, check_dns: bool = False) -> TBoolStr:
     try:
         result = is_email(email, check_dns)
         if result:
@@ -84,7 +88,7 @@ _PASSWORD_REQS = \
     f" a lowercase character; a special character among {SPECIALS}."
 
 
-def validate_password(password: str) -> tuple[bool, str | None]:
+def validate_password(password: str) -> TBoolStr:
     """
     Checks if provided password (for registering or changing password) satisfies password requirements:
     password must have at least:
@@ -96,7 +100,7 @@ def validate_password(password: str) -> tuple[bool, str | None]:
     :param password:
     :return:
     """
-    result, msg = validation_function_template(password, "Password", PASSWORD_MIN_CHARS)
+    result, msg = base_validation_function(password, "Password", PASSWORD_MIN_CHARS)
     if not result:
         return result, msg
     else:
@@ -120,30 +124,27 @@ def validate_password(password: str) -> tuple[bool, str | None]:
             return result, _PASSWORD_REQS
 
 
-# Workspace and Experiments validation
-WORKSPACE_EXPERIMENT_MIN_CHARS = 4
-WORKSPACE_EXPERIMENT_MAX_CHARS = 64
-_WORKSPACE_EXPERIMENT_DESC = \
-    f"Workspace/Experiment name must contain only alphanumeric characters, hyphens (-), underscores (_)" \
-    f" or dots (.), and cannot contain multiple consecutive characters among the latter ones."
+# Workspace/Resource/Experiment validation (names for: workspaces, data repositories, resources)
+_WORKSPACE_RESOURCE_EXPERIMENT_DESC = \
+    f"Workspace/DataRepository/Resource/Experiment name must contain only alphanumeric characters, hyphens (-)" \
+    f" and underscores (_), and cannot contain multiple consecutive characters among the latter ones."
 
 
-def validate_workspace_experiment(workspace: str) -> tuple[bool, str | None]:
-    result, msg = validation_function_template(workspace, "Workspace/Experiment", WORKSPACE_EXPERIMENT_MIN_CHARS,
-                                               WORKSPACE_EXPERIMENT_MAX_CHARS)
+def validate_workspace_resource_experiment(name: str) -> TBoolStr:
+    result, msg = base_validation_function(name, "Workspace/Experiment")
     if not result:
         return result, msg
     else:
-        specials = ['.', '-', '_']
-        wlen = len(workspace)
+        specials = ['-', '_']
+        wlen = len(name)
         for index in range(wlen):
-            char = workspace[index]
+            char = name[index]
             if (not char.isalnum()) and (char not in specials):
-                return False, _WORKSPACE_EXPERIMENT_DESC
+                return False, _WORKSPACE_RESOURCE_EXPERIMENT_DESC
             elif (char in specials) and (index < wlen - 1):
-                nextchar = workspace[index+1]
+                nextchar = name[index+1]
                 if nextchar in specials:
-                    return False, _WORKSPACE_EXPERIMENT_DESC
+                    return False, _WORKSPACE_RESOURCE_EXPERIMENT_DESC
         return True, None
 
 
@@ -153,13 +154,25 @@ ALNUM_MAX_CHARS = 64
 _ALNUM_DESC = "This identifier must contain only alphanumeric characters."
 
 
-def validate_alnum(alnum: str) -> tuple[bool, str | None]:
-    result, msg = validation_function_template(alnum, 'This identifier', ALNUM_MIN_CHARS, ALNUM_MAX_CHARS)
+def validate_alnum(alnum: str) -> TBoolStr:
+    result, msg = base_validation_function(alnum, 'This identifier', ALNUM_MIN_CHARS, ALNUM_MAX_CHARS)
     if not result:
         return result, msg
     elif not alnum.isalnum():
         return False, _ALNUM_DESC
     else:
+        return True, None
+
+
+def validate_path(path: str) -> TBoolStr:
+    result, msg = base_validation_function(path, "Path", not_empty=False)
+    if not result:
+        return result, msg
+    else:
+        forbidden = ['<', '>', ':', '"', '\\', '|', '?', '*']  # Windows compliant (for printable chars)
+        for char in path:
+            if char in forbidden:
+                return False, f"Pathnames cannot contain a '{char}' character."
         return True, None
 
 
@@ -174,11 +187,11 @@ __all__ = [
     'SPECIALS',
     'validate_password',
 
-    'WORKSPACE_EXPERIMENT_MAX_CHARS',
-    'WORKSPACE_EXPERIMENT_MIN_CHARS',
-    'validate_workspace_experiment',
+    'validate_workspace_resource_experiment',
 
     'ALNUM_MAX_CHARS',
     'ALNUM_MIN_CHARS',
     'validate_alnum',
+
+    'validate_path',
 ]
