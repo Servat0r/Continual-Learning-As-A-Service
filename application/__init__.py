@@ -41,6 +41,7 @@ def create_app(config_class=MongoConfig):
     if not app.debug and not app.testing:
 
         os.makedirs('logs', exist_ok=True)
+        os.makedirs(app.config["DATASET_ROOT_DIR"], exist_ok=True)
 
         file_handler = RotatingFileHandler(os.path.join('logs', 'auth_server.log'), maxBytes=10240,
                                            backupCount=10)

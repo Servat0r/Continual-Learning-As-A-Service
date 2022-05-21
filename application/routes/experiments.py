@@ -92,11 +92,11 @@ def setup_experiment(username, wname, name):
     if err_response is not None:
         return err_response
 
-    result = experiment_config.setup()
+    result, ex = experiment_config.setup()
     if result:
         return make_success_dict(msg="Setup successfully completed.")
     else:
-        return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Setup failed.")  # todo che errore?
+        return InternalFailure(msg=f"Setup failed: {ex}: '{ex.args[0]}'.")
 
 
 @experiments_bp.patch('/<experiment:name>/')

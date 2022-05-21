@@ -1,5 +1,5 @@
 from __future__ import annotations
-from avalanche.logging import InteractiveLogger
+from avalanche.logging import InteractiveLogger, CSVLogger
 from avalanche.training.strategies import BaseStrategy
 from avalanche.training.plugins import EvaluationPlugin
 
@@ -46,6 +46,7 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
             loggers=[
                 ExtendedCSVLogger(log_folder=log_folder, metricset=metricset),
                 InteractiveLogger(),
+                CSVLogger(log_folder=os.path.join(*log_folder)),
             ]
         )
 

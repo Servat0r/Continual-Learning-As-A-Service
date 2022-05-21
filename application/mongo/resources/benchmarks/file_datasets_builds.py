@@ -1,82 +1,17 @@
 from __future__ import annotations
 from torchvision.transforms import ToTensor
-from avalanche.benchmarks.classic import SplitMNIST
 
 from application.utils import TBoolStr, t, TDesc
 from application.database import db
 from application.data_managing import BaseDataManager
+from application.resources import ResourceContext, DataType
 
-from application.resources.contexts import ResourceContext
-from application.resources.base import DataType
-
-from application.mongo.resources.mongo_base_configs import *
-from application.mongo.datasets import TDMDatasetDesc, data_manager_datasets_benchmark, \
-    greyscale_image_loader, default_image_loader
+from application.mongo.datasets import TDMDatasetDesc, greyscale_image_loader, \
+    default_image_loader, data_manager_datasets_benchmark
+from application.mongo.resources.mongo_base_configs import MongoEmbeddedBuildConfig, MongoBuildConfig
 from .base_builds import *
 
 
-# SplitMNIST builder
-@MongoBuildConfig.register_build_config('SplitMNIST')
-class SplitMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
-    """
-    Build config for a standard SplitMNIST benchmark based on avalanche.benchmarks.classics#SplitMNIST function.
-    """
-    n_experiences = db.IntField(required=True)
-    return_task_id = db.BooleanField(required=False, default=False)
-    seed = db.IntField(default=None)
-    fixed_class_order = db.ListField(db.IntField(), default=None)
-    shuffle = db.BooleanField(default=True)
-    dataset_root = db.StringField(default=None)
-
-    @classmethod
-    def get_required(cls) -> set[str]:
-        return super().get_required().union({'n_experiences'})
-
-    @classmethod
-    def get_optionals(cls) -> set[str]:
-        return super().get_optionals().union({
-            'return_task_id',
-            'seed',
-            'fixed_class_order',
-            'shuffle',
-            'dataset_root',
-        })
-
-    @staticmethod
-    def target_type() -> t.Type[DataType]:
-        return DataType.get_type('Benchmark')
-
-    @classmethod
-    def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super().validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-        iname, values = context.pop()
-        params = values['params']
-        result = all(isinstance(val, int) for val in params.values())
-        return result, None if result else "One or more parameter(s) is/are incorrect."
-
-    @classmethod
-    def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
-        return super().create(data, tp, context, save)
-
-    def build(self, context: ResourceContext, locked=False, parents_locked=False):
-        benchmark = SplitMNIST(
-            self.n_experiences,
-            return_task_id=self.return_task_id,
-            seed=self.seed,
-            fixed_class_order=self.fixed_class_order,
-            shuffle=self.shuffle,
-            dataset_root=self.dataset_root,
-        )
-        # noinspection PyArgumentList
-        return self.target_type()(benchmark)
-
-
-# FashionMNIST builder
-
-
-# PathsDataset builder and helper
 class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
 
     """
@@ -106,20 +41,20 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         result, msg = super(DataStreamFolderConfig, cls).validate_input(data, context)
         if not result:
             return result, msg
-        
+
         iname, values = context.pop()
         params = values['params']
-        
+
         root = params.get('root', None)
         all_files = params.get('all', True)
         files = params.get('files', None)
-        
+
         if root is not None and not isinstance(root, str):
             return False, "'root' parameter must be a string!"
-        
+
         if not isinstance(all_files, bool):
             return False, "'all' parameter must be a boolean!"
-        
+
         if files is not None:
             if not isinstance(files, list):
                 return False, "'files' parameter must be a list!"
@@ -132,7 +67,7 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True) -> DataStreamFolderConfig | None:
-        result = super().create(data, context, save)
+        result = super(DataStreamFolderConfig, cls).create(data, context, save)
         return None if result is None else t.cast(DataStreamFolderConfig, result)
 
     def get_root(self) -> str | None:
@@ -170,11 +105,11 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
 
     @classmethod
     def get_required(cls) -> set[str]:
-        return super().get_required()
+        return super(DataStreamExperienceConfig, cls).get_required()
 
     @classmethod
     def get_optionals(cls) -> set[str]:
-        return super().get_optionals().union({'configs'})
+        return super(DataStreamExperienceConfig, cls).get_optionals().union({'configs'})
 
     @classmethod
     def validate_input(cls, data: TDesc | list, context: ResourceContext) -> TBoolStr:
@@ -358,10 +293,6 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
             'eval_transform', 'eval_target_transform',
         })
 
-    @staticmethod
-    def target_type() -> t.Type[DataType]:
-        return DataType.get_type('Benchmark')
-
     @classmethod
     def _validate_stream_list(cls, stream_list: list[list[dict]], context: ResourceContext) -> TBoolStr:
         for i in range(len(stream_list)):
@@ -389,7 +320,7 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
             return result, msg
         iname, values = context.pop()
         params = values['params']
-        
+
         train_stream_list = params['train_stream']                                      # list[list[dict]]
         test_stream_list = params['test_stream']                                        # list[list[dict]]
         other_streams_dict = params.get('other_streams', {})                            # dict[str, # list[list[dict]]]
@@ -452,16 +383,6 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
 
         # noinspection PyArgumentList
         benchmark_config = cls(**params)
-
-        #for tstream in train_stream_list:
-        #    benchmark_config.train_stream.append(tstream)
-
-        #for tstream in test_stream_list:
-        #    benchmark_config.test_stream.append(tstream)
-
-        #for stream_name, stream_value in other_streams_dict.items():
-        #    benchmark_config.other_streams[stream_name] = stream_value
-
         return benchmark_config
 
     def build(self, context: ResourceContext, locked=False, parents_locked=False):
@@ -503,9 +424,3 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         except Exception as ex:
             print(ex)
             return None
-
-
-__all__ = [
-    'SplitMNISTBuildConfig',
-    'DataManagerBuildConfig',
-]

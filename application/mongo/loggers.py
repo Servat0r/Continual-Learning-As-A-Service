@@ -24,8 +24,8 @@ class ExtendedCSVLogger(StrategyLogger):
     the local FileSystem).
     """
 
-    _DFL_TRAIN_RESULTS_FILE_NAME = 'train_results.csv'
-    _DFL_EVAL_RESULTS_FILE_NAME = 'eval_results.csv'
+    _DFL_TRAIN_RESULTS_FILE_NAME = 'train_results_ext.csv'
+    _DFL_EVAL_RESULTS_FILE_NAME = 'eval_results_ext.csv'
 
     # noinspection PyUnusedLocal
     @staticmethod
@@ -231,14 +231,14 @@ class ExtendedCSVLogger(StrategyLogger):
         vals_to_print: list[int | float] = []
 
         for name in self.metric_names:
-            current_value = 0
+            current_value = -1
             val_start = self.mnames_translations().get(name).get(mtype)
             if val_start is not None:
                 for val in metric_values:
                     if val.name.startswith(val_start):
                         current_value = val.value
                         break
-            val_current_value = self.val_dict.get(name, 0)
+            val_current_value = self.val_dict.get(name, -1)
             vals_to_print += [current_value, val_current_value]
         
         self.print_train_metrics(
@@ -254,7 +254,7 @@ class ExtendedCSVLogger(StrategyLogger):
         vals_to_print: list[int | float] = []
         
         for name in self.metric_names:
-            current_value = 0
+            current_value = -1
             val_start = self.mnames_translations().get(name).get(mtype)
             if val_start is not None:
                 for val in metric_values:

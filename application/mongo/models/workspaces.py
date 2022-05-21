@@ -222,6 +222,7 @@ class MongoWorkspace(MongoBaseWorkspace):
         if create:
             db.Document.save(self, force_insert=create)
         else:
+            self.update_last_modified(save=False)
             db.Document.save(self, save_condition={'id': self.id})
 
     def update_last_modified(self, time: datetime = None, save: bool = True):

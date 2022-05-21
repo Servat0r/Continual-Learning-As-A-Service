@@ -124,6 +124,17 @@ def get_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+# utility for common datasets
+def get_all_common_datasets_root(abspath: bool = False) -> str:
+    basepath = os.path.join('..', 'common', 'datasets')
+    return os.path.abspath(basepath) if abspath else os.path.relpath(basepath, os.getcwd())
+
+
+def get_common_dataset_root(dataset_name: str, abspath: bool = False) -> str:
+    basepath = os.path.join(get_all_common_datasets_root(abspath), dataset_name)
+    return os.path.abspath(basepath) if abspath else os.path.relpath(basepath, os.getcwd())
+
+
 __all__ = [
     'executor',
 
@@ -142,4 +153,7 @@ __all__ = [
 
     'get_device',
     'Module',
+
+    'get_all_common_datasets_root',
+    'get_common_dataset_root',
 ]

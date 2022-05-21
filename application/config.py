@@ -4,12 +4,12 @@ Standard configuration examples.
 import os
 from dotenv import load_dotenv
 
-from .utils import t
+from .utils import t, get_all_common_datasets_root
 
 basedir = os.path.abspath(os.getcwd())
 load_dotenv(os.path.join(basedir, '.env'))
 
-DFL_DATABASE_NAME = 'test_database'
+DFL_DATABASE_NAME = 'test'
 
 
 _USE_DEFAULTS = True
@@ -50,6 +50,7 @@ class SimpleConfig(object):
     ]
 
     STD_FILESAVE_DIR = get_env("FILESAVE_DIR", os.path.join(basedir, '../files'))
+    DATASET_ROOT_DIR = get_all_common_datasets_root(abspath=True)
 
 
 # Configuration class for using a SQL database (e.g. PostgreSQL)

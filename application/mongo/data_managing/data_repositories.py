@@ -83,7 +83,6 @@ class MongoDataRepository(MongoBaseDataRepository):
     def create(cls, name: str, workspace: MongoBaseWorkspace, root: str = None, desc: str = None,
                save: bool = True, parents_locked=False) -> MongoBaseDataRepository | None:
 
-        # TODO Validation!
         if root is None:
             root = f"DataRepository_{name}"
 

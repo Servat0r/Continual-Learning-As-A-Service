@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+import sys
+import traceback
 from datetime import datetime
 
 from application.database import db
@@ -211,17 +214,21 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         :param context:
         :return:
         """
-        ok, bc_name, params, extras = cls._filter_data(data)
-        result, msg = validate_workspace_resource_experiment(bc_name)
+        try:
+            ok, bc_name, params, extras = cls._filter_data(data)
+            result, msg = validate_workspace_resource_experiment(bc_name)
 
-        if not result:
-            return False, f"Invalid resource name: '{bc_name}'."
-        if not ok:
-            return False, "Missing one or more required parameter(s)."
-        if len(extras) > 0 and not cls.has_extras():
-            return False, "Unexpected extra arguments."
-        context.push('args', {'name': bc_name, 'params': params, 'extras': extras})
-        return True, None
+            if not result:
+                return False, f"Invalid resource name: '{bc_name}'."
+            if not ok:
+                return False, "Missing one or more required parameter(s)."
+            if len(extras) > 0 and not cls.has_extras():
+                return False, "Unexpected extra arguments."
+            context.push('args', {'name': bc_name, 'params': params, 'extras': extras})
+            return True, None
+        except Exception as ex:
+            traceback.print_exception(*sys.exc_info())
+            return False, str(ex)
 
     # noinspection PyUnusedLocal
     @classmethod
@@ -387,16 +394,20 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
 
     @classmethod
     def validate_input(cls, data, context: ResourceContext) -> TBoolStr:
-        required = ['name', 'build']
-        if not all(fname in data for fname in required):
-            return False, 'Missing parameter(s).'
-        else:
-            name = data['name']
-            result, msg = validate_workspace_resource_experiment(name)
-            if not result:
-                return False, f"Invalid resource name: '{msg}'."
-            config = MongoBuildConfig.get_by_name(data['build'])
-            return t.cast(MongoBuildConfig, config).validate_input(data['build'], cls.target_type(), context)
+        try:
+            required = ['name', 'build']
+            if not all(fname in data for fname in required):
+                return False, 'Missing parameter(s).'
+            else:
+                name = data['name']
+                result, msg = validate_workspace_resource_experiment(name)
+                if not result:
+                    return False, f"Invalid resource name: '{msg}'."
+                config = MongoBuildConfig.get_by_name(data['build'])
+                return t.cast(MongoBuildConfig, config).validate_input(data['build'], cls.target_type(), context)
+        except Exception as ex:
+            traceback.print_exception(*sys.exc_info())
+            return False, str(ex)
 
     def build(self, context: ResourceContext,
               locked=False, parents_locked=False):
@@ -484,6 +495,7 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
         if create:
             db.Document.save(self, force_insert=create)
         else:
+            self.update_last_modified(save=False)
             db.Document.save(self, save_condition={'id': self.id})
 
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:

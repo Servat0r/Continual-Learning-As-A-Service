@@ -110,14 +110,19 @@ class MongoCLExperimentConfig(MongoResourceConfig):
             base_result['executions'] = [execution.to_dict() for execution in self.executions]
         return base_result
     
-    def setup(self, locked=False, parents_locked=False) -> bool:
+    def setup(self, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_read(locked=locked, parents_locked=parents_locked):
-            if self.status == BaseCLExperiment.RUNNING:
-                raise RuntimeError("Experiment already running!")
-            elif self.status == BaseCLExperiment.READY:
-                return True
-            else:
-                return self.modify({}, build_config__status=BaseCLExperiment.READY)
+            try:
+                if self.status == BaseCLExperiment.RUNNING:
+                    raise RuntimeError("Experiment already running!")
+                elif self.status == BaseCLExperiment.READY:
+                    return True, None
+                else:
+                    result = self.modify({}, build_config__status=BaseCLExperiment.READY)
+                    return result, None if result else \
+                        RuntimeError("Failed to setup experiment (modify operation failed).")
+            except Exception as ex:
+                return False, ex
 
     def set_started(self, locked=False, parents_locked=False) -> int | None:
         with self.resource_write(locked=locked, parents_locked=parents_locked):
