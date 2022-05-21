@@ -43,6 +43,18 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
         bwt_metrics
         forward_transfer_metrics
         MAC_metrics
+
+    JSON request format is of the type:
+    {
+        <metric_name>: {
+            "minibatch": true/false,
+            "epoch": true/false,
+            "experience": true/false,
+            "stream": true/false,
+            "train_time": true/false,
+            "eval_time": true/false
+        }
+    }
     """
     accuracy = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
     loss = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
@@ -87,6 +99,8 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
         'experience',
         'stream',
         'trained_experience',
+        'train_time',
+        'eval_time',
     }
 
     @staticmethod
@@ -126,7 +140,7 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
                         checked = False
                         break
             if not checked:
-                return False, "One or more metrics type are not in {<string>: <bool>} dict type."
+                return False, "One or more metrics types are not in {<string>: <bool>} dict type."
         return True, None
 
     @classmethod
@@ -137,13 +151,26 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
 
     def build(self, context: ResourceContext, locked=False, parents_locked=False):
         metrics = []
-        metric_names: list[str] = []
+        metric_names: dict[str, list[str]] = {'train': [], 'eval': []}
         for name in self.names():
             vals = dict(eval(f"self.{name}") or {})
             if len(vals) > 0:
+                train_time: bool = vals.get('train_time')
+                eval_time: bool = vals.get('eval_time')
+
+                if train_time is None and eval_time is None:
+                    train_time = True
+                    eval_time = True
+                else:
+                    train_time = False if train_time is None else vals.pop('train_time')
+                    eval_time = False if eval_time is None else vals.pop('eval_time')
+
                 ms = eval(f"{self.get_metrics_helper_name(name)}")(**vals)
                 metrics.append(ms)
-                metric_names.append(name)
+                if train_time:
+                    metric_names['train'].append(name)
+                if eval_time:
+                    metric_names['eval'].append(name)
         metrics = tuple(metrics)
         # noinspection PyArgumentList
         return self.target_type()(metric_names, *metrics)

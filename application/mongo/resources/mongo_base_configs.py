@@ -139,6 +139,9 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         'allow_inheritance': True,
     }
 
+    def __init__(self, *args, **values):
+        db.EmbeddedDocument.__init__(self, *args, **values)
+
     @classmethod
     @abstractmethod
     def get_required(cls) -> set[str]:

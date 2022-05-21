@@ -26,8 +26,8 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
     }
 
     model = db.ReferenceField(MongoModelConfig, required=True)
-    optimizer = db.ReferenceField(MongoCLOptimizerConfig, required=True)     # TODO Embed!
-    criterion = db.ReferenceField(MongoCLCriterionConfig, required=True)     # TODO Embed!
+    optimizer = db.ReferenceField(MongoCLOptimizerConfig, required=True)
+    criterion = db.ReferenceField(MongoCLCriterionConfig, required=True)
     train_mb_size = db.IntField(default=1)
     train_epochs = db.IntField(default=1)
     eval_mb_size = db.IntField(default=None)

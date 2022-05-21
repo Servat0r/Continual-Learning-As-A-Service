@@ -66,19 +66,14 @@ class DataManagerDataset(data.Dataset):
                 self.targets += targets
             else:
                 for i in range(len(files)):
-                    # todo refactor to method for eliminating '/' at start and end!
                     f = files[i]
+                    fvals = f.split('/')
+                    fvals = [val for val in fvals if len(val) > 0]
+                    f = '/'.join(fvals)
                     if len(f) < 1:
                         raise RuntimeError("Invalid file path")
-                    elif f[0] == '/':
-                        f = f[1:]
-                        if len(f) < 1:
-                            raise RuntimeError("Invalid file path")
-                        elif f[-1] == '/':
-                            f = f[:-1]
-                            if len(f) < 1:
-                                raise RuntimeError("Invalid file path")
-                    files[i] = root + '/' + f
+                    else:
+                        files[i] = '/'.join([root, f])
 
                 self.files += files  # already normalized!
                 self.targets += [data_repository.get_file_label(fpath) for fpath in self.files]

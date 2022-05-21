@@ -140,7 +140,7 @@ class ExtendedCSVLogger(StrategyLogger):
 
         super().__init__()
 
-        self.metric_names = self._mnames_order(metricset.get_metric_names())
+        self.metric_names = {k: self._mnames_order(v) for k, v in metricset.get_metric_names().items()}
         self.val_dict = {k: 0 for k in self.metric_names}
 
         self.train_file_name = train_file_name
@@ -149,6 +149,8 @@ class ExtendedCSVLogger(StrategyLogger):
         self.manager = BaseDataManager.get()
         # current training experience id
         self.training_exp_id = None
+        # current training experience #patterns
+        self.current_n_patterns = None
 
         # if we are currently training or evaluating
         # evaluation within training will not change this flag
@@ -163,14 +165,14 @@ class ExtendedCSVLogger(StrategyLogger):
 
         # print csv headers
         train_headers: list[str] = []
-        for name in self.metric_names:
+        for name in self.metric_names['train']:
             train_headers.append(f"training_{name}")
             train_headers.append(f"val_{name}")
 
-        eval_headers: list[str] = [f"eval_{name}" for name in self.metric_names]
+        eval_headers: list[str] = [f"eval_{name}" for name in self.metric_names['eval']]
 
         self.manager.print_to_file(self.train_file_name, self.log_folder,
-                                   'training_exp', 'epoch', *train_headers,
+                                   'training_exp', 'epoch', 'training_items', *train_headers,
                                    sep=',', append=False, flush=True)
 
         self.manager.print_to_file(self.eval_file_name, self.log_folder,
@@ -196,7 +198,7 @@ class ExtendedCSVLogger(StrategyLogger):
         values = [self._val_to_str(m_val) for m_val in values]
         self.manager.print_to_file(
             self.train_file_name, self.log_folder,
-            training_exp, epoch, *values,
+            training_exp, epoch, self.current_n_patterns, *values,
             # self._val_to_str(train_acc),
             # self._val_to_str(val_acc), # self._val_to_str(train_loss),
             # self._val_to_str(val_loss), # self._val_to_str(train_cpu),
@@ -230,7 +232,7 @@ class ExtendedCSVLogger(StrategyLogger):
         mtype = 'epoch'
         vals_to_print: list[int | float] = []
 
-        for name in self.metric_names:
+        for name in self.metric_names['train']:
             current_value = -1
             val_start = self.mnames_translations().get(name).get(mtype)
             if val_start is not None:
@@ -253,7 +255,7 @@ class ExtendedCSVLogger(StrategyLogger):
         mtype = 'experience'
         vals_to_print: list[int | float] = []
         
-        for name in self.metric_names:
+        for name in self.metric_names['eval']:
             current_value = -1
             val_start = self.mnames_translations().get(name).get(mtype)
             if val_start is not None:
@@ -277,6 +279,8 @@ class ExtendedCSVLogger(StrategyLogger):
                             metric_values: t.List['MetricValue'], **kwargs):
         super().before_training(strategy, metric_values, **kwargs)
         self.training_exp_id = strategy.experience.current_experience
+        self.current_n_patterns = len(strategy.experience.dataset)
+
 
     def before_eval(self, strategy: 'BaseStrategy',
                     metric_values: t.List['MetricValue'], **kwargs):

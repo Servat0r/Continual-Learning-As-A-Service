@@ -134,11 +134,10 @@ def set_experiment_status(username, wname, name):
             return RouteNotImplemented()
 
 
-# TODO Capire come eseguire i controlli di _experiment_run_task PRIMA di rispondere!
 def __start_experiment(experiment_config: MongoCLExperimentConfig, context: UserWorkspaceResourceContext):
     uri = experiment_config.uri
     _experiment_run_task.submit_stored(uri, experiment_config, context)
-    return make_success_dict(msg="Experiment successfully started!")
+    return make_success_dict(msg="Experiment successfully submitted!")
 
 
 @experiments_bp.get('/<experiment:name>/status/')

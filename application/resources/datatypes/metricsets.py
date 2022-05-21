@@ -10,7 +10,7 @@ class BaseMetricSet(WrapperReferrableDataType, ABC):
     A set of metrics to be used for evaluating experiment.
     """
     def __init__(
-            self, metric_names: t.Sequence[str],
+            self, metric_names: t.Mapping[str, list[str]],
             *metrics: t.Union[PluginMetric, t.Sequence[PluginMetric]],
     ):
         metrics = tuple() if metrics is None else metrics
@@ -23,7 +23,7 @@ class BaseMetricSet(WrapperReferrableDataType, ABC):
     def get_metadata(self, key: str | None = None) -> TDesc | t.Any:
         return WrapperReferrableDataType.get_metadata(self, key)
 
-    def get_metric_names(self):
+    def get_metric_names(self) -> t.Mapping[str, list[str]]:
         return self.metric_names
 
 
