@@ -5,11 +5,14 @@ from __future__ import annotations
 import logging
 from logging.handlers import RotatingFileHandler, SMTPHandler
 from flask import Flask
+
 from .config import *
 from .database import db
 from .errors import *
 from .utils import *
 from .converters import *
+
+from .avalanche_ext import *
 from .data_managing import *
 from .models import *
 from .mongo import *
