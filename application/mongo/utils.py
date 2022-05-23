@@ -66,6 +66,7 @@ class RWLockableDocument(db.Document):
 
     rdlocks = db.IntField(default=0)
     wrlock = db.BooleanField(default=False)
+    _acquired = 0
 
     def __init__(self, *args, **values):
         super().__init__(*args, **values)

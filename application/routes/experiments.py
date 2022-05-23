@@ -7,6 +7,7 @@ from http import HTTPStatus
 
 from application.errors import *
 from application.utils import *
+from application.database import *
 
 from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType, ReferrableDataType
@@ -29,51 +30,55 @@ experiments_bp = Blueprint('experiments', __name__,
                            url_prefix='/users/<user:username>/workspaces/<workspace:wname>/experiments')
 
 
-@executor.job
+# @executor.job
 def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
                          context: UserWorkspaceResourceContext) -> Response:
-
     context.stack = []
     response = None
-    with experiment_config.resource_write():
+    app = db.app
+    with app.app_context():
         try:
-            experiment: BaseCLExperiment = experiment_config.build(context, locked=True)
-            if experiment is None:
-                response = make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to initialize experiment!")
-            else:
-                start_result = experiment_config.set_started(locked=True)
-                if start_result is None:
+            with experiment_config.resource_write():
+                try:
+                    experiment: BaseCLExperiment = experiment_config.build(context, locked=True)
+                    if experiment is None:
+                        response = make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to initialize experiment!")
+                    else:
+                        start_result = experiment_config.set_started(locked=True)
+                        if start_result is None:
+                            response = make_error(
+                                HTTPStatus.INTERNAL_SERVER_ERROR,
+                                msg=f"Failed to start experiment #{start_result}.")
+                        else:
+                            result = experiment.run(
+                                experiment_config.get_last_execution().base_dir(),
+                            )
+                            if result is None:
+                                response = ResourceNotFound(msg="Experiment run configuration does not exist.")
+                            elif result:
+                                response = make_success_dict(msg=f"Experiment #{start_result} correctly executed.")
+                            else:
+                                response = make_error(
+                                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                                    msg=f"Failed to run experiment #{start_result}.")
+                    return response
+                except Exception as ex:
+                    exc_info = sys.exc_info()
+                    traceback.print_exception(*exc_info)
                     response = make_error(
                         HTTPStatus.INTERNAL_SERVER_ERROR,
-                        msg=f"Failed to start experiment #{start_result}.")
-                else:
-                    result = experiment.run(
-                        experiment_config.get_last_execution().base_dir(),
-                    )
-                    if result is None:
-                        response = ResourceNotFound(msg="Experiment run configuration does not exist.")
-                    elif result:
-                        response = make_success_dict(msg=f"Experiment #{start_result} correctly executed.")
-                    else:
+                        msg=f"Error when executing experiment #{start_result}: {ex.args[0]}.")
+                    return response
+                finally:
+                    res, exc = experiment_config.set_finished(response=response, locked=True)
+                    if not res:
                         response = make_error(
                             HTTPStatus.INTERNAL_SERVER_ERROR,
-                            msg=f"Failed to run experiment #{start_result}.")
-            return response
+                            msg=f"Error when setting experiment #{start_result} status to 'ENDED': {exc.args[0]}.",
+                        )
+                        return response
         except Exception as ex:
-            exc_info = sys.exc_info()
-            traceback.print_exception(*exc_info)
-            response = make_error(
-                HTTPStatus.INTERNAL_SERVER_ERROR,
-                msg=f"Error when executing experiment #{start_result}: {ex.args[0]}.")
-            return response
-        finally:
-            res, exc = experiment_config.set_finished(response=response, locked=True)
-            if not res:
-                response = make_error(
-                    HTTPStatus.INTERNAL_SERVER_ERROR,
-                    msg=f"Error when setting experiment #{start_result} status to 'ENDED': {ex.args[0]}.",
-                )
-                return response
+            print(ex)
 
 
 @experiments_bp.post('/')
@@ -136,7 +141,8 @@ def set_experiment_status(username, wname, name):
 
 def __start_experiment(experiment_config: MongoCLExperimentConfig, context: UserWorkspaceResourceContext):
     uri = experiment_config.uri
-    _experiment_run_task.submit_stored(uri, experiment_config, context)
+    executor.submit_stored(uri, _experiment_run_task, experiment_config, context)
+    # _experiment_run_task.submit_stored(uri, experiment_config, context)
     return make_success_dict(msg="Experiment successfully submitted!")
 
 
