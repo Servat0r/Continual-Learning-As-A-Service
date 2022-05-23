@@ -46,7 +46,6 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
             loggers=[
                 ExtendedCSVLogger(log_folder=log_folder, metricset=metricset),
                 InteractiveLogger(),
-                CSVLogger(log_folder=os.path.join(*log_folder)),
             ]
         )
 

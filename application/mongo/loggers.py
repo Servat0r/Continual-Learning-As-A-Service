@@ -25,8 +25,8 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
     the local FileSystem).
     """
 
-    _DFL_TRAIN_RESULTS_FILE_NAME = 'train_results_ext.csv'
-    _DFL_EVAL_RESULTS_FILE_NAME = 'eval_results_ext.csv'
+    _DFL_TRAIN_RESULTS_FILE_NAME = 'train_results.csv'
+    _DFL_EVAL_RESULTS_FILE_NAME = 'eval_results.csv'
 
     # noinspection PyUnusedLocal
     @staticmethod
@@ -173,7 +173,7 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
         eval_headers: list[str] = [f"eval_{name}" for name in self.metric_names['eval']]
 
         self.manager.print_to_file(self.train_file_name, self.log_folder,
-                                   'training_exp', 'epoch', *train_headers, # 'training_items',
+                                   'training_exp', 'epoch', 'training_items', *train_headers,
                                    sep=',', append=False, flush=True)
 
         self.manager.print_to_file(self.eval_file_name, self.log_folder,
@@ -199,7 +199,7 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
         values = [self._val_to_str(m_val) for m_val in values]
         self.manager.print_to_file(
             self.train_file_name, self.log_folder,
-            training_exp, epoch, *values, # self.current_n_patterns, *values,
+            training_exp, epoch, self.current_n_patterns, *values,
             # self._val_to_str(train_acc),
             # self._val_to_str(val_acc), # self._val_to_str(train_loss),
             # self._val_to_str(val_loss), # self._val_to_str(train_cpu),
@@ -223,6 +223,12 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
             # self._val_to_str(eval_ram),
             sep=',', append=True, flush=True,
         )
+
+    def after_train_dataset_adaptation(self, strategy: "SupervisedTemplate", *args, **kwargs):
+        self.current_n_patterns = len(strategy.adapted_dataset)
+
+    def before_training_epoch(self, strategy: "SupervisedTemplate", metric_values: t.List["MetricValue"], **kwargs):
+        self.current_n_patterns = len(strategy.adapted_dataset)
 
     def after_training_epoch(self, strategy: "SupervisedTemplate",
                              metric_values: t.List["MetricValue"], **kwargs):
@@ -280,8 +286,6 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
                             metric_values: t.List['MetricValue'], **kwargs):
         super().before_training(strategy, metric_values, **kwargs)
         self.training_exp_id = strategy.experience.current_experience
-        # self.current_n_patterns = len(strategy.experience.dataset)
-
 
     def before_eval(self, strategy: 'SupervisedTemplate',
                     metric_values: t.List['MetricValue'], **kwargs):
