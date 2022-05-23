@@ -5,17 +5,18 @@ from __future__ import annotations
 import torch
 
 from avalanche.evaluation.metric_results import MetricValue
-from avalanche.logging import StrategyLogger
+from avalanche.logging import BaseLogger
+from avalanche.core import SupervisedPlugin
 
 from application.utils import t
 from application.data_managing.base import BaseDataManager
 from application.resources import StandardMetricSet
 
 if t.TYPE_CHECKING:
-    from avalanche.training import BaseStrategy
+    from avalanche.training.templates import SupervisedTemplate
 
 
-class ExtendedCSVLogger(StrategyLogger):
+class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
     """
     An extended CSVLogger that most of the implemented metrics into customized
     training and eval results csv files and is compatible with data manager
@@ -172,7 +173,7 @@ class ExtendedCSVLogger(StrategyLogger):
         eval_headers: list[str] = [f"eval_{name}" for name in self.metric_names['eval']]
 
         self.manager.print_to_file(self.train_file_name, self.log_folder,
-                                   'training_exp', 'epoch', 'training_items', *train_headers,
+                                   'training_exp', 'epoch', *train_headers, # 'training_items',
                                    sep=',', append=False, flush=True)
 
         self.manager.print_to_file(self.eval_file_name, self.log_folder,
@@ -198,7 +199,7 @@ class ExtendedCSVLogger(StrategyLogger):
         values = [self._val_to_str(m_val) for m_val in values]
         self.manager.print_to_file(
             self.train_file_name, self.log_folder,
-            training_exp, epoch, self.current_n_patterns, *values,
+            training_exp, epoch, *values, # self.current_n_patterns, *values,
             # self._val_to_str(train_acc),
             # self._val_to_str(val_acc), # self._val_to_str(train_loss),
             # self._val_to_str(val_loss), # self._val_to_str(train_cpu),
@@ -223,8 +224,8 @@ class ExtendedCSVLogger(StrategyLogger):
             sep=',', append=True, flush=True,
         )
 
-    def after_training_epoch(self, strategy: 'BaseStrategy',
-                             metric_values: t.List['MetricValue'], **kwargs):
+    def after_training_epoch(self, strategy: "SupervisedTemplate",
+                             metric_values: t.List["MetricValue"], **kwargs):
         super().after_training_epoch(strategy, metric_values, **kwargs)
         # train_acc, val_acc, train_loss, val_loss = 0, 0, 0, 0
         # train_cpu, val_cpu, train_disk, val_disk, train_ram, val_ram = 0, 0, 0, 0, 0, 0
@@ -247,7 +248,7 @@ class ExtendedCSVLogger(StrategyLogger):
             self.training_exp_id, strategy.clock.train_exp_epochs, *vals_to_print,
         )
 
-    def after_eval_exp(self, strategy: 'BaseStrategy',
+    def after_eval_exp(self, strategy: 'SupervisedTemplate',
                        metric_values: t.List['MetricValue'], **kwargs):
         super().after_eval_exp(strategy, metric_values, **kwargs)
         # acc, loss, forgetting, cpu, disk, ram = 0, 0, 0, 0, 0, 0
@@ -275,14 +276,14 @@ class ExtendedCSVLogger(StrategyLogger):
                 # acc, loss, forgetting, cpu, disk, ram
             )
 
-    def before_training_exp(self, strategy: 'BaseStrategy',
+    def before_training_exp(self, strategy: 'SupervisedTemplate',
                             metric_values: t.List['MetricValue'], **kwargs):
         super().before_training(strategy, metric_values, **kwargs)
         self.training_exp_id = strategy.experience.current_experience
-        self.current_n_patterns = len(strategy.experience.dataset)
+        # self.current_n_patterns = len(strategy.experience.dataset)
 
 
-    def before_eval(self, strategy: 'BaseStrategy',
+    def before_eval(self, strategy: 'SupervisedTemplate',
                     metric_values: t.List['MetricValue'], **kwargs):
         """
         Manage the case in which `eval` is first called before `train`
@@ -291,12 +292,12 @@ class ExtendedCSVLogger(StrategyLogger):
             self.in_train_phase = False
         print("BEFORE EVAL", *metric_values, sep='\n')
 
-    def before_training(self, strategy: 'BaseStrategy',
+    def before_training(self, strategy: 'SupervisedTemplate',
                         metric_values: t.List['MetricValue'], **kwargs):
         self.in_train_phase = True
         print("BEFORE TRAINING", *metric_values, sep='\n')
 
-    def after_training(self, strategy: 'BaseStrategy',
+    def after_training(self, strategy: 'SupervisedTemplate',
                        metric_values: t.List['MetricValue'], **kwargs):
         self.in_train_phase = False
         print("AFTER TRAINING", *metric_values, sep='\n')

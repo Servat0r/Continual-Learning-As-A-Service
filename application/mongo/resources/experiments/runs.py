@@ -4,7 +4,7 @@ import sys
 import traceback
 
 from avalanche.benchmarks import GenericCLScenario
-from avalanche.training.strategies import BaseStrategy
+from avalanche.training.templates import SupervisedTemplate
 
 from application.utils import TDesc
 from application.data_managing import BaseDataManager
@@ -18,11 +18,12 @@ class StdTrainTestRunConfig(BaseCLExperimentRunConfig):
     def run(cls, experiment: BaseCLExperiment, model_directory: list[str] = None) -> bool:
         try:
             cl_scenario: GenericCLScenario = experiment.get_benchmark().get_value()
-            cl_strategy: BaseStrategy = experiment.get_strategy().get_value()
+            cl_strategy: SupervisedTemplate = experiment.get_strategy().get_value()
 
             train_stream = cl_scenario.train_stream
             test_stream = cl_scenario.test_stream
 
+            print(f"Using {cl_strategy.__class__.__name__} strategy ...")
             results: list[TDesc] = []
             for experience in train_stream:
                 cl_strategy.train(experience)

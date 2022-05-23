@@ -69,11 +69,11 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
 
     @classmethod
     def get_one(cls, workspace: Workspace = None, name: str = None, **kwargs) -> BaseDataRepository | None:
-        repos = cls.get(workspace, name, **kwargs)
-        if repos is not None and len(repos) >= 1:
-            return repos[0]
-        else:
-            return None
+        if name is not None and workspace is not None:
+            repos = cls.get(workspace, name, **kwargs)
+            if repos is not None and len(repos) >= 1:
+                return repos[0]
+        return None
 
     # 4. Create + callbacks
     @classmethod

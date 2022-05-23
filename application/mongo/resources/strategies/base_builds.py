@@ -1,6 +1,6 @@
 from __future__ import annotations
 from avalanche.logging import InteractiveLogger, CSVLogger
-from avalanche.training.strategies import BaseStrategy
+from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.plugins import EvaluationPlugin
 
 from application.utils import abstractmethod, os, get_device
@@ -36,7 +36,7 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
 
     @staticmethod
     @abstractmethod
-    def get_avalanche_strategy() -> t.Type[BaseStrategy]:
+    def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         pass
 
     @staticmethod

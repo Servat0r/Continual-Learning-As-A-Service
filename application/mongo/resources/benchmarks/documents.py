@@ -12,6 +12,7 @@ from application.mongo.mongo_base_metadata import MongoBaseMetadata
 
 from application.mongo.resources.mongo_base_configs import *
 from application.mongo.base import MongoBaseUser, MongoBaseWorkspace
+from application.mongo.data_managing import MongoDataRepository
 
 
 class BenchmarkMetadata(MongoBaseMetadata):
@@ -97,10 +98,8 @@ class MongoBenchmarkConfig(MongoResourceConfig):
                             obj.save(create=True)
                 return obj
 
-            print('Inia inia')
-            data_repository = BaseDataRepository.get_one(workspace=workspace, name=data['build'].get('data_repository'))
-            print(data_repository)
-            print('Alala alala')
+            data_repository: MongoDataRepository | None = \
+                BaseDataRepository.get_one(workspace=workspace, name=data['build'].get('data_repository'))
 
             build_config.data_repository = data_repository
             # data_repository = build_config.data_repository

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from avalanche.training.strategies import *
+from avalanche.training.templates import *
 from application.utils import ABC, TDesc, t
 from application.resources.base import WrapperReferrableDataType
 
@@ -14,7 +14,7 @@ class Strategy(WrapperReferrableDataType, ABC):
     """
     General CL strategy.
     """
-    def __init__(self, strategy: BaseStrategy,
+    def __init__(self, strategy: SupervisedTemplate,
                  model: Model, optimizer: CLOptimizer,
                  criterion: CLCriterion, metricset: StandardMetricSet):
         super().__init__(strategy)

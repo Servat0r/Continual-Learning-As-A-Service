@@ -22,12 +22,12 @@ class MongoBaseBenchmarkBuildConfig(MongoBuildConfig):
     @classmethod
     @abstractmethod
     def get_required(cls) -> set[str]:
-        return (super(MongoBaseBenchmarkBuildConfig, cls) or set()).get_required()
+        return set()
 
     @classmethod
     @abstractmethod
     def get_optionals(cls) -> set[str]:
-        return (super(MongoBaseBenchmarkBuildConfig, cls).get_optionals() or set()).union('data_repository')
+        return {'data_repository'}
 
     @classmethod
     @abstractmethod

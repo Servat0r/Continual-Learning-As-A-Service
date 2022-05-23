@@ -307,7 +307,7 @@ class CORe50BuildConfig(MongoBaseBenchmarkBuildConfig):
 
     # Fields
     scenario = db.StringField(choices=(_NI, _NC, _NIC, _NICV2_79, _NICV2_196, _NICV2_391), default=_NICV2_391)
-    run = db.IntField(validation=(lambda x: 0 <= x <= 9), default=0)
+    run = db.IntField(default=0)
     object_lvl = db.BooleanField(default=True)
     mini = db.BooleanField(default=False)   # True -> 32x32 images; False -> 128x128 images
 
@@ -317,7 +317,9 @@ class CORe50BuildConfig(MongoBaseBenchmarkBuildConfig):
 
     @classmethod
     def get_optionals(cls) -> set[str]:
-        return super(CORe50BuildConfig, cls).get_optionals().union({'scenario', 'run', 'object_lvl', 'mini'})
+        return super(CORe50BuildConfig, cls).get_optionals().union({
+            'data_repository', 'scenario', 'run', 'object_lvl', 'mini'
+        })
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
@@ -333,7 +335,7 @@ class CORe50BuildConfig(MongoBaseBenchmarkBuildConfig):
         mini = params.get('mini', False)
 
         all_bool = all(isinstance(val, bool) for val in [object_lvl, mini])
-        all_int = all(isinstance(val, int) for val in [run])
+        all_int = all(isinstance(val, int) for val in [run]) and (0 <= run <= 9)
         all_str = all(isinstance(val, str) for val in [scenario])
 
         if not all_str and all_int and all_bool:
