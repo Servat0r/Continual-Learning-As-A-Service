@@ -6,8 +6,9 @@ WORKDIR /home/${username}
 
 COPY requirements.txt requirements.txt
 RUN python -m venv venv
-RUN venv/bin/pip install -r requirements.txt
 RUN venv/bin/pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
+RUN venv/bin/pip install git+https://github.com/ContinualAI/avalanche
+RUN venv/bin/pip install -r requirements.txt
 RUN venv/bin/pip install gunicorn pymysql cryptography
 
 COPY application application
