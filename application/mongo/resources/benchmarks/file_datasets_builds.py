@@ -9,6 +9,8 @@ from application.resources import ResourceContext, DataType
 from application.mongo.datasets import TDMDatasetDesc, greyscale_image_loader, \
     default_image_loader, data_manager_datasets_benchmark
 from application.mongo.resources.mongo_base_configs import MongoEmbeddedBuildConfig, MongoBuildConfig
+
+from .transform_builds import *
 from .base_builds import *
 
 
@@ -259,10 +261,15 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
     complete_test_set_only = db.BooleanField(default=False)
 
     # Transforms
-    train_transform = db.StringField(choices=(None, TO_TENSOR), default=TO_TENSOR)
-    train_target_transform = db.StringField(choices=(None, TO_TENSOR), default=None)
-    eval_transform = db.StringField(choices=(None, TO_TENSOR), default=TO_TENSOR)
-    eval_target_transform = db.StringField(choices=(None, TO_TENSOR), default=None)
+    train_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
+    train_target_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
+    eval_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
+    eval_target_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
+    
+    # train_transform = db.StringField(choices=(None, TO_TENSOR), default=TO_TENSOR)
+    # train_target_transform = db.StringField(choices=(None, TO_TENSOR), default=None)
+    # eval_transform = db.StringField(choices=(None, TO_TENSOR), default=TO_TENSOR)
+    # eval_target_transform = db.StringField(choices=(None, TO_TENSOR), default=None)
 
     def get_loader(self):
         img_type = self.img_type
@@ -328,12 +335,34 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         img_type = params.get('img_type', DataManagerBuildConfig.RGB)                       # string
         complete_test_set_only = params.get('complete_test_set_only', False)                # boolean
 
+        """
         train_transform = params.get('train_transform', DataManagerBuildConfig.TO_TENSOR)   # string
         train_target_transform = params.get('train_target_transform', None)                 # string
 
         eval_transform = params.get('eval_transform', DataManagerBuildConfig.TO_TENSOR)     # string
         eval_target_transform = params.get('eval_target_transform', None)                   # string
+        """
 
+        train_transform_data = params.get('train_transform', None)
+        train_target_transform_data = params.get('train_target_transform', None)
+
+        eval_transform_data = params.get('eval_transform', None)
+        eval_target_transform_data = params.get('eval_target_transform', None)
+
+        for transform_data in (
+            train_transform_data,
+            train_target_transform_data,
+            eval_transform_data,
+            eval_target_transform_data,
+        ):
+            if transform_data is not None:
+                transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(transform_data)
+                if transform_config is None:
+                    return False, "Not given or unknown transform."
+                result, msg = transform_config.validate_input(transform_data, context)
+                if not result:
+                    return False, f"Invalid transform: '{msg}'."
+        """
         # string fields
         all_str_none = all(par is None or isinstance(par, str)
                            for par in [train_target_transform, eval_target_transform])
@@ -342,6 +371,10 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
 
         all_str = all(isinstance(par, str) for par in [img_type, train_transform, eval_transform])
         if not all_str:
+            return False, "One or more parameters are not of the correct (str) type."
+        """
+
+        if not isinstance(img_type, str):
             return False, "One or more parameters are not of the correct (str) type."
 
         # boolean field(s)
@@ -365,6 +398,8 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
         ok, bc_name, params, extras = cls._filter_data(data)
+
+        # streams processing
         train_stream_list_config = params['train_stream']
         test_stream_list_config = params['test_stream']
         other_streams_dict_config = params.get('other_streams', {})
@@ -380,6 +415,29 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         params['train_stream'] = train_stream_list
         params['test_stream'] = test_stream_list
         params['other_streams'] = other_streams_dict
+
+        # transforms processing
+        for transform_name in (
+            'train_transform',
+            'train_target_transform',
+            'eval_transform',
+            'eval_target_transform',
+        ):
+            transform_data = params.get(transform_name)
+            if transform_data is not None:
+                transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(transform_data)
+                if transform_config is None:
+                    raise RuntimeError("Unknown or not given transform!")
+                else:
+                    params[transform_name] = transform_config.create(transform_data, context, save=False)
+
+        # default train and eval transforms
+        for transform_name in (
+            'train_transform',
+            'eval_transform',
+        ):
+            if params.get(transform_name) is None:
+                params[transform_name] = ToTensorConfig.create({}, context, save=False)
 
         # noinspection PyArgumentList
         benchmark_config = cls(**params)
@@ -399,11 +457,33 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
 
             loader = self.get_loader()
 
+            if self.train_transform is None:
+                train_transform = None
+            else:
+                train_transform = self.train_transform.get_transform()
+            
+            if self.train_target_transform is None:
+                train_target_transform = None
+            else:
+                train_target_transform = self.train_target_transform.get_transform()
+            
+            if self.eval_transform is None:
+                eval_transform = None
+            else:
+                eval_transform = self.eval_transform.get_transform()
+            
+            if self.eval_target_transform is None:
+                eval_target_transform = None
+            else:
+                eval_target_transform = self.eval_target_transform.get_transform()
+
+            """
             train_transform = self.get_transform(self.train_transform)
             train_target_transform = self.get_transform(self.train_target_transform)
 
             eval_transform = self.get_transform(self.eval_transform)
             eval_target_transform = self.get_transform(self.eval_target_transform)
+            """
 
             benchmark = data_manager_datasets_benchmark(
                 BaseDataManager.get(),

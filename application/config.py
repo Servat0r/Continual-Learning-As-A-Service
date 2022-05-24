@@ -52,7 +52,7 @@ class SimpleConfig(object):
     STD_FILESAVE_DIR = get_env("FILESAVE_DIR", os.path.join(basedir, '../files'))
     DATASET_ROOT_DIR = get_all_common_datasets_root(abspath=True)
 
-    # EXECUTOR_TYPE = get_env("EXECUTOR_TYPE", 'process')
+    EXECUTOR_TYPE = get_env("EXECUTOR_TYPE", 'process')
 
 
 # Configuration class for using a SQL database (e.g. PostgreSQL)
@@ -79,11 +79,7 @@ class MongoAuthConfig(MongoDefaultConfig):
 
 
 MongoConfig = MongoAuthConfig if USE_MONGODB_AUTH else MongoDefaultConfig
-
 print(f"Use defaults: {_USE_DEFAULTS}")
-print(f"Config class: {MongoConfig.__name__}")
-tp = [(attr, getattr(MongoConfig, attr)) for attr in dir(MongoConfig) if not attr.startswith('__')]
-print(*tp, sep='\n')
 
 
 __all__ = [

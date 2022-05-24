@@ -2,10 +2,14 @@
 Common constants.
 """
 from __future__ import annotations
+
+import sys
+import traceback
 import typing as t
 import os
 from abc import ABC, abstractmethod
 from datetime import datetime
+from functools import wraps
 
 import torch
 from torch.nn.modules import Module
@@ -135,6 +139,21 @@ def get_common_dataset_root(dataset_name: str, abspath: bool = False) -> str:
     return os.path.abspath(basepath) if abspath else os.path.relpath(basepath, os.getcwd())
 
 
+# Exception catcher
+def catcher(exc_type: t.Type[Exception] = Exception, dfl_return: t.Any = None):
+    def wrapper(f: t.Callable):
+        @wraps(f)
+        def new_f(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except exc_type as ex:
+                print(ex)
+                traceback.print_exc(sys.exc_info())
+                return dfl_return
+        return new_f
+    return wrapper
+
+
 __all__ = [
     'executor',
 
@@ -156,4 +175,6 @@ __all__ = [
 
     'get_all_common_datasets_root',
     'get_common_dataset_root',
+
+    'catcher',
 ]

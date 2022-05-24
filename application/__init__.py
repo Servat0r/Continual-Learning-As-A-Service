@@ -68,9 +68,19 @@ def create_app(config_class=MongoConfig):
             mail_handler.setLevel(logging.ERROR)
             app.logger.addHandler(mail_handler)
 
+        tp = [(attr, getattr(MongoConfig, attr)) for attr in dir(MongoConfig) if not attr.startswith('__')]
+        conf_attr_str = ''
+        for item in tp:
+            name, value = item
+            conf_attr_str += f"\n\t{name} = {value}"
+
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
         app.logger.info(f"{_NAME} startup")
         app.logger.info(f"Using '{get_device()}' device for training and evaluation")
+        app.logger.info(f"Using '{app.config.get('EXECUTOR_TYPE')}' pool executor for experiments")
+        app.logger.info(f"Using '{app.config.get('DATASET_ROOT_DIR')}' directory for common datasets")
+        app.logger.info(f"Using class '{config_class.__name__}' as configuration class")
+        app.logger.info(f"Configuration attributes: {conf_attr_str}")
 
     return app

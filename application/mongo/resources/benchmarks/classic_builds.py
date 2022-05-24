@@ -90,22 +90,13 @@ class SplitFashionMNISTBuildConfig(MongoBaseClassicBenchmarkBuildConfig):
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
         return super(SplitFashionMNISTBuildConfig, cls).create(data, tp, context, save)
 
-    def build(self, context: ResourceContext, locked=False, parents_locked=False):
-        dataset_root = get_common_dataset_root(self.dataset_name(), abspath=True)
-        benchmark = self.benchmark_generator()(
-            self.n_experiences,
-            first_batch_with_half_classes=self.first_batch_with_half_classes,
-            return_task_id=self.return_task_id,
-            seed=self.seed,
-            fixed_class_order=self.fixed_class_order,
-            shuffle=self.shuffle,
-            dataset_root=dataset_root,
-        )
-        # noinspection PyArgumentList
-        return self.target_type()(benchmark)
+    def make_kwargs(self) -> TDesc:
+        kwargs = super(SplitFashionMNISTBuildConfig, self).make_kwargs()
+        kwargs['first_batch_with_half_classes'] = self.first_batch_with_half_classes
+        return kwargs
 
 
-# PermutedMNIST builder
+# PermutedMNIST builder # TODO Aggiungere transforms!
 @MongoBuildConfig.register_build_config('PermutedMNIST')
 class PermutedMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
 
@@ -152,6 +143,7 @@ class PermutedMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
         return self.target_type()(benchmark)
 
 
+# TODO Fix the followings!
 # Split CIFAR-10 builder
 @MongoBuildConfig.register_build_config('SplitCIFAR10')
 class SplitCIFAR10BuildConfig(MongoBaseClassicBenchmarkBuildConfig):
