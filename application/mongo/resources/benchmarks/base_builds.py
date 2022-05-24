@@ -157,7 +157,6 @@ class MongoBaseClassicBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig):
         else:
             eval_transform = None
         data['eval_transform'] = eval_transform
-
         return super(MongoBaseClassicBenchmarkBuildConfig, cls).create(data, tp, context, save)
 
     def add_transforms(self, kwargs: TDesc):

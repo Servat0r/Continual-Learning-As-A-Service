@@ -9,6 +9,7 @@ from application.resources.contexts import ResourceContext
 from application.resources.base import DataType
 
 from application.mongo.resources.mongo_base_configs import *
+from .transform_builds import *
 from .base_builds import *
 
 
@@ -96,13 +97,15 @@ class SplitFashionMNISTBuildConfig(MongoBaseClassicBenchmarkBuildConfig):
         return kwargs
 
 
-# PermutedMNIST builder # TODO Aggiungere transforms!
+# PermutedMNIST builder
 @MongoBuildConfig.register_build_config('PermutedMNIST')
 class PermutedMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
 
     # Fields
     n_experiences = db.IntField(required=True)
     seed = db.IntField(default=None)
+    train_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
+    eval_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -110,7 +113,9 @@ class PermutedMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
 
     @classmethod
     def get_optionals(cls) -> set[str]:
-        return super(PermutedMNISTBuildConfig, cls).get_optionals().union({'seed', 'dataset_root'})
+        return super(PermutedMNISTBuildConfig, cls).get_optionals().union({
+            'seed', 'dataset_root', 'train_transform', 'eval_transform',
+        })
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
@@ -126,24 +131,66 @@ class PermutedMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
 
         if not all_int:
             return False, "One or more parameters are not of the correct type!"
+
+        train_transform_data = params.get('train_transform')
+        eval_transform_data = params.get('eval_transform')
+
+        if train_transform_data is not None:
+            train_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(train_transform_data)
+            if train_transform_data is None:
+                return False, "Not given or unknown train transform."
+            result, msg = train_transform_config.validate_input(train_transform_data, context)
+            if not result:
+                return False, f"Train transform is incorrect: '{msg}'."
+
+        if eval_transform_data is not None:
+            eval_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(eval_transform_data)
+            if eval_transform_data is None:
+                return False, "Not given or unknown eval transform."
+            result, msg = eval_transform_config.validate_input(eval_transform_data, context)
+            if not result:
+                return False, f"Eval transform is incorrect: '{msg}'."
+
         return True, None
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
+        train_transform_data = data.get('train_transform')
+        if train_transform_data is not None:
+            train_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(train_transform_data)
+            train_transform = train_transform_config.create(train_transform_data, context, save)
+        else:
+            train_transform = None
+        data['train_transform'] = train_transform
+
+        eval_transform_data = data.get('eval_transform')
+        if eval_transform_data is not None:
+            eval_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(eval_transform_data)
+            eval_transform = eval_transform_config.create(eval_transform_data, context, save)
+        else:
+            eval_transform = None
+        data['eval_transform'] = eval_transform
         return super(PermutedMNISTBuildConfig, cls).create(data, tp, context, save)
 
     def build(self, context: ResourceContext, locked=False, parents_locked=False):
         dataset_root = get_common_dataset_root('mnist', abspath=True)
-        benchmark = PermutedMNIST(
-            self.n_experiences,
-            seed=self.seed,
-            dataset_root=dataset_root,
-        )
+        kwargs = {
+            'seed': self.seed,
+            'dataset_root': dataset_root,
+        }
+        if self.train_transform is not None:
+            train_transform = self.train_transform.get_transform()
+            kwargs['train_transform'] = train_transform
+
+        if self.eval_transform is not None:
+            eval_transform = self.eval_transform.get_transform()
+            kwargs['eval_transform'] = eval_transform
+
+        benchmark = PermutedMNIST(self.n_experiences, **kwargs)
         # noinspection PyArgumentList
         return self.target_type()(benchmark)
 
 
-# TODO Fix the followings!
 # Split CIFAR-10 builder
 @MongoBuildConfig.register_build_config('SplitCIFAR10')
 class SplitCIFAR10BuildConfig(MongoBaseClassicBenchmarkBuildConfig):
@@ -200,19 +247,10 @@ class SplitCIFAR10BuildConfig(MongoBaseClassicBenchmarkBuildConfig):
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
         return super(SplitCIFAR10BuildConfig, cls).create(data, tp, context, save)
 
-    def build(self, context: ResourceContext, locked=False, parents_locked=False):
-        dataset_root = get_common_dataset_root(self.dataset_name(), abspath=True)
-        benchmark = self.benchmark_generator()(
-            self.n_experiences,
-            first_exp_with_half_classes=self.first_exp_with_half_classes,
-            return_task_id=self.return_task_id,
-            seed=self.seed,
-            fixed_class_order=self.fixed_class_order,
-            shuffle=self.shuffle,
-            dataset_root=dataset_root,
-        )
-        # noinspection PyArgumentList
-        return self.target_type()(benchmark)
+    def make_kwargs(self) -> TDesc:
+        kwargs = super(SplitCIFAR10BuildConfig, self).make_kwargs()
+        kwargs['first_exp_with_half_classes'] = self.first_exp_with_half_classes
+        return kwargs
 
 
 # Split CIFAR-100 builder
@@ -271,19 +309,10 @@ class SplitCIFAR100BuildConfig(MongoBaseClassicBenchmarkBuildConfig):
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
         return super(SplitCIFAR100BuildConfig, cls).create(data, tp, context, save)
 
-    def build(self, context: ResourceContext, locked=False, parents_locked=False):
-        dataset_root = get_common_dataset_root(self.dataset_name(), abspath=True)
-        benchmark = self.benchmark_generator()(
-            self.n_experiences,
-            first_exp_with_half_classes=self.first_exp_with_half_classes,
-            return_task_id=self.return_task_id,
-            seed=self.seed,
-            fixed_class_order=self.fixed_class_order,
-            shuffle=self.shuffle,
-            dataset_root=dataset_root,
-        )
-        # noinspection PyArgumentList
-        return self.target_type()(benchmark)
+    def make_kwargs(self) -> TDesc:
+        kwargs = super(SplitCIFAR100BuildConfig, self).make_kwargs()
+        kwargs['first_exp_with_half_classes'] = self.first_exp_with_half_classes
+        return kwargs
 
 
 # CORe50 builder
@@ -302,6 +331,8 @@ class CORe50BuildConfig(MongoBaseBenchmarkBuildConfig):
     run = db.IntField(default=0)
     object_lvl = db.BooleanField(default=True)
     mini = db.BooleanField(default=False)   # True -> 32x32 images; False -> 128x128 images
+    train_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
+    eval_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -310,7 +341,8 @@ class CORe50BuildConfig(MongoBaseBenchmarkBuildConfig):
     @classmethod
     def get_optionals(cls) -> set[str]:
         return super(CORe50BuildConfig, cls).get_optionals().union({
-            'data_repository', 'scenario', 'run', 'object_lvl', 'mini'
+            'data_repository', 'scenario', 'run', 'object_lvl',
+            'mini', 'train_transform', 'eval_transform',
         })
 
     @classmethod
@@ -332,21 +364,64 @@ class CORe50BuildConfig(MongoBaseBenchmarkBuildConfig):
 
         if not all_str and all_int and all_bool:
             return False, "One or more parameter(s) are not of the correct type!"
+        
+        train_transform_data = params.get('train_transform')
+        eval_transform_data = params.get('eval_transform')
+
+        if train_transform_data is not None:
+            train_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(train_transform_data)
+            if train_transform_data is None:
+                return False, "Not given or unknown train transform."
+            result, msg = train_transform_config.validate_input(train_transform_data, context)
+            if not result:
+                return False, f"Train transform is incorrect: '{msg}'."
+
+        if eval_transform_data is not None:
+            eval_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(eval_transform_data)
+            if eval_transform_data is None:
+                return False, "Not given or unknown eval transform."
+            result, msg = eval_transform_config.validate_input(eval_transform_data, context)
+            if not result:
+                return False, f"Eval transform is incorrect: '{msg}'."
         return True, None
 
     @classmethod
     def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):
+        train_transform_data = data.get('train_transform')
+        if train_transform_data is not None:
+            train_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(train_transform_data)
+            train_transform = train_transform_config.create(train_transform_data, context, save)
+        else:
+            train_transform = None
+        data['train_transform'] = train_transform
+
+        eval_transform_data = data.get('eval_transform')
+        if eval_transform_data is not None:
+            eval_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(eval_transform_data)
+            eval_transform = eval_transform_config.create(eval_transform_data, context, save)
+        else:
+            eval_transform = None
+        data['eval_transform'] = eval_transform
         return super(CORe50BuildConfig, cls).create(data, dtype, context, save)
 
     def build(self, context: ResourceContext, locked=False, parents_locked=False):
         dataset_root = get_common_dataset_root('core50', abspath=True)
-        benchmark = CORe50(
-            scenario=self.scenario,
-            run=self.run,
-            object_lvl=self.object_lvl,
-            mini=self.mini,
-            dataset_root=dataset_root,
-        )
+        kwargs = {
+            'scenario': self.scenario,
+            'run': self.run,
+            'object_lvl': self.object_lvl,
+            'mini': self.mini,
+            'dataset_root': dataset_root,
+        }
+        if self.train_transform is not None:
+            train_transform = self.train_transform.get_transform()
+            kwargs['train_transform'] = train_transform
+
+        if self.eval_transform is not None:
+            eval_transform = self.eval_transform.get_transform()
+            kwargs['eval_transform'] = eval_transform
+
+        benchmark = self.benchmark_generator()(self.n_experiences, **kwargs)
         # noinspection PyArgumentList
         return self.target_type()(benchmark)
 
