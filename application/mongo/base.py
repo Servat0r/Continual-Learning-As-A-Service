@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from application.utils import TBoolExc, abstractmethod
 from application.models import User, Workspace
-from application.mongo.utils import RWLockableDocument
+from application.mongo.locking import RWLockableDocument
 
 
 class MongoBaseUser(User, RWLockableDocument):

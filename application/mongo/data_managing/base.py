@@ -3,7 +3,7 @@ from __future__ import annotations
 from application.utils import abstractmethod, TBoolExc
 from application.data_managing.base import BaseDataRepository
 
-from application.mongo.utils import RWLockableDocument
+from application.mongo.locking import RWLockableDocument
 from application.mongo.base import MongoBaseWorkspace, MongoBaseUser
 
 

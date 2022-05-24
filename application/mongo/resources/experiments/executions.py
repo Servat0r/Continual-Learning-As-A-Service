@@ -15,6 +15,9 @@ class MongoCLExperimentExecutionConfig(BaseCLExperimentExecution, db.EmbeddedDoc
     started = db.BooleanField(default=False)
     completed = db.BooleanField(default=False)
 
+    start_time = db.DateTimeField(default=None)
+    end_time = db.DateTimeField(default=None)
+
     status_code = db.IntField(default=200)
     payload = db.DictField(default=None)
 
@@ -58,6 +61,8 @@ class MongoCLExperimentExecutionConfig(BaseCLExperimentExecution, db.EmbeddedDoc
             'uri': self.uri,
             'started': self.started,
             'completed': self.completed,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
             'results': {
                 'status': self.status_code,
                 'payload': self.payload,

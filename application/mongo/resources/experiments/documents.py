@@ -10,7 +10,7 @@ from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType, BaseMetadata
 from application.resources.datatypes import BaseCLExperiment
 
-from application.mongo.utils import RWLockableDocument
+from application.mongo.locking import RWLockableDocument
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
 
 from application.mongo.base import MongoBaseUser, MongoBaseWorkspace
@@ -118,7 +118,8 @@ class MongoCLExperimentConfig(MongoResourceConfig):
                 elif self.status == BaseCLExperiment.READY:
                     return True, None
                 else:
-                    result = self.modify({}, build_config__status=BaseCLExperiment.READY)
+                    self.build_config.status = BaseCLExperiment.READY
+                    result = self.save()
                     return result, None if result else \
                         RuntimeError("Failed to setup experiment (modify operation failed).")
             except Exception as ex:
@@ -127,20 +128,23 @@ class MongoCLExperimentConfig(MongoResourceConfig):
     def set_started(self, locked=False, parents_locked=False) -> int | None:
         with self.resource_write(locked=locked, parents_locked=parents_locked):
             exec_id = self.current_exec_id + 1
+            now = datetime.utcnow()
             # noinspection PyArgumentList
-            execution = MongoCLExperimentExecutionConfig(experiment=self, exec_id=exec_id, started=True)
+            execution = MongoCLExperimentExecutionConfig(
+                experiment=self,
+                exec_id=exec_id,
+                started=True,
+                completed=False,
+                start_time=now,
+            )
             if self.status != BaseCLExperiment.READY:
                 raise RuntimeError("Experiment is not ready: must setup before start running!")
             else:
-                result = self.modify(
-                    {}, build_config__status=BaseCLExperiment.RUNNING,
-                    inc__current_exec_id=1,
-                    push__executions=execution,
-                )
-                if result:
-                    return exec_id
-                else:
-                    return None
+                self.build_config.status = BaseCLExperiment.RUNNING
+                self.current_exec_id += 1
+                self.executions.append(execution)
+                result = self.save()
+                return exec_id if result else None
 
     def set_finished(self, response: Response, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_read(locked=locked, parents_locked=parents_locked):
@@ -151,6 +155,8 @@ class MongoCLExperimentConfig(MongoResourceConfig):
                 else:
                     self.build_config.status = BaseCLExperiment.ENDED
                     execution.completed = True
+                    now = datetime.utcnow()
+                    execution.end_time = now
                     status_code = response.status_code
                     payload = response.get_json()
                     execution.status_code = status_code

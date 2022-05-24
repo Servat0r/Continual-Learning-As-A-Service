@@ -27,6 +27,7 @@ executor = Executor()
 TBoolStr = t.TypeVar('TBoolStr', bound=tuple[bool, t.Optional[str]])
 TBoolExc = t.TypeVar('TBoolExc', bound=tuple[bool, t.Optional[Exception]])
 TBoolAny = t.TypeVar('TBoolAny', bound=tuple[bool, t.Any])
+TOptBoolAny = t.TypeVar('TOptBoolAny', bound=tuple[t.Optional[bool], t.Any])
 TDesc = t.TypeVar('TDesc', bound=dict[str, t.Any])
 
 # Classic methods
@@ -154,14 +155,35 @@ def catcher(exc_type: t.Type[Exception] = Exception, dfl_return: t.Any = None):
     return wrapper
 
 
+# The following function is copied from an older version of the `Continual Learning Baselines` project.
+# Current project GitHub page is: https://github.com/ContinualAI/continual-learning-baselines.
+# Original function comments and citations are left unchanged.
+def get_average_metric(metric_dict: dict, metric_name: str = 'Top1_Acc_Stream'):
+    """
+    Compute the average of a metric based on the provided metric name.
+    The average is computed across the instance of the metrics containing the
+    given metric name in the input dictionary.
+    :param metric_dict: dictionary containing metric name as keys and metric value as value.
+        This dictionary is usually returned by the `eval` method of Avalanche strategies.
+    :param metric_name: the metric name (or a part of it), to be used as pattern to filter the dictionary
+    :return: a number representing the average of all the metric containing `metric_name` in their name
+    """
+
+    avg_stream_acc = []
+    for k, v in metric_dict.items():
+        if k.startswith(metric_name):
+            avg_stream_acc.append(v)
+    return sum(avg_stream_acc) / float(len(avg_stream_acc))
+
+
 __all__ = [
     'executor',
 
-    'TBoolStr', 'TBoolExc',
-    'TDesc', 'TBoolAny',
+    'TBoolStr', 'TBoolExc', 'TDesc',
+    'TBoolAny', 'TOptBoolAny',
 
-    'os', 'abstractmethod',
-    'ABC', 'datetime', 't',
+    'os', 'abstractmethod', 'ABC',
+    'datetime', 't', 'catcher',
 
     'GET', 'PUT', 'POST', 'PATCH',
     'OPTIONS', 'HEAD', 'DELETE',
@@ -176,5 +198,5 @@ __all__ = [
     'get_all_common_datasets_root',
     'get_common_dataset_root',
 
-    'catcher',
+    'get_average_metric',
 ]

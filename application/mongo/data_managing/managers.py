@@ -124,7 +124,6 @@ class MongoLocalDataManager(BaseDataManager):
         else:
             return None
 
-    # TODO Controllare se necessario!
     def get_file_pointer(self, file_name: str, dir_names: list[str], binary=True) -> t.TextIO | t.BinaryIO | None:
         fpath = os.path.join(self.get_root(), *dir_names, file_name)
         mode = 'rb' if binary else 'r'

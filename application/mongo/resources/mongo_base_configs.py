@@ -12,7 +12,7 @@ from application.models import User, Workspace
 from application.resources.contexts import ResourceContext, UserWorkspaceResourceContext
 from application.resources.base import BuildConfig, ResourceConfig, BaseMetadata, DataType
 
-from application.mongo.utils import RWLockableDocument
+from application.mongo.locking import RWLockableDocument
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
 from application.mongo.base import MongoBaseUser, MongoBaseWorkspace
 
@@ -494,12 +494,16 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
 
         return True, None
 
-    def save(self, create=False):
-        if create:
-            db.Document.save(self, force_insert=create)
-        else:
-            self.update_last_modified(save=False)
-            db.Document.save(self, save_condition={'id': self.id})
+    def save(self, create=False) -> bool:
+        try:
+            if create:
+                db.Document.save(self, force_insert=create)
+            else:
+                self.update_last_modified(save=False)
+                db.Document.save(self, save_condition={'id': self.id})
+            return True
+        except Exception as ex:
+            return False
 
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked=locked, parents_locked=parents_locked):

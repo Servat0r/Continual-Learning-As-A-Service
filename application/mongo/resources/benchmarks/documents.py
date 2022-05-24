@@ -7,7 +7,7 @@ from application.data_managing import BaseDataRepository
 from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType, ReferrableDataType, BaseMetadata
 
-from application.mongo.utils import RWLockableDocument
+from application.mongo.locking import RWLockableDocument
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
 
 from application.mongo.resources.mongo_base_configs import *

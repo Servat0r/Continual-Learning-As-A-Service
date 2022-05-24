@@ -132,7 +132,7 @@ class Workspace(JSONSerializable, URIBasedResource):
         return Workspace.get_class().rename(self, old_name, new_name)
 
     @abstractmethod
-    def save(self, create=False):
+    def save(self, create=False) -> bool:
         pass
 
     @abstractmethod

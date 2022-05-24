@@ -166,9 +166,10 @@ def data_manager_datasets_benchmark(
 
         train_transform=None, train_target_transform=None,
         eval_transform=None, eval_target_transform=None,
-        other_transform_groups: dict[str, tuple[t.Any, t.Any]] = None,
+        other_transform_groups: dict[str, t.Sequence[t.Any, t.Any]] = None,
 
 ) -> GenericCLScenario:
+
     train_datasets = data_manager_dataset_stream(
         'train', manager, data_repository,
         train_build_data, loader=loader,
@@ -178,6 +179,7 @@ def data_manager_datasets_benchmark(
         eval_build_data, loader=loader,
     )
     other_stream_datasets: dict[str, list[DataManagerDataset]] | None = {}
+
     if other_build_data is None or len(other_build_data) == 0:
         other_stream_datasets = None
     else:
@@ -186,6 +188,11 @@ def data_manager_datasets_benchmark(
                 stream_name, manager, data_repository,
                 stream_build, loader=loader,
             )
+
+    if other_transform_groups is not None:
+        for stream_name, transforms in other_transform_groups.items():
+            other_transform_groups[stream_name] = tuple(transforms)
+
     return dataset_benchmark(
         train_datasets, test_datasets, other_streams_datasets=other_stream_datasets,
         complete_test_set_only=complete_test_set_only, train_transform=train_transform,

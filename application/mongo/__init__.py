@@ -1,4 +1,5 @@
 from .utils import *
+from .locking import *
 from .base import *
 from .mongo_base_metadata import *
 from .loggers import *

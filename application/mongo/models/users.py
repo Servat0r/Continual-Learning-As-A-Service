@@ -14,7 +14,7 @@ from application.mongo.base import *
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
 
 from application.data_managing import BaseDataManager
-from application.mongo.utils import RWLockableDocument
+from application.mongo.locking import RWLockableDocument
 
 
 class UserMetadata(MongoBaseMetadata):
@@ -156,12 +156,16 @@ class MongoUser(MongoBaseUser):
             self.save()
         return result
 
-    def save(self, create=False):
-        if create:
-            db.Document.save(self, force_insert=True)
-        else:
-            self.update_last_modified(save=False)
-            db.Document.save(self, save_condition={'id': self.id})
+    def save(self, create=False) -> bool:
+        try:
+            if create:
+                db.Document.save(self, force_insert=True)
+            else:
+                self.update_last_modified(save=False)
+                db.Document.save(self, save_condition={'id': self.id})
+            return True
+        except Exception as ex:
+            return False
 
     def set_password(self, password: str, save: bool = True):
         """

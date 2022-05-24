@@ -3,7 +3,7 @@ Interface for CL experiments.
 """
 from __future__ import annotations
 
-from application.utils import TDesc, t, abstractmethod
+from application.utils import TDesc, t, abstractmethod, TOptBoolAny
 from application.resources.utils import JSONSerializable, URIBasedResource
 from application.resources.base import ReferrableDataType
 
@@ -50,7 +50,7 @@ class BaseCLExperimentRunConfig:
             return cls.get_by_name(obj)
 
     @abstractmethod
-    def run(self, experiment: BaseCLExperiment, model_directory: list[str] = None) -> bool:
+    def run(self, experiment: BaseCLExperiment, model_directory: list[str] = None) -> TOptBoolAny:
         pass
 
 
@@ -96,10 +96,10 @@ class BaseCLExperiment(ReferrableDataType):
     def get_metadata(self, key: str | None = None) -> TDesc | t.Any:
         return super().get_metadata(key)
 
-    def run(self, model_directory: list[str] = None) -> bool | None:
+    def run(self, model_directory: list[str] = None) -> TOptBoolAny:
         run_config = self.get_run_configuration()
         if run_config is None:
-            return None
+            return None, None
         else:
             return run_config.run(self, model_directory=model_directory)
 

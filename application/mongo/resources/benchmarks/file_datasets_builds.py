@@ -15,7 +15,6 @@ from .base_builds import *
 
 
 class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
-
     """
     Representing a single folder config, i.e. of the form:
     {
@@ -40,16 +39,13 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(DataStreamFolderConfig, cls).validate_input(data, context)
-        if not result:
-            return result, msg
+        ok = all(name in ('root', 'all', 'files') for name in data.keys())
+        if not ok:
+            return False, "At least one unknown field."
 
-        iname, values = context.pop()
-        params = values['params']
-
-        root = params.get('root', None)
-        all_files = params.get('all', True)
-        files = params.get('files', None)
+        root = data.get('root', None)
+        all_files = data.get('all', True)
+        files = data.get('files', None)
 
         if root is not None and not isinstance(root, str):
             return False, "'root' parameter must be a string!"
@@ -117,12 +113,27 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
     def validate_input(cls, data: TDesc | list, context: ResourceContext) -> TBoolStr:
         if isinstance(data, list):
             data = {'configs': data}
-        result, msg = super(DataStreamExperienceConfig, cls).validate_input(data, context)
-        if not result:
-            return result, msg
+        params: TDesc = {}
+        extras = data.copy()
 
-        iname, values = context.pop()
-        params = values['params']
+        for name in cls.get_required():
+            val = data.get(name)
+            if (val is not None) or cls.is_nullable(name):
+                params[name] = val
+                extras.pop(name)
+            else:
+                return False, f"None value was given for non-nullable field '{name}'."
+
+        for name in cls.get_optionals():
+            val = data.get(name)
+            if (val is not None) or cls.is_nullable(name):
+                params[name] = val
+                extras.pop(name)
+            else:
+                return False, f"None value was given for non-nullable field '{name}'."
+        # result: required & optional; data_copy: extras
+        if len(extras) > 0 and not cls.has_extras():
+            return False, "Unexpected extra arguments."
 
         configs = params.get('configs', [])
         if not isinstance(configs, list):
@@ -131,7 +142,7 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
         for i in range(len(configs)):
             result, msg = DataStreamFolderConfig.validate_input(configs[i], context)
             if not result:
-                return False, f"Failed to build {i+1}-th config: '{msg}'."
+                return False, f"Failed to build {i + 1}-th config: '{msg}'."
 
         return True, None
 
@@ -153,8 +164,8 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
         # noinspection PyArgumentList
         exp_config = cls(**params)
         exp_config.configs = objs
-#        for i in range(len(objs)):
-#            exp_config.configs.append(objs[i])
+        #        for i in range(len(objs)):
+        #            exp_config.configs.append(objs[i])
         return exp_config
 
     def get_document_configs(self) -> list[DataStreamFolderConfig]:
@@ -265,7 +276,11 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
     train_target_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
     eval_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
     eval_target_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
-    
+    other_transform_groups = db.MapField(
+        db.ListField(db.EmbeddedDocumentField(TransformConfig)),
+        default=None
+    )
+
     # train_transform = db.StringField(choices=(None, TO_TENSOR), default=TO_TENSOR)
     # train_target_transform = db.StringField(choices=(None, TO_TENSOR), default=None)
     # eval_transform = db.StringField(choices=(None, TO_TENSOR), default=TO_TENSOR)
@@ -293,11 +308,10 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
     @classmethod
     def get_optionals(cls) -> set[str]:
         return super(DataManagerBuildConfig, cls).get_optionals().union({
-            'data_repository',
-            'complete_test_set_only',
-            'other_streams', 'img_type',
-            'train_transform', 'train_target_transform',
-            'eval_transform', 'eval_target_transform',
+            'data_repository', 'complete_test_set_only',
+            'other_streams', 'img_type', 'train_transform',
+            'train_target_transform', 'eval_transform',
+            'eval_target_transform', 'other_transform_groups',
         })
 
     @classmethod
@@ -305,7 +319,7 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         for i in range(len(stream_list)):
             result, msg = DataStreamExperienceConfig.validate_input(stream_list[i], context)
             if not result:
-                return False, f"Failed to build {i+1}-th stream: '{msg}'."
+                return False, f"Failed to build {i + 1}-th stream: '{msg}'."
         return True, None
 
     @classmethod
@@ -320,6 +334,17 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
                 exp_configs.append(stream)
         return exp_configs
 
+    @staticmethod
+    def _validate_transform_data(transform_data: TDesc, context: ResourceContext) -> TBoolStr:
+        if transform_data is not None:
+            transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(transform_data)
+            if transform_config is None:
+                return False, "Not given or unknown transform."
+            result, msg = transform_config.validate_input(transform_data, context)
+            return result, None if result else f"Invalid transform: '{msg}'."
+        else:
+            return True, None
+
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
         result, msg = super(DataManagerBuildConfig, cls).validate_input(data, dtype, context)
@@ -328,12 +353,12 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         iname, values = context.pop()
         params = values['params']
 
-        train_stream_list = params['train_stream']                                      # list[list[dict]]
-        test_stream_list = params['test_stream']                                        # list[list[dict]]
-        other_streams_dict = params.get('other_streams', {})                            # dict[str, # list[list[dict]]]
+        train_stream_list = params['train_stream']  # list[list[dict]]
+        test_stream_list = params['test_stream']  # list[list[dict]]
+        other_streams_dict = params.get('other_streams', {})  # dict[str, # list[list[dict]]]
 
-        img_type = params.get('img_type', DataManagerBuildConfig.RGB)                       # string
-        complete_test_set_only = params.get('complete_test_set_only', False)                # boolean
+        img_type = params.get('img_type', DataManagerBuildConfig.RGB)  # string
+        complete_test_set_only = params.get('complete_test_set_only', False)  # boolean
 
         """
         train_transform = params.get('train_transform', DataManagerBuildConfig.TO_TENSOR)   # string
@@ -350,29 +375,14 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         eval_target_transform_data = params.get('eval_target_transform', None)
 
         for transform_data in (
-            train_transform_data,
-            train_target_transform_data,
-            eval_transform_data,
-            eval_target_transform_data,
+                train_transform_data,
+                train_target_transform_data,
+                eval_transform_data,
+                eval_target_transform_data,
         ):
-            if transform_data is not None:
-                transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(transform_data)
-                if transform_config is None:
-                    return False, "Not given or unknown transform."
-                result, msg = transform_config.validate_input(transform_data, context)
-                if not result:
-                    return False, f"Invalid transform: '{msg}'."
-        """
-        # string fields
-        all_str_none = all(par is None or isinstance(par, str)
-                           for par in [train_target_transform, eval_target_transform])
-        if not all_str_none:
-            return False, "One or more parameters are not of the correct (str | None) type."
-
-        all_str = all(isinstance(par, str) for par in [img_type, train_transform, eval_transform])
-        if not all_str:
-            return False, "One or more parameters are not of the correct (str) type."
-        """
+            result, msg = cls._validate_transform_data(transform_data, context)
+            if not result:
+                return False, msg
 
         if not isinstance(img_type, str):
             return False, "One or more parameters are not of the correct (str) type."
@@ -393,6 +403,30 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
                 return False, msg
             other_streams_dict[stream_name]: list[DataStreamExperienceConfig] = stream_list
 
+        other_transform_groups_data = params.get('other_transform_groups')
+        if other_transform_groups_data is not None:
+            check_other_transforms = False
+
+            if isinstance(other_transform_groups_data, dict):
+                for stream_name, transforms in other_transform_groups_data.items():
+                    if not isinstance(stream_name, str):
+                        return False, "Names of the other transform groups must be strings!"
+                    elif not isinstance(transforms, dict):
+                        return False, "Other transform groups must be a dictionary of couples" \
+                                      " (item_transform, target_transform)!"
+                    elif len(transforms) != 2:
+                        return False, "Other transform groups must consist in a couple of transform configs," \
+                                      " one for train items and one for target ones!"
+                    else:
+                        check_names = all(name in ('item', 'target') for name in transforms.keys())
+                        if not check_names:
+                            return False, "Other transform groups name indicators must be either 'item' or 'train'."
+                        for transform_name, transform_data in transforms.items():
+                            result, msg = cls._validate_transform_data(transform_data, context)
+                            if not result:
+                                return False, msg
+            return (True, None) if check_other_transforms else \
+                (False, "Parameter 'other_transform_groups' is not of the correct type!")
         return True, None
 
     @classmethod
@@ -418,10 +452,10 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
 
         # transforms processing
         for transform_name in (
-            'train_transform',
-            'train_target_transform',
-            'eval_transform',
-            'eval_target_transform',
+                'train_transform',
+                'train_target_transform',
+                'eval_transform',
+                'eval_target_transform',
         ):
             transform_data = params.get(transform_name)
             if transform_data is not None:
@@ -433,11 +467,36 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
 
         # default train and eval transforms
         for transform_name in (
-            'train_transform',
-            'eval_transform',
+                'train_transform',
+                'eval_transform',
         ):
             if params.get(transform_name) is None:
                 params[transform_name] = ToTensorConfig.create({}, context, save=False)
+
+        # other transform groups processing
+        other_transform_groups_data: dict[str, dict[str, dict]] = params.get('other_transform_groups')
+        if other_transform_groups_data is not None:
+            other_transform_groups: dict[str, tuple[t.Any, t.Any]] = {}
+            for stream_name, transform_group_data in other_transform_groups_data.items():
+                item_transform_data = transform_group_data.get('item')
+                item_transform = None
+                if item_transform_data is not None:
+                    item_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(item_transform_data)
+                    if item_transform_config is None:
+                        raise RuntimeError("Not given or unknown item transform config")
+                    item_transform = item_transform_config.create(item_transform_data, context, save)
+                
+                target_transform_data = transform_group_data.get('target')
+                target_transform = None
+                if target_transform_data is not None:
+                    target_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(target_transform_data)
+                    if target_transform_config is None:
+                        raise RuntimeError("Not given or unknown target transform config")
+                    target_transform = target_transform_config.create(target_transform_data, context, save)
+
+                other_transform_groups[stream_name] = (item_transform, target_transform)
+
+            params['other_transform_groups'] = other_transform_groups
 
         # noinspection PyArgumentList
         benchmark_config = cls(**params)
@@ -461,17 +520,17 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
                 train_transform = None
             else:
                 train_transform = self.train_transform.get_transform()
-            
+
             if self.train_target_transform is None:
                 train_target_transform = None
             else:
                 train_target_transform = self.train_target_transform.get_transform()
-            
+
             if self.eval_transform is None:
                 eval_transform = None
             else:
                 eval_transform = self.eval_transform.get_transform()
-            
+
             if self.eval_target_transform is None:
                 eval_target_transform = None
             else:
@@ -497,7 +556,7 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
                 train_target_transform,
                 eval_transform,
                 eval_target_transform,
-                other_transform_groups=None,  # todo implement in build config!
+                other_transform_groups=self.other_transform_groups,
             )
             # noinspection PyArgumentList
             return self.target_type()(benchmark)

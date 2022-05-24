@@ -9,7 +9,7 @@ from application.data_managing import BaseDataManager, BaseDataRepository
 
 from application.resources import *
 
-from application.mongo.utils import RWLockableDocument
+from application.mongo.locking import RWLockableDocument
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
 from application.mongo.base import MongoBaseUser, MongoBaseWorkspace
 
@@ -218,12 +218,16 @@ class MongoWorkspace(MongoBaseWorkspace):
             except Exception as ex:
                 return False, ex.args[0]
 
-    def save(self, create=False):
-        if create:
-            db.Document.save(self, force_insert=create)
-        else:
-            self.update_last_modified(save=False)
-            db.Document.save(self, save_condition={'id': self.id})
+    def save(self, create=False) -> bool:
+        try:
+            if create:
+                db.Document.save(self, force_insert=create)
+            else:
+                self.update_last_modified(save=False)
+                db.Document.save(self, save_condition={'id': self.id})
+            return True
+        except Exception as ex:
+            return False
 
     def update_last_modified(self, time: datetime = None, save: bool = True):
         self.metadata.update_last_modified(time)

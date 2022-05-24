@@ -6,7 +6,7 @@ import traceback
 from avalanche.benchmarks import GenericCLScenario
 from avalanche.training.templates import SupervisedTemplate
 
-from application.utils import TDesc
+from application.utils import TDesc, TOptBoolAny
 from application.data_managing import BaseDataManager
 from application.resources.datatypes import BaseCLExperiment, BaseCLExperimentRunConfig
 
@@ -15,7 +15,7 @@ from application.resources.datatypes import BaseCLExperiment, BaseCLExperimentRu
 class StdTrainTestRunConfig(BaseCLExperimentRunConfig):
 
     @classmethod
-    def run(cls, experiment: BaseCLExperiment, model_directory: list[str] = None) -> bool:
+    def run(cls, experiment: BaseCLExperiment, model_directory: list[str] = None) -> TOptBoolAny:
         try:
             cl_scenario: GenericCLScenario = experiment.get_benchmark().get_value()
             cl_strategy: SupervisedTemplate = experiment.get_strategy().get_value()
@@ -34,7 +34,7 @@ class StdTrainTestRunConfig(BaseCLExperimentRunConfig):
                 result, exc = manager.save_model(cl_strategy.model, model_directory)
                 if not result:
                     print(exc)
-            print(*results, sep='\n')   # TODO Replace with results registering!
-            return True
+            return True, results
         except Exception as ex:
             traceback.print_exception(*sys.exc_info())
+            return False, ex

@@ -50,17 +50,17 @@ def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
                                 HTTPStatus.INTERNAL_SERVER_ERROR,
                                 msg=f"Failed to start experiment #{start_result}.")
                         else:
-                            result = experiment.run(
+                            success, results = experiment.run(
                                 experiment_config.get_last_execution().base_dir(),
                             )
-                            if result is None:
+                            if success is None:  # results is None
                                 response = ResourceNotFound(msg="Experiment run configuration does not exist.")
-                            elif result:
+                            elif success:   # results is dict
                                 response = make_success_dict(msg=f"Experiment #{start_result} correctly executed.")
-                            else:
+                            else:   # results is Exception
                                 response = make_error(
                                     HTTPStatus.INTERNAL_SERVER_ERROR,
-                                    msg=f"Failed to run experiment #{start_result}.")
+                                    msg=f"Failed to run experiment #{start_result}: '{results}'.")
                     return response
                 except Exception as ex:
                     exc_info = sys.exc_info()

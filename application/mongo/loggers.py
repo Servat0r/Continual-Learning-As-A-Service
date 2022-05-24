@@ -11,6 +11,7 @@ from avalanche.core import SupervisedPlugin
 from application.utils import t
 from application.data_managing.base import BaseDataManager
 from application.resources import StandardMetricSet
+from application.mongo.utils import mnames_order_filter, mnames_translations
 
 if t.TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
@@ -28,111 +29,6 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
     _DFL_TRAIN_RESULTS_FILE_NAME = 'train_results.csv'
     _DFL_EVAL_RESULTS_FILE_NAME = 'eval_results.csv'
 
-    # noinspection PyUnusedLocal
-    @staticmethod
-    def mnames_translations(gpu_id: int = 0, **kwargs):
-        return {
-            'accuracy': {
-                'minibatch': 'Top1_Acc_MB',
-                'epoch': 'Top1_Acc_Epoch',
-                'experience': 'Top1_Acc_Exp',
-                'stream': 'Top1_Acc_Stream',
-            },
-            'loss': {
-                'minibatch': "Loss_MB",
-                'epoch': "Loss_Epoch",
-                'experience': "Loss_Exp",
-                'stream': "Loss_Stream",
-            },
-            'forgetting': {
-                'experience': "ExperienceForgetting",
-                'stream': "StreamForgetting",
-            },
-
-            'timing': {
-                'minibatch': "Time_MB",
-                'epoch': "Time_Epoch",
-                'experience': "Time_Exp",
-                'stream': "Time_Stream",
-            },
-            'ram_usage': {
-                'minibatch': "MaxRAMUsage_MB",
-                'epoch': "MaxRAMUsage_Epoch",
-                'experience': "MaxRAMUsage_Exp",
-                'stream': "MaxRAMUsage_Stream",
-            },
-            'cpu_usage': {
-                'minibatch': "CPUUsage_MB",
-                'epoch': "CPUUsage_Epoch",
-                'experience': "CPUUsage_Exp",
-                'stream': "CPUUsage_Stream",
-            },
-            'disk_usage': {
-                'minibatch': "DiskUsage_MB",
-                'epoch': "DiskUsage_Epoch",
-                'experience': "DiskUsage_Exp",
-                'stream': "DiskUsage_Stream",
-            },
-            'gpu_usage': {
-                'minibatch': f"MaxGPU{gpu_id}Usage_MB",
-                'epoch': f"MaxGPU{gpu_id}Usage_Epoch",
-                'experience': f"MaxGPU{gpu_id}Usage_Experience",
-                'stream': f"MaxGPU{gpu_id}Usage_Stream",
-            },
-
-            'bwt': {
-                'experience': "ExperienceBWT",
-                'stream': "StreamBWT",
-            },
-            'forward_transfer': {
-                'experience': "ExperienceForwardTransfer",
-                'stream': "StreamForwardTransfer",
-            },
-            'MAC': {
-                'minibatch': "MAC_MB",
-                'epoch': "MAC_Epoch",
-                'experience': "MAC_Exp",
-            },
-        }
-
-    _MNAMES_ORDER: list[str] = [
-        'accuracy',
-        'loss',
-        'forgetting',
-
-        'timing',
-        'ram_usage',
-        'cpu_usage',
-        'disk_usage',
-        'gpu_usage',
-
-        'bwt',
-        'forward_transfer',
-        'MAC',
-    ]
-
-    @staticmethod
-    def _mnames_order(names: list[str]) -> list[str]:
-        mnames_list = ExtendedCSVLogger._MNAMES_ORDER
-        canonical: list[str | None] = len(mnames_list) * [None]
-        extras: list[str] = []
-
-        for i in range(len(names)):
-            name = names[i]
-            try:
-                idx = mnames_list.index(name)
-                canonical[idx] = name
-            except ValueError:
-                extras.append(name)
-
-        result: list[str] = []
-        for i in range(len(canonical)):
-            name = canonical[i]
-            if name is not None:
-                result.append(name)
-        result += extras
-        return result
-
     def __init__(
         self, log_folder: list[str], metricset: StandardMetricSet,
         train_file_name: str = _DFL_TRAIN_RESULTS_FILE_NAME,
@@ -141,7 +37,7 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
 
         super().__init__()
 
-        self.metric_names = {k: self._mnames_order(v) for k, v in metricset.get_metric_names().items()}
+        self.metric_names = {k: mnames_order_filter(v) for k, v in metricset.get_metric_names().items()}
         self.val_dict = {k: 0 for k in self.metric_names}
 
         self.train_file_name = train_file_name
@@ -241,7 +137,7 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
 
         for name in self.metric_names['train']:
             current_value = -1
-            val_start = self.mnames_translations().get(name).get(mtype)
+            val_start = mnames_translations().get(name).get(mtype)
             if val_start is not None:
                 for val in metric_values:
                     if val.name.startswith(val_start):
@@ -264,7 +160,7 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
         
         for name in self.metric_names['eval']:
             current_value = -1
-            val_start = self.mnames_translations().get(name).get(mtype)
+            val_start = mnames_translations().get(name).get(mtype)
             if val_start is not None:
                 for val in metric_values:
                     if val.name.startswith(val_start):

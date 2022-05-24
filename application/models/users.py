@@ -113,7 +113,7 @@ class User(UserMixin):
         pass
 
     @abstractmethod
-    def save(self, create=False):
+    def save(self, create=False) -> bool:
         pass
 
     @abstractmethod

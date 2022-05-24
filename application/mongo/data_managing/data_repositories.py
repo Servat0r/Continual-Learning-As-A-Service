@@ -9,7 +9,7 @@ from application.data_managing.base import BaseDataRepository, BaseDataManager, 
 from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType, ReferrableDataType
 
-from application.mongo.utils import RWLockableDocument
+from application.mongo.locking import RWLockableDocument
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
 from application.mongo.base import MongoBaseUser, MongoBaseWorkspace
 
@@ -167,11 +167,15 @@ class MongoDataRepository(MongoBaseDataRepository):
         ]
         return manager.get_dir_path(dir_names)
 
-    def save(self, create=False):
-        if create:
-            db.Document.save(self, force_insert=True)
-        else:
-            db.Document.save(self, save_condition={'id': self.id})
+    def save(self, create=False) -> bool:
+        try:
+            if create:
+                db.Document.save(self, force_insert=True)
+            else:
+                db.Document.save(self, save_condition={'id': self.id})
+            return True
+        except Exception as ex:
+            return False
 
     def data_repo_base_dir(self) -> str:
         return f"DataRepository_{self.get_id()}"
