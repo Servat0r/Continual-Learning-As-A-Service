@@ -24,7 +24,6 @@ _DFL_EXPERIMENT_NAME = t.cast(
 )
 
 _EXPERIMENT_START = "START"
-_EXPERIMENT_STOP = "STOP"
 
 experiments_bp = Blueprint('experiments', __name__,
                            url_prefix='/users/<user:username>/workspaces/<workspace:wname>/experiments')
@@ -111,7 +110,7 @@ def set_experiment_status(username, wname, name):
     """
     RequestSyntax:
     {
-        "status": "START"/"STOP"
+        "status": "START"
     }
     :param username:
     :param wname:
@@ -130,20 +129,12 @@ def set_experiment_status(username, wname, name):
             return err_response
 
         status = data['status']
-        if status != _EXPERIMENT_START and status != _EXPERIMENT_STOP:
-            return ForbiddenOperation(msg="You can only start or stop an experiment!")
-        elif status == _EXPERIMENT_START:
+        if status == _EXPERIMENT_START:
             context = UserWorkspaceResourceContext(username, wname)
-            return __start_experiment(experiment_config, context)
-        elif status == _EXPERIMENT_STOP:
-            return RouteNotImplemented()
-
-
-def __start_experiment(experiment_config: MongoCLExperimentConfig, context: UserWorkspaceResourceContext):
-    uri = experiment_config.uri
-    executor.submit_stored(uri, _experiment_run_task, experiment_config, context)
-    # _experiment_run_task.submit_stored(uri, experiment_config, context)
-    return make_success_dict(msg="Experiment successfully submitted!")
+            executor.submit(_experiment_run_task, experiment_config, context)
+            return make_success_dict(msg="Experiment successfully submitted!")
+        else:
+            return ForbiddenOperation(msg="You can only start an experiment!")
 
 
 @experiments_bp.get('/<experiment:name>/status/')
@@ -154,19 +145,10 @@ def get_experiment_status(username, wname, name):
     if err_response:
         return err_response
     else:
-        uri = experiment_config.uri
         if experiment_config.status != BaseCLExperiment.ENDED:
             return ResourceInUse(
                 msg="Experiment is still running.",
                 payload={'status': experiment_config.status},
-            )
-        elif not executor.futures.done(uri):
-            # noinspection PyProtectedMember
-            status = executor.futures._state(uri)
-            print(status)
-            return ResourceInUse(
-                msg="Experiment has completed but its handler has not yet terminated.",
-                payload={'status': status},
             )
         else:
             return make_success_dict(data={'status': experiment_config.status})
@@ -190,12 +172,8 @@ def get_experiment_execution_results(username, wname, name, exec_id):
         return err_response
     elif exec_id <= len(experiment_config.executions):
         if exec_id == experiment_config.current_exec_id:
-            uri = experiment_config.uri
             if experiment_config.status != BaseCLExperiment.ENDED:
                 return ResourceInUse(msg="Experiment is still running and results are not available.")
-            else:
-                executor.futures.pop(uri)
-
         execution = experiment_config.get_execution(exec_id)
         data = execution.to_dict()
         return make_success_dict(

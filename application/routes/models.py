@@ -19,13 +19,6 @@ def create_model(username, wname):
     return add_new_resource(username, wname, _DFL_MODEL_NAME_)
 
 
-@models_bp.get('/<resource:name>/')
-@models_bp.get('/<resource:name>')
-@token_auth.login_required
-def build_model(username, wname, name):
-    return build_resource(username, wname, _DFL_MODEL_NAME_, name)
-
-
 @models_bp.patch('/<resource:name>/')
 @models_bp.patch('/<resource:name>/')
 @token_auth.login_required
@@ -56,7 +49,6 @@ def delete_model(username, wname, name):
 __all__ = [
     'models_bp',
     'create_model',
-    'build_model',
     'update_model',
     'delete_model',
 ]

@@ -19,13 +19,6 @@ def create_optimizer(username, wname):
     return add_new_resource(username, wname, _DFL_OPTIM_NAME_)
 
 
-@optimizers_bp.get('/<resource:name>/')
-@optimizers_bp.get('/<resource:name>')
-@token_auth.login_required
-def build_optimizer(username, wname, name):
-    return build_resource(username, wname, _DFL_OPTIM_NAME_, name)
-
-
 @optimizers_bp.patch('/<resource:name>/')
 @optimizers_bp.patch('/<resource:name>/')
 @token_auth.login_required
@@ -56,7 +49,6 @@ def delete_optimizer(username, wname, name):
 __all__ = [
     'optimizers_bp',
     'create_optimizer',
-    'build_optimizer',
     'update_optimizer',
     'delete_optimizer',
 ]

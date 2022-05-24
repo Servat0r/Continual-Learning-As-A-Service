@@ -19,13 +19,6 @@ def create_criterion(username, wname):
     return add_new_resource(username, wname, _DFL_CRITERION_NAME)
 
 
-@criterions_bp.get('/<resource:name>/')
-@criterions_bp.get('/<resource:name>')
-@token_auth.login_required
-def build_criterion(username, wname, name):
-    return build_resource(username, wname, _DFL_CRITERION_NAME, name)
-
-
 @criterions_bp.patch('/<resource:name>/')
 @criterions_bp.patch('/<resource:name>')
 @token_auth.login_required
@@ -50,7 +43,6 @@ def delete_criterion(username, wname, name):
 __all__ = [
     'criterions_bp',
     'create_criterion',
-    'build_criterion',
     'update_criterion',
     'delete_criterion',
 ]

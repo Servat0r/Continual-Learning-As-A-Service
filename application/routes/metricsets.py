@@ -19,19 +19,6 @@ def create_metric_set(username, wname):
     return add_new_resource(username, wname, _DFL_METRICSET_NAME_)
 
 
-@metricsets_bp.get('/<resource:name>/')
-@metricsets_bp.get('/<resource:name>')
-@token_auth.login_required
-def build_metric_set(username, wname, name):
-    """
-    :param username:
-    :param wname:
-    :param name:
-    :return:
-    """
-    return build_resource(username, wname, _DFL_METRICSET_NAME_, name)
-
-
 @metricsets_bp.patch('/<resource:name>/')
 @metricsets_bp.patch('/<resource:name>/')
 @token_auth.login_required
@@ -68,7 +55,6 @@ def delete_metric_set(username, wname, name):
 __all__ = [
     'metricsets_bp',
     'create_metric_set',
-    'build_metric_set',
     'update_metricset',
     'delete_metric_set',
 ]

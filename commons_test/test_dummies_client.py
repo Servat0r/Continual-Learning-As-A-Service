@@ -31,7 +31,6 @@ if __name__ == '__main__':
     def print_response(response):
         print(response.status_code, response.reason, response.json(), _SEP_, sep='\n')
 
-    BaseClient.set_debug()
     cl = BaseClient("192.168.1.120")
     print(cl.__dict__)
     username = 'servator'

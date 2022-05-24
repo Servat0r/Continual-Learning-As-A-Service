@@ -172,7 +172,6 @@ if __name__ == '__main__':
 
     print(f"__only__ = {__only__}", f"__nodel__ = {__nodel__}", sep='\n')
 
-    BaseClient.set_debug()
     cl = BaseClient("192.168.1.120")
     username = 'user1'  # 'servator'
     email = 'abc@example.com'

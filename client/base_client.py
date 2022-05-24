@@ -1,36 +1,82 @@
 from __future__ import annotations
+
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Callable
+from functools import wraps
+
 from .utils import *
 
 
+def check_in_session(*params: str):
+    def checker(f: Callable):
+        @wraps(f)
+        def new_method(*args, **kwargs):
+            nonlocal params
+            self = args[0] if len(args) > 0 else kwargs.get('self')
+            if self is None:
+                raise RuntimeError("'self' parameter is not given!")
+            elif not isinstance(self, BaseClient):
+                raise TypeError("'self' parameter is not a client!")
+            elif not self.in_session:
+                raise RuntimeError("Client is not in an active session!")
+            elif not all(self.get_session_data(param) is not None for param in params):
+                raise RuntimeError("One or more session parameters are not set!")
+            else:
+                return f(*args, **kwargs)
+        return new_method
+    return checker
+
+
+class _SessionContextManager:
+
+    def __init__(self, cl: BaseClient, username: str, workspace: str, **other_session_data):
+        self.client = cl
+        self.username = username
+        self.workspace = workspace
+        self.other_session_data = other_session_data
+
+    def __enter__(self):
+        self.client.start_session(self.username, self.workspace, **self.other_session_data)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None or exc_val is not None:
+            exc_type = '' if exc_type is None else exc_type
+            print(f"Client session got an unexpected uncaught exception ({exc_type}):\n{exc_val}\n{exc_tb}.")
+        self.client.end_session()
+
+
 class BaseClient:
-    FILES = "files"
-    STREAM = "transfers"
 
     AUTH = "auth"
-    USERS = "users"
-    WORKSPACES = "workspaces"
-    DATA = "data"
-
     BENCHMARKS = "benchmarks"
-    METRICSETS = "metricsets"
-    MODELS = "models"
-    OPTIMIZERS = "optimizers"
     CRITERIONS = "criterions"
-    STRATEGIES = "strategies"
+    DATA = "data"
 
     EXPERIMENTS = "experiments"
 
-    __debug_urls__: bool = False
+    METRICSETS = "metricsets"
+    MODELS = "models"
+    OPTIMIZERS = "optimizers"
+    STRATEGIES = "strategies"
 
-    @staticmethod
-    def set_debug(on: bool = True):
-        BaseClient.__debug_urls__ = on
+    USERS = "users"
+    WORKSPACES = "workspaces"
 
-    @staticmethod
-    def reset_debug():
-        BaseClient.set_debug(False)
+    def __init__(
+        self,
+        host: str = 'localhost',
+        port: int = 5000,
+        scheme: str = 'http',
+        verbose: bool = False,
+    ):
+        self.scheme = scheme
+        self.host = host
+        self.port = port
+        self.verbose = verbose
+
+        self._init_session_data()
+        self.in_session = False
 
     @property
     def base_url(self):
@@ -43,14 +89,6 @@ class BaseClient:
     @property
     def auth_base(self):
         return f'{self.base_url}/{self.AUTH}'
-
-    @property
-    def files_base(self):
-        return f'{self.base_url}/{self.FILES}'
-
-    @property
-    def streaming_base(self):
-        return f'{self.base_url}/{self.STREAM}'
 
     @property
     def users_base(self):
@@ -96,6 +134,63 @@ class BaseClient:
     def get_url(*args):
         return '/'.join(args) + '/'
 
+    # Sessions
+    # Context Manager
+    def session(self, username: str, workspace: str, **other_session_data):
+        return _SessionContextManager(self, username, workspace, **other_session_data)
+
+    def get_session_data(self, name: str):
+        return self.current_session_data.get(name)
+
+    def set_session_data(self, name: str, val):
+        self.current_session_data[name] = val
+
+    def _init_session_data(self):
+        self.current_session_data = {
+            'auth_token': None,
+            'username': None,
+            'workspace': None,
+        }
+        self.in_session = False
+
+    def start_session(self, username: str, workspace: str = None, **other_session_data) -> bool:
+        if not self.in_session:
+            self.set_user(username)
+            self.set_workspace(workspace)
+            for name, value in other_session_data:
+                self.set_session_data(name, value)
+            self.in_session = True
+            return True
+        else:
+            return False
+
+    def end_session(self) -> bool:
+        if self.in_session:
+            self._init_session_data()
+            return True
+        else:
+            return False
+
+    # Common properties
+    @property
+    def username(self):
+        return self.current_session_data.get('username')
+
+    @property
+    def workspace(self):
+        return self.current_session_data.get('workspace')
+
+    @property
+    def auth_token(self):
+        return self.current_session_data.get('auth_token')
+
+    def set_user(self, username: str):
+        self.set_session_data('username', username)
+
+    def set_workspace(self, workspace: str):
+        self.set_session_data('workspace', workspace)
+
+    # "Customized" client HTTP requests
     def request(
             self, method: str, url_items: str | list[str], data=None,
             auth=True, headers=None, params=None, files=None,
@@ -106,7 +201,7 @@ class BaseClient:
             url = self.get_url(*url_items)
         else:
             raise TypeError()
-        if self.__debug_urls__:
+        if self.verbose:
             print(f"Sending request ({method} @ {url}) ...")
         return requests.request(
             method, url, params=params,
@@ -135,20 +230,7 @@ class BaseClient:
     def options(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
         return self.request('options', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
 
-    def __init__(self, host: str = 'localhost', port: int = 5000, scheme: str = 'http'):
-        self.scheme = scheme  # 'cached'
-        self.host = host  # 'cached'
-        self.port = port  # 'cached'
-        self.username = None  # 'cached'
-        self.workspace = None   # 'cached'
-        self.auth_token = None
-
-    def set_user(self, username: str):
-        self.username = username
-
-    def set_workspace(self, workspace: str):
-        self.workspace = workspace
-
+    # API Requests
     def register(self, username: str, email: str, password: str):
         data = {
             'username': username,
@@ -159,6 +241,7 @@ class BaseClient:
         resp = self.post(url, data, auth=False)
         return resp  # resp.status_code, resp.headers, resp.json()
 
+    @check_in_session()
     def login(self, username: str, password: str):
         url = self.get_url(self.auth_base, 'login')
         data = {
@@ -166,27 +249,29 @@ class BaseClient:
             'password': password,
         }
 
-        resp = self.post(url, data, auth=False)
-        data = resp.json()
+        response = self.post(url, data, auth=False)
+        data = response.json()
 
-        if resp.status_code == HTTPStatus.OK:
-            self.username = username
-            self.auth_token = data.pop('token')
-        return resp  # resp.status_code, resp.headers, data
+        if response.status_code == HTTPStatus.OK:
+            self.set_session_data('auth_token', data.pop('token'))
+        return response
 
-    def logout(self):
+    @check_in_session('auth_token')
+    def logout(self, exit_session=True):
         url = self.get_url(self.auth_base, 'logout')
-        resp = self.post(url)
+        response = self.post(url)
 
-        if resp.status_code == HTTPStatus.OK:
-            self.auth_token = None
-        return resp  # resp.status_code, msg
+        if response.status_code == HTTPStatus.OK and exit_session:
+            self.end_session()
+        return response
 
+    @check_in_session('auth_token')
     def get_user(self, username: str = None):
         if username is None:
             username = self.username
         return self.get([self.users_base, username])
 
+    @check_in_session('auth_token', 'username')
     def edit_user(self, new_username, new_email):
         if (new_username is None) or (new_email is None):
             raise TypeError('New username and email cannot be None!')
@@ -198,6 +283,7 @@ class BaseClient:
             url = self.get_url(self.users_base, self.username)
             return self.patch(url, data)
 
+    @check_in_session('auth_token', 'username')
     def edit_password(self, old_password, new_password):
         if (old_password is None) or (new_password is None):
             raise TypeError('Old and new passwords cannot be None!')
@@ -208,18 +294,21 @@ class BaseClient:
             }
             return self.patch([self.users_base, self.username, 'password'], data)
 
+    @check_in_session('auth_token', 'username')
     def delete_user(self):
         return self.delete([self.users_base, self.username])
 
+    @check_in_session('auth_token', 'username')
     def create_workspace(self, workspace_name: str):
         data = {
             "name": workspace_name,
         }
         resp = self.post([self.workspaces_base], data)
         if resp.status_code == HTTPStatus.CREATED:
-            self.workspace = workspace_name
+            self.set_workspace(workspace_name)
         return resp
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def get_workspace(self, workspace_name: str = None):
         if workspace_name is None:
             if self.workspace is None:
@@ -228,6 +317,7 @@ class BaseClient:
                 workspace_name = self.workspace
         return self.get([self.workspaces_base, workspace_name])
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def open_workspace(self, workspace_name: str = None):
         if workspace_name is None:
             if self.workspace is None:
@@ -236,6 +326,7 @@ class BaseClient:
                 workspace_name = self.workspace
         return self.patch([self.workspaces_base, workspace_name, 'status'], data={'status': 'OPEN'})
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def close_workspace(self, workspace_name: str = None):
         if workspace_name is None:
             if self.workspace is None:
@@ -244,6 +335,7 @@ class BaseClient:
                 workspace_name = self.workspace
         return self.patch([self.workspaces_base, workspace_name, 'status'], data={'status': 'CLOSED'})
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def delete_workspace(self, workspace_name: str = None):
         if workspace_name is None:
             if self.workspace is None:
@@ -253,30 +345,35 @@ class BaseClient:
         return self.delete([self.workspaces_base, workspace_name])
 
     # Data Repositories
+    @check_in_session('auth_token', 'username', 'workspace')
     def create_data_repository(self, repo_name: str, repo_desc: str = None):
         if repo_name is None:
             raise ValueError("Repository name cannot be None.")
         else:
             return self.post([self.data_repositories_base], data={'name': repo_name, 'description': repo_desc})
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def get_data_repository(self, repo_name: str):
         if repo_name is None:
             raise ValueError("Repository name cannot be None.")
         else:
             return self.get([self.data_repositories_base, repo_name])
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def get_data_repository_desc(self, repo_name: str):
         if repo_name is None:
             raise ValueError("Repository name cannot be None.")
         else:
             return self.get([self.data_repositories_base, repo_name, 'desc'])
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def delete_data_repository(self, repo_name: str):
         if repo_name is None:
             raise ValueError("Repository name cannot be None.")
         else:
             return self.delete([self.data_repositories_base, repo_name])
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def create_subdir(self, repo_name: str, folder_name: str, folder_path: list[str] = None):
         if repo_name is None:
             raise ValueError("Repository name cannot be None.")
@@ -287,6 +384,7 @@ class BaseClient:
         }
         return self.post([self.data_repositories_base, repo_name, 'folders'], data=data)
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def move_subdir(self, repo_name: str, src_path: str, dest_path: str):
         if repo_name is None:
             raise ValueError("Repository name cannot be None.")
@@ -296,11 +394,13 @@ class BaseClient:
         }
         return self.patch([self.data_repositories_base, repo_name, 'folders'], data=data)
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def delete_subdir(self, repo_name: str, path: str):
         if repo_name is None:
             raise ValueError("Repository name cannot be None.")
         return self.delete([self.data_repositories_base, repo_name, 'folders', path])
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def send_files(
             self,
             repo_name: str,
@@ -317,6 +417,7 @@ class BaseClient:
         )
 
     # Benchmarks
+    @check_in_session('auth_token', 'username', 'workspace')
     def create_benchmark(self, name: str, build_config_data: dict, description: str = None):
         data = {
             'name': name,
@@ -326,19 +427,20 @@ class BaseClient:
             data['description'] = description
         return self.post(self.benchmarks_base, data=data)
 
-    def build_benchmark(self, name: str):
-        return self.get([self.benchmarks_base, name])
-
+    @check_in_session('auth_token', 'username', 'workspace')
     def rename_benchmark(self, name: str, new_name: str):
         return self.update_benchmark(name, {'name': new_name})
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def update_benchmark(self, name: str, updata: dict):
         return self.patch([self.benchmarks_base, name], data=updata)
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def delete_benchmark(self, name: str):
         return self.delete([self.benchmarks_base, name])
 
     # MetricSets
+    @check_in_session('auth_token', 'username', 'workspace')
     def create_metric_set(self, name: str, build_config_data: dict, description: str = None):
         data = {
             'name': name,
@@ -348,19 +450,20 @@ class BaseClient:
             data['description'] = description
         return self.post(self.metricsets_base, data=data)
 
-    def build_metric_set(self, name: str):
-        return self.get([self.metricsets_base, name])
-
+    @check_in_session('auth_token', 'username', 'workspace')
     def rename_metric_set(self, name: str, new_name: str):
         return self.update_metric_set(name, {'name': new_name})
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def update_metric_set(self, name: str, updata: dict):
         return self.patch([self.metricsets_base, name], data=updata)
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def delete_metric_set(self, name: str):
         return self.delete([self.metricsets_base, name])
 
     # Models
+    @check_in_session('auth_token', 'username', 'workspace')
     def create_model(self, name: str, build_config_data: dict, description: str = None):
         data = {
             'name': name,
@@ -370,19 +473,20 @@ class BaseClient:
             data['description'] = description
         return self.post(self.models_base, data=data)
 
-    def build_model(self, name: str):
-        return self.get([self.models_base, name])
-
+    @check_in_session('auth_token', 'username', 'workspace')
     def rename_model(self, name: str, new_name: str):
         return self.update_model(name, {'name': new_name})
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def update_model(self, name: str, updata: dict):
         return self.patch([self.models_base, name], data=updata)
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def delete_model(self, name: str):
         return self.delete([self.models_base, name])
 
     # Optimizer
+    @check_in_session('auth_token', 'username', 'workspace')
     def create_optimizer(self, name: str, build_config_data: dict, description: str = None):
         data = {
             'name': name,
@@ -392,19 +496,20 @@ class BaseClient:
             data['description'] = description
         return self.post(self.optimizers_base, data=data)
 
-    def build_optimizer(self, name: str):
-        return self.get([self.optimizers_base, name])
-
+    @check_in_session('auth_token', 'username', 'workspace')
     def rename_optimizer(self, name: str, new_name: str):
         return self.update_optimizer(name, {'name': new_name})
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def update_optimizer(self, name: str, updata: dict):
         return self.patch([self.optimizers_base, name], data=updata)
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def delete_optimizer(self, name: str):
         return self.delete([self.optimizers_base, name])
 
     # Criterions
+    @check_in_session('auth_token', 'username', 'workspace')
     def create_criterion(self, name: str, build_config_data: dict, description: str = None):
         data = {
             'name': name,
@@ -414,19 +519,20 @@ class BaseClient:
             data['description'] = description
         return self.post(self.criterions_base, data=data)
 
-    def build_criterion(self, name: str):
-        return self.get([self.criterions_base, name])
-
+    @check_in_session('auth_token', 'username', 'workspace')
     def rename_criterion(self, name: str, new_name: str):
         return self.update_criterion(name, {'name': new_name})
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def update_criterion(self, name: str, updata: dict):
         return self.patch([self.criterions_base, name], data=updata)
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def delete_criterion(self, name: str):
         return self.delete([self.criterions_base, name])
 
     # Strategies
+    @check_in_session('auth_token', 'username', 'workspace')
     def create_strategy(self, name: str, build_config_data: dict, description: str = None):
         data = {
             'name': name,
@@ -436,19 +542,20 @@ class BaseClient:
             data['description'] = description
         return self.post(self.strategies_base, data=data)
 
-    def build_strategy(self, name: str):
-        return self.get([self.strategies_base, name])
-
+    @check_in_session('auth_token', 'username', 'workspace')
     def rename_strategy(self, name: str, new_name: str):
         return self.update_strategy(name, {'name': new_name})
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def update_strategy(self, name: str, updata: dict):
         return self.patch([self.strategies_base, name], data=updata)
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def delete_strategy(self, name: str):
         return self.delete([self.strategies_base, name])
 
     # Experiments
+    @check_in_session('auth_token', 'username', 'workspace')
     def create_experiment(self, name: str, build_config_data: dict, description: str = None):
         data = {
             'name': name,
@@ -458,29 +565,34 @@ class BaseClient:
             data['description'] = description
         return self.post(self.experiments_base, data=data)
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def setup_experiment(self, name: str):
         return self.patch([self.experiments_base, name, 'setup'])
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def start_experiment(self, name: str):
         return self.patch([self.experiments_base, name], data={'status': 'START'})
 
-    def stop_experiment(self, name: str):
-        return self.patch([self.experiments_base, name], data={'status': 'STOP'})
-
+    @check_in_session('auth_token', 'username', 'workspace')
     def get_experiment_status(self, name: str):
         return self.get([self.experiments_base, name, 'status'])
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def get_experiment_results(self, name: str):
         return self.get([self.experiments_base, name, 'results', 'exec'])
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def get_experiment_settings(self, name: str):
         return self.get([self.experiments_base, name, 'settings'])
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def get_experiment_model(self, name: str):
         return self.get([self.experiments_base, name, 'model'])
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def get_experiment_csv_results(self, name: str):
         return self.get([self.experiments_base, name, 'results', 'csv'])
 
+    @check_in_session('auth_token', 'username', 'workspace')
     def delete_experiment(self, name: str):
         return self.delete([self.experiments_base, name])
