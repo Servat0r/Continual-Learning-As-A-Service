@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from application.utils import t, datetime, TBoolExc, TBoolStr, catcher
+from application.utils import t, datetime, TBoolExc, TBoolStr
 from application.models import User, Workspace
 from application.data_managing import BaseDataRepository
 
@@ -60,7 +60,6 @@ class MongoBenchmarkConfig(MongoResourceConfig):
         return super(MongoBenchmarkConfig, cls).validate_input(data, context)
 
     @classmethod
-    @catcher()
     def create(cls, data, context: UserWorkspaceResourceContext, save: bool = True,
                parents_locked=False, **metadata):
         result, msg = cls.validate_input(data, context)

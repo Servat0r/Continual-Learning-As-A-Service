@@ -405,18 +405,15 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
 
         other_transform_groups_data = params.get('other_transform_groups')
         if other_transform_groups_data is not None:
-            check_other_transforms = False
+            check_other_transforms = isinstance(other_transform_groups_data, dict)
 
-            if isinstance(other_transform_groups_data, dict):
+            if check_other_transforms:
                 for stream_name, transforms in other_transform_groups_data.items():
                     if not isinstance(stream_name, str):
                         return False, "Names of the other transform groups must be strings!"
                     elif not isinstance(transforms, dict):
                         return False, "Other transform groups must be a dictionary of couples" \
                                       " (item_transform, target_transform)!"
-                    elif len(transforms) != 2:
-                        return False, "Other transform groups must consist in a couple of transform configs," \
-                                      " one for train items and one for target ones!"
                     else:
                         check_names = all(name in ('item', 'target') for name in transforms.keys())
                         if not check_names:
@@ -425,8 +422,9 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
                             result, msg = cls._validate_transform_data(transform_data, context)
                             if not result:
                                 return False, msg
-            return (True, None) if check_other_transforms else \
-                (False, "Parameter 'other_transform_groups' is not of the correct type!")
+                return True, None
+            else:
+                return False, "Parameter 'other_transform_groups' is not of the correct type!"
         return True, None
 
     @classmethod
@@ -536,6 +534,19 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
             else:
                 eval_target_transform = self.eval_target_transform.get_transform()
 
+            if self.other_transform_groups is None:
+                other_transform_groups = None
+            else:
+                other_transform_groups = {}
+                for stream_name, transform_configs in self.other_transform_groups.items():
+                    item_transform_config = transform_configs[0]
+                    item_transform = item_transform_config.get_transform()
+
+                    target_transform_config = transform_configs[1]
+                    target_transform = target_transform_config.get_transform()
+
+                    other_transform_groups[stream_name] = (item_transform, target_transform)
+
             """
             train_transform = self.get_transform(self.train_transform)
             train_target_transform = self.get_transform(self.train_target_transform)
@@ -556,7 +567,7 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
                 train_target_transform,
                 eval_transform,
                 eval_target_transform,
-                other_transform_groups=self.other_transform_groups,
+                other_transform_groups=other_transform_groups,
             )
             # noinspection PyArgumentList
             return self.target_type()(benchmark)
