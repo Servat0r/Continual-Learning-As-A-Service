@@ -214,16 +214,6 @@ class MongoDataRepository(MongoBaseDataRepository):
                         (k.replace(src_path, dest_path, 1) if k.startswith(src_path) else k): v
                         for k, v in self.files.items()
                     }
-                    """
-                    fcopy = self.files.copy()
-                    for path, label in fcopy.items():
-                        print(path)
-                        if path.startswith(src_path):
-                            fcopy.pop(path)
-                            path = path.replace(src_path, dest_path, 1)
-                            fcopy[path] = label
-                    self.files = fcopy
-                    """
                     self.save()
                 return result, exc
 
@@ -251,7 +241,6 @@ class MongoDataRepository(MongoBaseDataRepository):
             result, exc = manager.create_file(content)
             if result:
                 file_path = self.normalize('/'.join(parents + [file_name]))
-                print(file_path)
                 self.files[file_path] = label
                 self.save()
             return result, exc

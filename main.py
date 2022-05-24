@@ -27,7 +27,6 @@ app = create_app()
 
 @app.errorhandler(Exception)
 def return_exception(ex: Exception):
-    print(ex)
     msgs = [str(arg) for arg in ex.args]
     resp = make_error(
         HTTPStatus.INTERNAL_SERVER_ERROR,

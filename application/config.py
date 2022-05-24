@@ -79,7 +79,6 @@ class MongoAuthConfig(MongoDefaultConfig):
 
 
 MongoConfig = MongoAuthConfig if USE_MONGODB_AUTH else MongoDefaultConfig
-print(f"Use defaults: {_USE_DEFAULTS}")
 
 
 __all__ = [

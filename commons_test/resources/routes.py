@@ -15,7 +15,6 @@ def add_new_resource(username, wname):
     data = request.get_json()
     ctp: MongoResourceConfig = t.cast(ReferrableDataType, DataType.get_type(data['type'])).config_type()
     resource_doc = ctp.create(data, resource_ctx)
-    print(resource_doc)
     return jsonify({'message': f"Successfully created resource of type {data['type']}!"})
 
 

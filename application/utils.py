@@ -148,7 +148,6 @@ def catcher(exc_type: t.Type[Exception] = Exception, dfl_return: t.Any = None):
             try:
                 return f(*args, **kwargs)
             except exc_type as ex:
-                print(ex)
                 traceback.print_exc(sys.exc_info())
                 return dfl_return
         return new_f

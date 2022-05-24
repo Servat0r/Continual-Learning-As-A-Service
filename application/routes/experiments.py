@@ -193,7 +193,6 @@ def get_experiment_settings(username, wname, name):
         return err_response
     else:
         data = experiment_config.to_dict(settings=True)
-        print(data)
         return make_success_dict(data=data)
 
 
@@ -221,7 +220,6 @@ def get_experiment_execution_model(username, wname, name, exec_id):
         if execution.completed:
             try:
                 model_fd = execution.get_final_model(descriptor=True)
-                print(type(model_fd))
                 return send_file(model_fd, attachment_filename='model.pt')
             except Exception as ex:
                 return InternalFailure(msg=f"Error when sending model file: '{ex.args[0]}'.")

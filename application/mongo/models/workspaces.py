@@ -52,7 +52,6 @@ class MongoWorkspace(MongoBaseWorkspace):
         :return:
         """
         s = uri.split(cls.uri_separator())
-        print(s)
         user = t.cast(MongoBaseUser, User.canonicalize(s[1]))
         workspace = s[2]
         ls = cls.get(owner=user, name=workspace)
@@ -147,29 +146,23 @@ class MongoWorkspace(MongoBaseWorkspace):
                 context = UserWorkspaceResourceContext(self.owner.get_name(), self.get_name())
 
                 for repository in self.data_repositories():
-                    print(repository)
                     # noinspection PyArgumentList
                     repository.delete(context, parents_locked=True)
 
                 for model in cl_models:
-                    print(model)
                     model.delete(context, parents_locked=True)
 
                 for mset in msets:
-                    print(mset)
                     mset.delete(context, parents_locked=True)
 
                 for optim in optims:
-                    print(optim)
                     optim.delete(context, parents_locked=True)
 
                 for crit in crits:
-                    print(crit)
                     crit.delete(context, parents_locked=True)
 
                 bmarks = BenchmarkClass.get(owner=self.owner, workspace=self)
                 for bmark in bmarks:
-                    print(bmark)
                     bmark.delete(context, parents_locked=True)
 
                 manager = BaseDataManager.get()

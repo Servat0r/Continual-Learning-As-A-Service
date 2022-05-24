@@ -129,7 +129,6 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
 
         _, values = context.pop()
         params = values['params']
-        print(params)
         for param in params.values():
             checked = True
             if not isinstance(param, dict):
