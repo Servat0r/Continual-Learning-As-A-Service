@@ -1,6 +1,5 @@
 from __future__ import annotations
 from mongoengine import ValidationError as MongoEngineValidationError
-from avalanche.evaluation.metrics import *
 
 from application.utils import TBoolStr, t, TDesc
 from application.database import db

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import requests
 from http import HTTPStatus
 from typing import Any, Callable
 from functools import wraps

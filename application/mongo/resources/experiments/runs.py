@@ -20,7 +20,9 @@ class StdTrainTestRunConfig(BaseCLExperimentRunConfig):
             cl_scenario: GenericCLScenario = experiment.get_benchmark().get_value()
             cl_strategy: SupervisedTemplate = experiment.get_strategy().get_value()
 
+            # noinspection PyUnresolvedReferences
             train_stream = cl_scenario.train_stream
+            # noinspection PyUnresolvedReferences
             test_stream = cl_scenario.test_stream
 
             print(f"Using {cl_strategy.__class__.__name__} strategy ...")

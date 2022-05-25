@@ -501,6 +501,7 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
         return True, None
 
     def save(self, create=False) -> bool:
+        # noinspection PyUnusedLocal, PyBroadException
         try:
             if create:
                 db.Document.save(self, force_insert=create)
@@ -518,12 +519,6 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
                 return True, None
             except Exception as ex:
                 return False, ex
-
-    def __repr__(self):
-        return f"{type(self).__name__} <{self.name}>[id = {self.id}, uri = {self.uri}]"
-
-    def __str__(self):
-        return self.__repr__()
 
 
 __all__ = [

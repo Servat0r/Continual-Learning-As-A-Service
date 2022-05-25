@@ -1,7 +1,5 @@
 # Common utils that for imports order require to be defined here.
 from __future__ import annotations
-from application.utils import get_average_metric, TDesc
-from application.resources.datatypes import StandardMetricSet
 
 
 MNAMES_ORDER: list[str] = [

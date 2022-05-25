@@ -421,7 +421,7 @@ class CORe50BuildConfig(MongoBaseBenchmarkBuildConfig):
             eval_transform = self.eval_transform.get_transform()
             kwargs['eval_transform'] = eval_transform
 
-        benchmark = self.benchmark_generator()(self.n_experiences, **kwargs)
+        benchmark = CORe50(**kwargs)
         # noinspection PyArgumentList
         return self.target_type()(benchmark)
 

@@ -71,6 +71,8 @@ class MongoDefaultConfig(SimpleConfig):
 
     MONGODB_CONNECT = bool(get_env("MONGODB_CONNECT", 0, int))
 
+    DATABASE_NAME = MONGODB_DB
+
 
 class MongoAuthConfig(MongoDefaultConfig):
 

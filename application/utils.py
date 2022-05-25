@@ -145,6 +145,7 @@ def catcher(exc_type: t.Type[Exception] = Exception, dfl_return: t.Any = None):
     def wrapper(f: t.Callable):
         @wraps(f)
         def new_f(*args, **kwargs):
+            # noinspection PyUnusedLocal, PyBroadException
             try:
                 return f(*args, **kwargs)
             except exc_type as ex:
