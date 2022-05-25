@@ -287,6 +287,12 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
     build_config = db.EmbeddedDocumentField(MongoBuildConfig)
     metadata = db.EmbeddedDocumentField(MongoBaseMetadata)
 
+    def __repr__(self):
+        return f"{type(self).__name__} <id = {self.id}> [uri = {self.uri}]"
+
+    def __str__(self):
+        return self.__repr__()
+
     @property
     def parents(self) -> set[RWLockableDocument]:
         return {self.workspace}

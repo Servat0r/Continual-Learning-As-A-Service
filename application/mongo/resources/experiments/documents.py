@@ -5,6 +5,7 @@ from flask import Response
 from application.database import db
 from application.utils import t, TBoolExc
 from application.models import User, Workspace
+from application.data_managing import BaseDataManager
 
 from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType, BaseMetadata
@@ -216,6 +217,19 @@ class MongoCLExperimentConfig(MongoResourceConfig):
         log_folder = self.get_logging_path()
         context.push('log_folder', log_folder)
         return super().build(context, locked, parents_locked)
+
+    def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
+        with self.resource_delete(locked=locked, parents_locked=parents_locked):
+            try:
+                db.Document.delete(self)
+                manager = BaseDataManager.get()
+                dirs = self.base_dir()
+                parents = dirs[:-1]
+                bdir = dirs[-1]
+                manager.remove_subdir(bdir, parents)
+                return True, None
+            except Exception as ex:
+                return False, ex
 
 
 __all__ = [

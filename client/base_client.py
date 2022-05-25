@@ -596,3 +596,9 @@ class BaseClient:
     @check_in_session('auth_token', 'username', 'workspace')
     def delete_experiment(self, name: str):
         return self.delete([self.experiments_base, name])
+
+
+__all__ = [
+    'check_in_session',
+    'BaseClient',
+]

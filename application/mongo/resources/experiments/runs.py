@@ -38,3 +38,8 @@ class StdTrainTestRunConfig(BaseCLExperimentRunConfig):
         except Exception as ex:
             traceback.print_exception(*sys.exc_info())
             return False, ex
+
+
+__all__ = [
+    'StdTrainTestRunConfig',
+]

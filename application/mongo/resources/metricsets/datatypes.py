@@ -34,3 +34,8 @@ class MongoStandardMetricSet(StandardMetricSet):
 
     def __str__(self):
         return self.__repr__()
+
+
+__all__ = [
+    'MongoStandardMetricSet',
+]

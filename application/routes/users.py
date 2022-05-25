@@ -210,7 +210,7 @@ def edit_user(username):
                 return make_success_kwargs(HTTPStatus.NOT_MODIFIED)
             else:
                 return make_success_kwargs(HTTPStatus.OK, msg=f"User {username} successfully updated.", **result)
-        except NotUniqueError as nue:
+        except NotUniqueError:
             return ForbiddenOperation(msg="Username or email are in use by another profile.")
 
 

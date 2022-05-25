@@ -109,3 +109,11 @@ class MultiHeadVGGSmall(MultiTaskModule):
         x = self.vgg(x)
         x = torch.flatten(x, 1)
         return self.classifier(x, task_labels)
+
+
+# This part was not present in the original file.
+__all__ = [
+    'VGGSmall',
+    'MultiHeadVGGClassifier',
+    'MultiHeadVGGSmall',
+]

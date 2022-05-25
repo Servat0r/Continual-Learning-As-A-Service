@@ -182,5 +182,11 @@ class MongoLocalDataManager(BaseDataManager):
     def greyscale_image_loader(self, impath: str):
         return Image.open(impath).convert('L')
 
+    def __repr__(self):
+        return f"{type(self).__name__} <root_dir = {self.root_dir}>"
+
+    def __str__(self):
+        return self.__repr__()
+
 
 __all__ = ['MongoLocalDataManager']

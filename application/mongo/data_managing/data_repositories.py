@@ -288,6 +288,12 @@ class MongoDataRepository(MongoBaseDataRepository):
 
         return result, labels
 
+    def __repr__(self):
+        return f"{type(self).__name__} <id = {self.id}> [uri = {self.uri}]"
+
+    def __str__(self):
+        return self.__repr__()
+
 
 __all__ = [
     'MongoDataRepositoryMetadata',

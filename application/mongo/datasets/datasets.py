@@ -110,6 +110,12 @@ class DataManagerDataset(data.Dataset):
 
         return len(self.files)
 
+    def __repr__(self):
+        return f"{type(self).__name__} [manager = {self.manager}, repository = {self.data_repository}]"
+
+    def __str__(self):
+        return self.__repr__()
+
 
 def data_manager_dataset_stream(
         stream_name: str,

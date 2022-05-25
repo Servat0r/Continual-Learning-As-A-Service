@@ -96,12 +96,6 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
         self.manager.print_to_file(
             self.train_file_name, self.log_folder,
             training_exp, epoch, self.current_n_patterns, *values,
-            # self._val_to_str(train_acc),
-            # self._val_to_str(val_acc), # self._val_to_str(train_loss),
-            # self._val_to_str(val_loss), # self._val_to_str(train_cpu),
-            # self._val_to_str(val_cpu), # self._val_to_str(train_disk),
-            # self._val_to_str(val_disk), # self._val_to_str(train_ram),
-            # self._val_to_str(val_ram),
             sep=',', append=True, flush=True,
         )
 
@@ -113,19 +107,17 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
         self.manager.print_to_file(
             self.eval_file_name, self.log_folder,
             eval_exp, training_exp, *values,
-            # self._val_to_str(eval_acc),
-            # self._val_to_str(eval_loss), self._val_to_str(forgetting),
-            # self._val_to_str(eval_cpu), self._val_to_str(eval_disk),
-            # self._val_to_str(eval_ram),
             sep=',', append=True, flush=True,
         )
 
     def after_train_dataset_adaptation(self, strategy: "SupervisedTemplate", *args, **kwargs):
         self.current_n_patterns = len(strategy.adapted_dataset)
 
+    # noinspection PyMethodOverriding
     def before_training_epoch(self, strategy: "SupervisedTemplate", metric_values: t.List["MetricValue"], **kwargs):
         self.current_n_patterns = len(strategy.adapted_dataset)
 
+    # noinspection PyMethodOverriding
     def after_training_epoch(self, strategy: "SupervisedTemplate",
                              metric_values: t.List["MetricValue"], **kwargs):
         super().after_training_epoch(strategy, metric_values, **kwargs)
@@ -150,6 +142,7 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
             self.training_exp_id, strategy.clock.train_exp_epochs, *vals_to_print,
         )
 
+    # noinspection PyMethodOverriding
     def after_eval_exp(self, strategy: 'SupervisedTemplate',
                        metric_values: t.List['MetricValue'], **kwargs):
         super().after_eval_exp(strategy, metric_values, **kwargs)
@@ -178,11 +171,13 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
                 # acc, loss, forgetting, cpu, disk, ram
             )
 
+    # noinspection PyMethodOverriding
     def before_training_exp(self, strategy: 'SupervisedTemplate',
                             metric_values: t.List['MetricValue'], **kwargs):
         super().before_training(strategy, metric_values, **kwargs)
         self.training_exp_id = strategy.experience.current_experience
 
+    # noinspection PyMethodOverriding
     def before_eval(self, strategy: 'SupervisedTemplate',
                     metric_values: t.List['MetricValue'], **kwargs):
         """
@@ -192,11 +187,13 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
             self.in_train_phase = False
         print("BEFORE EVAL", *metric_values, sep='\n')
 
+    # noinspection PyMethodOverriding
     def before_training(self, strategy: 'SupervisedTemplate',
                         metric_values: t.List['MetricValue'], **kwargs):
         self.in_train_phase = True
         print("BEFORE TRAINING", *metric_values, sep='\n')
 
+    # noinspection PyMethodOverriding
     def after_training(self, strategy: 'SupervisedTemplate',
                        metric_values: t.List['MetricValue'], **kwargs):
         self.in_train_phase = False

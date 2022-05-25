@@ -110,7 +110,7 @@ class MongoUser(MongoBaseUser):
 
     # 6. Read/Update/General instance methods
     def __repr__(self):
-        return f"<User '{self.username}'>"
+        return f"User <{self.username}>"
 
     def get_name(self):
         return self.username

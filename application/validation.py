@@ -177,6 +177,8 @@ def validate_path(path: str) -> TBoolStr:
 
 
 __all__ = [
+    'base_validation_function',
+
     'USERNAME_MAX_CHARS',
     'USERNAME_MIN_CHARS',
     'validate_username',

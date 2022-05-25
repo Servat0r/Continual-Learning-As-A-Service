@@ -547,14 +547,6 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
 
                     other_transform_groups[stream_name] = (item_transform, target_transform)
 
-            """
-            train_transform = self.get_transform(self.train_transform)
-            train_target_transform = self.get_transform(self.train_target_transform)
-
-            eval_transform = self.get_transform(self.eval_transform)
-            eval_target_transform = self.get_transform(self.eval_target_transform)
-            """
-
             benchmark = data_manager_datasets_benchmark(
                 BaseDataManager.get(),
                 self.data_repository,
@@ -574,3 +566,10 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         except Exception as ex:
             print(ex)
             return None
+
+
+__all__ = [
+    'DataStreamFolderConfig',
+    'DataStreamExperienceConfig',
+    'DataManagerBuildConfig',
+]

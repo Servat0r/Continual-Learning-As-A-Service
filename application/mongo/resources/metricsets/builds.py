@@ -173,3 +173,9 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
         metrics = tuple(metrics)
         # noinspection PyArgumentList
         return self.target_type()(metric_names, *metrics)
+
+
+__all__ = [
+    'std_name_validate',
+    'StandardMetricSetBuildConfig',
+]

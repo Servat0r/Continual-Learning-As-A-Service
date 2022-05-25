@@ -5,6 +5,7 @@ files/
 logs/
 *.bat
 .env
+common/
 docs/ignore/
 docs/json_examples/
 dbscripts/

@@ -1,6 +1,7 @@
 import requests
 
 
+# noinspection PyUnresolvedReferences
 class BearerAuth(requests.auth.AuthBase):
 
     def __init__(self, token):
@@ -9,3 +10,6 @@ class BearerAuth(requests.auth.AuthBase):
     def __call__(self, r):
         r.headers["authorization"] = "Bearer " + self.token
         return r
+
+
+__all__ = ['BearerAuth']

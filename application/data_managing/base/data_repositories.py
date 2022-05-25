@@ -156,3 +156,9 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
     @abstractmethod
     def get_all_files(self, root_path: str, include_labels=True) -> tuple[list[str], list[int]]:
         pass
+
+
+__all__ = [
+    'TFContentLabel',
+    'BaseDataRepository',
+]

@@ -52,6 +52,7 @@ class URIBasedResource:
 nbr_type = t.Type[NameBasedResource]
 ubr_type = t.Type[URIBasedResource]
 
+
 __all__ = [
     'primitive_validate',
     'JSONSerializable',

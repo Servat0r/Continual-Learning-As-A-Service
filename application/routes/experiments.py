@@ -29,7 +29,6 @@ experiments_bp = Blueprint('experiments', __name__,
                            url_prefix='/users/<user:username>/workspaces/<workspace:wname>/experiments')
 
 
-# @executor.job
 def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
                          context: UserWorkspaceResourceContext) -> Response:
     context.stack = []
@@ -269,11 +268,19 @@ __all__ = [
     'experiments_bp',
     'create_experiment',
     'setup_experiment',
+
     'set_experiment_status',
     'get_experiment_status',
+
     'get_experiment_results',
-    'get_experiment_settings',
+    'get_experiment_execution_results',
+
     'get_experiment_model',
+    'get_experiment_execution_model',
+
     'get_experiment_csv_results',
+    'get_experiment_execution_csv_results',
+
+    'get_experiment_settings',
     'delete_experiment',
 ]

@@ -131,7 +131,7 @@ def get_device():
 
 # utility for common datasets
 def get_all_common_datasets_root(abspath: bool = False) -> str:
-    basepath = os.path.join('..', 'common', 'datasets')
+    basepath = os.path.join('common', 'datasets')
     return os.path.abspath(basepath) if abspath else os.path.relpath(basepath, os.getcwd())
 
 

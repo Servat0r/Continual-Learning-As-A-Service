@@ -79,3 +79,8 @@ class MongoCLExperiment(BaseCLExperiment):
 
     def get_current_execution(self):
         pass
+
+
+__all__ = [
+    'MongoCLExperiment',
+]

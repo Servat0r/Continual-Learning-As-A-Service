@@ -87,3 +87,8 @@ class StandardExperimentBuildConfig(MongoBuildConfig):
         benchmark = self.benchmark.build(context, locked=locked, parents_locked=parents_locked)
         # noinspection PyArgumentList
         return self.target_type()(strategy, benchmark, self.status, self.run_config)
+
+
+__all__ = [
+    'StandardExperimentBuildConfig',
+]
