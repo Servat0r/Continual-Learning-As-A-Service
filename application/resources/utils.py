@@ -41,7 +41,7 @@ class URIBasedResource:
 
     @staticmethod
     def uri_separator() -> str:
-        return '::'
+        return ':'
 
     @classmethod
     @abstractmethod

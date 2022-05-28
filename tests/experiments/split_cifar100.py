@@ -5,55 +5,55 @@ from .base import *
 # strategies
 naive_strategy_build = generic_strategy_builder(
     'Naive',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
 )
 
 cumulative_strategy_build = generic_strategy_builder(
     'Cumulative',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
 )
 
 joint_training_strategy_build = generic_strategy_builder(
     'JointTraining',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
 )
 
 replay_500_strategy_build = generic_strategy_builder(
     'Replay',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
     memory=500,
 )
 
 replay_2500_strategy_build = generic_strategy_builder(
     'Replay',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
     memory=500,
 )
 
 gdumb_strategy_build = generic_strategy_builder(
     'GDumb',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
     memory=500,
 )
 
 lwf_strategy_build = generic_strategy_builder(
     'LwF',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
-    alpha=[1.0, 1.0, 1.0, 1.0, 1.0],
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
+    alpha=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
     temperature=1.0,
 )
 
@@ -67,15 +67,14 @@ gdumb_experiment_build = generic_experiment_builder(gdumb_strategy_name, benchma
 lwf_experiment_build = generic_experiment_builder(lwf_strategy_name, benchmark_name)
 
 
-class SplitMNISTTest(BaseClassicBenchmarkExperimentTestCase):
-
-    username = 'split-mnist-username'
-    email = 'split_mnist' + EMAIL
+class SplitCIFAR100Test(BaseClassicBenchmarkExperimentTestCase):
+    username = 'split-cifar100-username'
+    email = 'split_cifar100' + EMAIL
     password = PASSWORD
-    workspace = 'split_mnist_workspace'
+    workspace = 'split_cifar100_workspace'
 
     benchmark_build = {
-        'name': 'SplitMNIST',
+        'name': 'SplitCIFAR100',
         'n_experiences': 5,
         'shuffle': True,
         'fixed_class_order': list(range(10)),
@@ -85,18 +84,27 @@ class SplitMNISTTest(BaseClassicBenchmarkExperimentTestCase):
             'name': 'Compose',
             'transforms': [
                 {
+                    'name': 'RandomCrop',
+                    'width': 32,
+                    'height': 32,
+                    'padding': [4],
+                },
+                {
+                    'name': 'RandomHorizontalFlip',
+                },
+                {
                     'name': 'ToTensor',
                 },
                 {
                     'name': 'Normalize',
-                    'mean': [0.1307],
-                    'std': [0.3081],
+                    'mean': [0.5071, 0.4865, 0.4409],
+                    'std': [0.2673, 0.2564, 0.2762],
                 }
             ]
         },
         # An example of classic transform
         'eval_transform': {
-            'name': 'EvalMNIST',
+            'name': 'EvalCIFAR100',
         }
     }
 
@@ -111,9 +119,9 @@ class SplitMNISTTest(BaseClassicBenchmarkExperimentTestCase):
     optimizer_build = sgd_optimizer_build
     criterion_build = criterion_build
     metricset_build = metricset_build
-    
+
     def get_benchmark_name(self) -> str:
-        return 'split_mnist'
+        return 'split_cifar100'
 
     experiment_data = [
         {

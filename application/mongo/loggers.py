@@ -46,6 +46,10 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
         self.manager = BaseDataManager.get()
         # current training experience id
         self.training_exp_id = None
+        # current training epoch id
+        self.training_epoch_id = None
+        # current eval experience id
+        self.eval_experience_id = None
         # current training experience #patterns
         self.current_n_patterns = None
 
@@ -89,7 +93,6 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
             return str(m_val)
 
     def print_train_metrics(self, training_exp, epoch, *values):
-        # train_acc, val_acc, train_loss, val_loss, train_cpu, val_cpu, train_disk, val_disk, train_ram, val_ram):
         if self.log_folder is None:
             raise RuntimeError("Undefined log folder.")
         values = [self._val_to_str(m_val) for m_val in values]
@@ -100,7 +103,6 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
         )
 
     def print_eval_metrics(self, eval_exp, training_exp, *values):
-        # eval_acc, eval_loss, forgetting, eval_cpu, eval_disk, eval_ram):
         if self.log_folder is None:
             raise RuntimeError("Undefined log folder.")
         values = [self._val_to_str(m_val) for m_val in values]
@@ -116,14 +118,12 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
     # noinspection PyMethodOverriding
     def before_training_epoch(self, strategy: "SupervisedTemplate", metric_values: t.List["MetricValue"], **kwargs):
         self.current_n_patterns = len(strategy.adapted_dataset)
+        print(f"Starting training on experience = {self.training_exp_id}, epoch = {self.training_epoch_id})")
 
     # noinspection PyMethodOverriding
     def after_training_epoch(self, strategy: "SupervisedTemplate",
                              metric_values: t.List["MetricValue"], **kwargs):
         super().after_training_epoch(strategy, metric_values, **kwargs)
-        # train_acc, val_acc, train_loss, val_loss = 0, 0, 0, 0
-        # train_cpu, val_cpu, train_disk, val_disk, train_ram, val_ram = 0, 0, 0, 0, 0, 0
-
         mtype = 'epoch'
         vals_to_print: list[int | float] = []
 
@@ -141,13 +141,18 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
         self.print_train_metrics(
             self.training_exp_id, strategy.clock.train_exp_epochs, *vals_to_print,
         )
+        print(f"Ended training on experience = {self.training_exp_id}, epoch = {self.training_epoch_id})")
+        self.training_epoch_id += 1
+
+    # noinspection PyMethodOverriding
+    def before_eval_exp(self, strategy: 'SupervisedTemplate', metric_values: t.List['MetricValue'], **kwargs):
+        super().before_eval_exp(strategy, metric_values, **kwargs)
+        print(f"Starting evaluating on experience = {strategy.experience.current_experience} of {self.training_exp_id}")
 
     # noinspection PyMethodOverriding
     def after_eval_exp(self, strategy: 'SupervisedTemplate',
                        metric_values: t.List['MetricValue'], **kwargs):
         super().after_eval_exp(strategy, metric_values, **kwargs)
-        # acc, loss, forgetting, cpu, disk, ram = 0, 0, 0, 0, 0, 0
-
         mtype = 'experience'
         vals_to_print: list[int | float] = []
         
@@ -168,7 +173,9 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
             self.print_eval_metrics(
                 strategy.experience.current_experience,
                 self.training_exp_id, *vals_to_print,
-                # acc, loss, forgetting, cpu, disk, ram
+            )
+            print(
+                f"Ended evaluating on experience = {strategy.experience.current_experience} of {self.training_exp_id}"
             )
 
     # noinspection PyMethodOverriding
@@ -176,6 +183,7 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
                             metric_values: t.List['MetricValue'], **kwargs):
         super().before_training(strategy, metric_values, **kwargs)
         self.training_exp_id = strategy.experience.current_experience
+        self.training_epoch_id = 0
 
     # noinspection PyMethodOverriding
     def before_eval(self, strategy: 'SupervisedTemplate',

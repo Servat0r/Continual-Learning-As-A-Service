@@ -52,7 +52,7 @@ class SimpleConfig(object):
     STD_FILESAVE_DIR = get_env("FILESAVE_DIR", os.path.join(basedir, '../files'))
     DATASET_ROOT_DIR = get_all_common_datasets_root(abspath=True)
 
-    EXECUTOR_TYPE = get_env("EXECUTOR_TYPE", 'process')
+    EXECUTOR_TYPE = get_env("EXECUTOR_TYPE", 'thread')
 
 
 # Configuration class for using a SQL database (e.g. PostgreSQL)

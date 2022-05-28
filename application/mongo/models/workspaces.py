@@ -47,7 +47,7 @@ class MongoWorkspace(MongoBaseWorkspace):
     @classmethod
     def get_by_uri(cls, uri: str):
         """
-        uri is of the form "workspace::<username>::<wname>"
+        uri is of the form "workspace:<username>:<wname>"
         :param uri:
         :return:
         """

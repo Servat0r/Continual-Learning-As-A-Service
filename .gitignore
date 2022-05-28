@@ -4,11 +4,11 @@ venv/
 files/
 logs/
 *.bat
-.env
+*.env
 common/
 docs/ignore/
 docs/json_examples/
 dbscripts/
+ignore/
 tests/*.env
 tests/ignore/
-commons_test/ignore/

@@ -218,13 +218,13 @@ if __name__ == '__main__':
         for j in range(2):
 
             files_train_dict: list[tuple[str, str, int]] = []
-            basedir = os.path.join('ignore', 'fashion_mnist', 'train', f"{2*i+j}")
+            basedir = os.path.join('ignore', 'fashion_mnist', 'train', f"{2 * i + j}")
             for fname in os.listdir(basedir)[:600]:
                 files_train_dict.append((os.path.join(basedir, fname), '/'.join([str(2*i+j), fname]), 2*i+j))
             print_response(cl.send_files(repository_name, files_train_dict, train_base_dir))
 
             files_test_dict: list[tuple[str, str, int]] = []
-            basedir = os.path.join('ignore', 'fashion_mnist', 'test', f"{2*i+j}")
+            basedir = os.path.join('ignore', 'fashion_mnist', 'test', f"{2 * i + j}")
             for fname in os.listdir(basedir)[:600]:
                 files_test_dict.append((os.path.join(basedir, fname), '/'.join([str(2*i+j), fname]), 2*i+j))
             print_response(cl.send_files(repository_name, files_test_dict, test_base_dir))
@@ -445,7 +445,7 @@ if __name__ == '__main__':
             print_response(csv_response)
 
         model_response = cl.get_experiment_model(experiment_name)
-        with open(os.path.join('ignore', 'models', f"model_{i+1}.pt"), 'wb') as f:
+        with open(os.path.join('ignore', 'models', f"model_{i + 1}.pt"), 'wb') as f:
             f.write(model_response.content)
         print(f"Saved {i+1}-th model!")
 

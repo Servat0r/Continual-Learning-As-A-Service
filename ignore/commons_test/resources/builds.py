@@ -1,5 +1,4 @@
 from __future__ import annotations
-from commons_test.resources.datatypes import *
 
 
 @MongoBuildConfig.register_build_config('DummyGen')

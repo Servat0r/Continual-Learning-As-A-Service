@@ -1,5 +1,4 @@
 from application.resources.contexts import *
-from commons_test.resources.builds import *
 from flask import Blueprint, request, jsonify
 
 dummy_bp = Blueprint('dbresource', __name__, url_prefix='/resources')

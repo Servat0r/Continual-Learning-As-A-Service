@@ -150,12 +150,6 @@ def data_manager_dataset_stream(
         desc = files[i]
         dset = DataManagerDataset(manager, data_repository, desc, loader)
         datasets.append(dset)
-        """
-        AvalancheDataset(
-            dset, task_labels=0,
-            transform_groups=transform_groups, initial_transform_group=stream_name,
-        ))
-        """
     return datasets
 
 

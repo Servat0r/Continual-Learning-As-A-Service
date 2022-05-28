@@ -52,7 +52,6 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
             *metricset.get_value(),
             loggers=[
                 ExtendedCSVLogger(log_folder=log_folder, metricset=metricset),
-                InteractiveLogger(),
             ]
         )
 

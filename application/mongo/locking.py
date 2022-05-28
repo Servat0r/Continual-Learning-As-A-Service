@@ -21,7 +21,6 @@ class _SubResourceCtxManager:
 
     def __enter__(self):
         if not self.locked:
-            # Sempre nello stesso ordine?
             for parent in self.parents_to_lock:
                 context = parent.sub_resource_operation(locked=False)
                 self.super_contexts.append(context.__enter__())

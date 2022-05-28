@@ -1,7 +1,7 @@
 from __future__ import annotations
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.supervised import Naive, Cumulative, \
-    SynapticIntelligence, LwF, Replay, CWRStar, GDumb, AGEM
+    SynapticIntelligence, LwF, Replay, CWRStar, GDumb, AGEM, JointTraining
 
 from application.utils import TBoolStr, t, TDesc, get_device
 from application.database import db
@@ -39,6 +39,22 @@ class CumulativeBuildConfig(MongoBaseStrategyBuildConfig):
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         return Cumulative
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return super().get_required()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return super().get_optionals()
+
+
+@MongoBuildConfig.register_build_config('JointTraining')
+class JointTrainingBuildConfig(MongoBaseStrategyBuildConfig):
+
+    @staticmethod
+    def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
+        return JointTraining
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -390,12 +406,17 @@ class AGEMBuildConfig(MongoBaseStrategyBuildConfig):
 
 
 __all__ = [
+    # Basic strategies
     'NaiveBuildConfig',
     'CumulativeBuildConfig',
+    'JointTrainingBuildConfig',
+
     'SynapticIntelligenceBuildConfig',
     'LwFBuildConfig',
+
     'ReplayBuildConfig',
-    'CWRStarBuildConfig',
     'GDumbBuildConfig',
+
+    'CWRStarBuildConfig',
     'AGEMBuildConfig',
 ]

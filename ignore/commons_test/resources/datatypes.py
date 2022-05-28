@@ -1,6 +1,5 @@
 from __future__ import annotations
-from commons_test.resources.base_datatypes import *
-from commons_test.resources.documents import *
+from ignore.commons_test.resources.base_datatypes import *
 
 
 @DataType.set_resource_type()

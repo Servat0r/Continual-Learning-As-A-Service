@@ -1,4 +1,4 @@
-from commons_test.resources.metadata import *
+from ignore.commons_test.resources.metadata import *
 
 
 class MongoDummyDocument(MongoResourceConfig):

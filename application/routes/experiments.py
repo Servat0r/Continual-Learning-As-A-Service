@@ -38,7 +38,9 @@ def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
         try:
             with experiment_config.resource_write():
                 try:
+                    print('Before building experiment')
                     experiment: BaseCLExperiment = experiment_config.build(context, locked=True)
+                    print('After having built experiment!')
                     if experiment is None:
                         response = make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to initialize experiment!")
                     else:
@@ -76,7 +78,13 @@ def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
                         )
                         return response
         except Exception as ex:
+            traceback.print_exception(*sys.exc_info())
             print(ex)
+            response = make_error(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                msg=f"Error when trying to execute experiment #{start_result}: {exc.args}."
+            )
+            return response
 
 
 @experiments_bp.post('/')
