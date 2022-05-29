@@ -10,5 +10,6 @@ docs/ignore/
 docs/json_examples/
 dbscripts/
 ignore/
+results/
 tests/*.env
 tests/ignore/

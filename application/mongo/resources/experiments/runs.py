@@ -36,6 +36,40 @@ class StdTrainTestRunConfig(BaseCLExperimentRunConfig):
                 result, exc = manager.save_model(cl_strategy.model, model_directory)
                 if not result:
                     print(exc)
+                    traceback.print_exception(*sys.exc_info())
+                    return False, exc
+            return True, results
+        except Exception as ex:
+            traceback.print_exception(*sys.exc_info())
+            return False, ex
+
+
+@BaseCLExperimentRunConfig.register_run_config('JointTraining')
+class JointTrainingRunConfig(BaseCLExperimentRunConfig):
+
+    @classmethod
+    def run(cls, experiment: BaseCLExperiment, model_directory: list[str] = None) -> TOptBoolAny:
+        try:
+            cl_scenario: GenericCLScenario = experiment.get_benchmark().get_value()
+            cl_strategy: SupervisedTemplate = experiment.get_strategy().get_value()
+
+            # noinspection PyUnresolvedReferences
+            train_stream = cl_scenario.train_stream
+            # noinspection PyUnresolvedReferences
+            test_stream = cl_scenario.test_stream
+
+            print(f"Using {cl_strategy.__class__.__name__} strategy ...")
+            results: list[TDesc] = []
+            cl_strategy.train(train_stream)
+            results.append(cl_strategy.eval(test_stream))
+
+            if model_directory is not None:
+                manager = BaseDataManager.get()
+                result, exc = manager.save_model(cl_strategy.model, model_directory)
+                if not result:
+                    print(exc)
+                    traceback.print_exception(*sys.exc_info())
+                    return False, exc
             return True, results
         except Exception as ex:
             traceback.print_exception(*sys.exc_info())
@@ -44,4 +78,5 @@ class StdTrainTestRunConfig(BaseCLExperimentRunConfig):
 
 __all__ = [
     'StdTrainTestRunConfig',
+    'JointTrainingRunConfig',
 ]

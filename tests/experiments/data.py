@@ -136,9 +136,12 @@ def generic_strategy_builder(
     return base_result
 
 
-def generic_experiment_builder(strategy: str, benchmark: str, name: str = 'ExperimentBuild'):
-    return {
+def generic_experiment_builder(strategy: str, benchmark: str, name: str = 'ExperimentBuild', **kwargs):
+    result = {
         'name': name,
         'strategy': strategy,
         'benchmark': benchmark,
     }
+    for arg_name, arg_value in kwargs.items():
+        result[arg_name] = arg_value
+    return result

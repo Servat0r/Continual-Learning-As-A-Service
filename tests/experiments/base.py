@@ -139,9 +139,9 @@ class BaseClassicBenchmarkExperimentTestCase(BaseExperimentTestCase):
                         self.assertBaseHandler(response, success_codes=(HTTPStatus.OK, HTTPStatus.LOCKED))
                         if response.status_code == HTTPStatus.OK:
                             ok = True
-                            with open(os.path.join(results_dir, 'execution_results.csv'), 'w') as f:
+                            with open(os.path.join(results_dir, 'execution_results.json'), 'w') as f:
                                 data = response.json()
-                                json.dump(data, fp=f)
+                                json.dump(data, fp=f, indent=2)
                             break
 
                     if ok:

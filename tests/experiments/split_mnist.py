@@ -60,7 +60,11 @@ lwf_strategy_build = generic_strategy_builder(
 # experiments
 naive_experiment_build = generic_experiment_builder(naive_strategy_name, benchmark_name)
 cumulative_experiment_build = generic_experiment_builder(cumulative_strategy_name, benchmark_name)
-joint_training_experiment_build = generic_experiment_builder(joint_training_strategy_name, benchmark_name)
+joint_training_experiment_build = generic_experiment_builder(
+    joint_training_strategy_name,
+    benchmark_name,
+    run_config='JointTraining',
+)
 replay_500_experiment_build = generic_experiment_builder(replay_500_strategy_name, benchmark_name)
 replay_2500_experiment_build = generic_experiment_builder(replay_2500_strategy_name, benchmark_name)
 gdumb_experiment_build = generic_experiment_builder(gdumb_strategy_name, benchmark_name)
