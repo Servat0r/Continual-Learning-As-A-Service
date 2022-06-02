@@ -20,9 +20,11 @@ RUN venv/bin/pip install gunicorn cryptography
 
 COPY application application
 COPY main.py boot.sh ./
+COPY common common
 RUN mkdir files
 
-COPY .flaskenv .env ./
+COPY .flaskenv ./
+COPY docker.env ./.env
 RUN chmod +x boot.sh
 
 ENV FLASK_APP main.py

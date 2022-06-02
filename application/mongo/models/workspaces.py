@@ -45,22 +45,22 @@ class MongoWorkspace(MongoBaseWorkspace):
 
     # 2. Uri methods
     @classmethod
-    def get_by_uri(cls, uri: str):
+    def get_by_claas_urn(cls, urn: str):
         """
-        uri is of the form "workspace:<username>:<wname>"
-        :param uri:
+        urn is of the form "workspace:<username>:<wname>"
+        :param urn:
         :return:
         """
-        s = uri.split(cls.uri_separator())
+        s = urn.split(cls.claas_urn_separator())
         user = t.cast(MongoBaseUser, User.canonicalize(s[1]))
         workspace = s[2]
         ls = cls.get(owner=user, name=workspace)
         return ls[0] if len(ls) > 0 else None
 
     @property
-    def uri(self):
+    def claas_urn(self):
         context = UserWorkspaceResourceContext(self.owner.get_name(), self.name)
-        return self.dfl_uri_builder(context)
+        return self.dfl_claas_urn_builder(context)
 
     # 3. General classmethods
     @classmethod
@@ -177,7 +177,7 @@ class MongoWorkspace(MongoBaseWorkspace):
 
     # 6. Read/Update Instance methods
     def __repr__(self):
-        return f"Workspace <{self.name}> [uri = {self.uri}]"
+        return f"Workspace <{self.name}> [urn = {self.claas_urn}]"
 
     def get_id(self):
         return self.id

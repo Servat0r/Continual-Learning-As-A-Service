@@ -18,12 +18,12 @@ class MongoModel(Model):
         return MongoModelConfig
 
     @classmethod
-    def get_by_uri(cls, uri: str):
-        return cls.config_type().get_by_uri(uri)
+    def get_by_claas_urn(cls, urn: str):
+        return cls.config_type().get_by_claas_urn(urn)
 
     @classmethod
-    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
-        return cls.config_type().dfl_uri_builder(context, name)
+    def dfl_claas_urn_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
+        return cls.config_type().dfl_claas_urn_builder(context, name)
 
     @classmethod
     def canonical_typename(cls) -> str:

@@ -100,8 +100,8 @@ class ReferrableDataType(DataType, URIBasedResource):
     "Interface-mixin" for referrable resources that rely on external storage.
     """
     @property
-    def uri(self):
-        return self.config_type().uri
+    def claas_urn(self):
+        return self.config_type().claas_urn
 
     @staticmethod
     @abstractmethod
@@ -134,8 +134,8 @@ class ReferrableDataType(DataType, URIBasedResource):
     @classmethod
     def build_from_data(cls, name: str, context: ResourceContext) -> ReferrableDataType:
         cfg_type = cls.config_type()
-        uri = cfg_type.dfl_uri_builder(context, name)
-        resource_config = cfg_type.get_by_uri(uri)
+        urn = cfg_type.dfl_claas_urn_builder(context, name)
+        resource_config = cfg_type.get_by_claas_urn(urn)
         return resource_config.build(context) if resource_config is not None else None
 
     def __init__(self):

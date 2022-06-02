@@ -58,7 +58,7 @@ class MongoCLExperimentExecutionConfig(BaseCLExperimentExecution, db.EmbeddedDoc
         return {
             'experiment': self.experiment.get_name(),
             'exec_id': self.exec_id,
-            'uri': self.uri,
+            'claas_urn': self.claas_urn,
             'started': self.started,
             'completed': self.completed,
             'start_time': self.start_time,
@@ -70,24 +70,24 @@ class MongoCLExperimentExecutionConfig(BaseCLExperimentExecution, db.EmbeddedDoc
         }
 
     @property
-    def uri(self):
-        return self.uri_separator().join([self.experiment.uri, str(self.exec_id)])
+    def claas_urn(self):
+        return self.claas_urn_separator().join([self.experiment.claas_urn, str(self.exec_id)])
 
     @classmethod
-    def get_by_uri(cls, uri: str):
-        components = uri.split(cls.uri_separator())
+    def get_by_claas_urn(cls, urn: str):
+        components = urn.split(cls.claas_urn_separator())
         if len(components) < 2:
-            raise ValueError("Invalid uri format!")
+            raise ValueError("Invalid urn format!")
         exec_id = components[-1]
-        exp_uri_components = components[:-1]
-        exp_uri = cls.uri_separator().join(exp_uri_components)
-        experiment = BaseCLExperiment.config_type().get_by_uri(exp_uri)
+        exp_claas_urn_components = components[:-1]
+        exp_claas_urn = cls.claas_urn_separator().join(exp_claas_urn_components)
+        experiment = BaseCLExperiment.config_type().get_by_claas_urn(exp_claas_urn)
         return experiment.get_execution(int(exec_id))
 
     @classmethod
-    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext, name: str, exec_id: int) -> str:
-        exp_uri = BaseCLExperiment.dfl_uri_builder(context, name)
-        return cls.uri_separator().join([exp_uri, str(exec_id)])
+    def dfl_claas_urn_builder(cls, context: UserWorkspaceResourceContext, name: str, exec_id: int) -> str:
+        exp_claas_urn = BaseCLExperiment.dfl_claas_urn_builder(context, name)
+        return cls.claas_urn_separator().join([exp_claas_urn, str(exec_id)])
 
 
 __all__ = [

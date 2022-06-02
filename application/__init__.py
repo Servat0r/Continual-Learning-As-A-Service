@@ -15,6 +15,7 @@ from .converters import *
 from .avalanche_ext import *
 from .data_managing import *
 from .models import *
+from .resources import *
 from .mongo import *
 
 

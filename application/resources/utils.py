@@ -31,21 +31,21 @@ class URIBasedResource:
 
     @property
     @abstractmethod
-    def uri(self):
+    def claas_urn(self):
         pass
 
     @classmethod
     @abstractmethod
-    def get_by_uri(cls, uri: str):
+    def get_by_claas_urn(cls, urn: str):
         pass
 
     @staticmethod
-    def uri_separator() -> str:
+    def claas_urn_separator() -> str:
         return ':'
 
     @classmethod
     @abstractmethod
-    def dfl_uri_builder(cls, *args, **kwargs) -> str:
+    def dfl_claas_urn_builder(cls, *args, **kwargs) -> str:
         pass
 
 

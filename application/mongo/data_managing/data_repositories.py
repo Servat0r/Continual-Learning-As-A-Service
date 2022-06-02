@@ -55,8 +55,8 @@ class MongoDataRepository(MongoBaseDataRepository):
 
     # 2. Uri methods
     @classmethod
-    def get_by_uri(cls, uri: str):
-        s = uri.split(cls.uri_separator())
+    def get_by_claas_urn(cls, urn: str):
+        s = urn.split(cls.claas_urn_separator())
         username = s[1]
         wname = s[2]
         name = s[3]
@@ -65,9 +65,9 @@ class MongoDataRepository(MongoBaseDataRepository):
         return ls[0] if len(ls) > 0 else None
 
     @property
-    def uri(self):
+    def claas_urn(self):
         context = UserWorkspaceResourceContext(self.get_owner().get_name(), self.get_workspace().get_name())
-        return self.dfl_uri_builder(context, self.get_name())
+        return self.dfl_claas_urn_builder(context, self.get_name())
 
     # 3. General classmethods
     @classmethod
@@ -168,6 +168,7 @@ class MongoDataRepository(MongoBaseDataRepository):
         return manager.get_dir_path(dir_names)
 
     def save(self, create=False) -> bool:
+        # noinspection PyBroadException, PyUnusedLocal
         try:
             if create:
                 db.Document.save(self, force_insert=True)
@@ -289,7 +290,7 @@ class MongoDataRepository(MongoBaseDataRepository):
         return result, labels
 
     def __repr__(self):
-        return f"{type(self).__name__} <id = {self.id}> [uri = {self.uri}]"
+        return f"{type(self).__name__} <id = {self.id}> [urn = {self.claas_urn}]"
 
     def __str__(self):
         return self.__repr__()

@@ -288,7 +288,7 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
     metadata = db.EmbeddedDocumentField(MongoBaseMetadata)
 
     def __repr__(self):
-        return f"{type(self).__name__} <id = {self.id}> [uri = {self.uri}]"
+        return f"{type(self).__name__} <id = {self.id}> [urn = {self.claas_urn}]"
 
     def __str__(self):
         return self.__repr__()
@@ -324,8 +324,8 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
         return results[0] if len(results) > 0 else None
 
     @classmethod
-    def get_by_uri(cls, uri: str):
-        s = uri.split(cls.uri_separator())
+    def get_by_claas_urn(cls, urn: str):
+        s = urn.split(cls.claas_urn_separator())
         owner = t.cast(MongoBaseUser, User.canonicalize(s[1]))
         workspace = Workspace.canonicalize((s[1], s[2]))
         name = s[3]
@@ -339,16 +339,16 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
     # .................... #
 
     @property
-    def uri(self):
+    def claas_urn(self):
         context = UserWorkspaceResourceContext(self.owner.get_name(), self.workspace.name)
-        return type(self).dfl_uri_builder(context, self.name)
+        return type(self).dfl_claas_urn_builder(context, self.name)
 
     @classmethod
-    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
+    def dfl_claas_urn_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
         username = context.get_username()
         workspace = context.get_workspace()
         typename = cls.target_type().canonical_typename()
-        return cls.uri_separator().join([typename, username, workspace, name])
+        return cls.claas_urn_separator().join([typename, username, workspace, name])
 
     # .................... #
 

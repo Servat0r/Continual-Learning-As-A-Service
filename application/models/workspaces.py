@@ -36,14 +36,14 @@ class Workspace(JSONSerializable, URIBasedResource):
     # 2. Uri methods
     @classmethod
     @abstractmethod
-    def get_by_uri(cls, uri: str):
-        return Workspace.get_class().get_by_uri(uri)
+    def get_by_claas_urn(cls, urn: str):
+        return Workspace.get_class().get_by_claas_urn(urn)
 
     @classmethod
-    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext) -> str:
+    def dfl_claas_urn_builder(cls, context: UserWorkspaceResourceContext) -> str:
         username = context.get_username()
         workspace = context.get_workspace()
-        return cls.uri_separator().join(['workspace', username, workspace])
+        return cls.claas_urn_separator().join(['workspace', username, workspace])
 
     # 3. General classmethods
     @classmethod

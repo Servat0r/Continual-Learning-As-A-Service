@@ -68,8 +68,8 @@ def get_workspace(username, wname):
     if not user:
         return NotExistingUser(user=username)
     context = UserWorkspaceResourceContext(username, wname)
-    uri = Workspace.dfl_uri_builder(context)
-    data = Workspace.get_by_uri(uri).to_dict()
+    urn = Workspace.dfl_claas_urn_builder(context)
+    data = Workspace.get_by_claas_urn(urn).to_dict()
     if data is None:
         return ResourceNotFound(resource=wname)
     else:
@@ -115,8 +115,8 @@ def rename_workspace(username, wname):
             return error()
     else:
         context = UserWorkspaceResourceContext(username, wname)
-        uri = Workspace.dfl_uri_builder(context)
-        workspace = Workspace.get_by_uri(uri)
+        urn = Workspace.dfl_claas_urn_builder(context)
+        workspace = Workspace.get_by_claas_urn(urn)
 
         new_name = data['new_name']
         result, msg = validate_workspace_resource_experiment(new_name)
@@ -137,8 +137,8 @@ def delete_workspace(username, wname):
 
     current_user = token_auth.current_user()
     context = UserWorkspaceResourceContext(username, wname)
-    uri = Workspace.dfl_uri_builder(context)
-    workspace = Workspace.get_by_uri(uri)
+    urn = Workspace.dfl_claas_urn_builder(context)
+    workspace = Workspace.get_by_claas_urn(urn)
 
     if not workspace:
         return ResourceNotFound(resource=wname)
@@ -162,8 +162,8 @@ def get_workspace_status(username, wname):
         return NotExistingUser(user=username)
 
     context = UserWorkspaceResourceContext(username, wname)
-    uri = Workspace.dfl_uri_builder(context)
-    workspace = Workspace.get_by_uri(uri)
+    urn = Workspace.dfl_claas_urn_builder(context)
+    workspace = Workspace.get_by_claas_urn(urn)
     if not workspace:
         return ResourceNotFound(resource=wname)
 
@@ -201,8 +201,8 @@ def set_workspace_status(username, wname):
 
     current_user = token_auth.current_user()
     context = UserWorkspaceResourceContext(username, wname)
-    uri = Workspace.dfl_uri_builder(context)
-    workspace = Workspace.get_by_uri(uri)
+    urn = Workspace.dfl_claas_urn_builder(context)
+    workspace = Workspace.get_by_claas_urn(urn)
 
     if not workspace:
         return ResourceNotFound(resource=wname)

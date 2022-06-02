@@ -5,7 +5,7 @@ from avalanche.models.pnn import PNN
 
 from application.utils import TBoolStr, t, TDesc
 from application.database import db
-# from application.avalanche_ext import *
+from application.avalanche_ext import *
 
 from application.resources.contexts import ResourceContext
 from application.resources.base import DataType
@@ -177,8 +177,185 @@ class PNNBuildConfig(MongoBuildConfig):
         return self.target_type()(model)
 
 
+# avalanche_ext models
+# MLP builder
+@MongoBuildConfig.register_build_config('MLP')
+class MLPBuildConfig(MongoBuildConfig):
+    """Build config for the MLP as defined in application.avalanche_ext.models.commons.py."""
+
+    # Fields
+    input_size = db.IntField(default=28*28)
+    hidden_size = db.IntField(default=256)
+    hidden_layers = db.IntField(default=2)
+    output_size = db.IntField(default=10)
+    drop_rate = db.IntField(default=0)
+    relu_act = db.BooleanField(default=True)
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return set()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return {
+            'input_size',
+            'hidden_size',
+            'hidden_layers',
+            'output_size',
+            'drop_rate',
+            'relu_act',
+        }
+
+    @staticmethod
+    def target_type() -> t.Type[DataType]:
+        return DataType.get_type('Model')
+
+    @classmethod
+    def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
+        result, msg = super().validate_input(data, dtype, context)
+        if not result:
+            return result, msg
+        _, values = context.pop()
+        params: TDesc = values['params']
+        relu_act = params.pop('relu_act', False)
+        ok = isinstance(relu_act, bool)
+        if ok:
+            for param in params.values():
+                if not isinstance(param, int):
+                    ok = False
+                    break
+        if not ok:
+            return False, "One or more parameter(s) are not in the correct type."
+        return True, None
+
+    @classmethod
+    def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):
+        return super(MLPBuildConfig, cls).create(data, dtype, context, save)
+
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
+        model = MLP(
+            input_size=self.input_size,
+            hidden_size=self.hidden_size,
+            hidden_layers=self.hidden_layers,
+            output_size=self.output_size,
+            drop_rate=self.drop_rate,
+            relu_act=self.relu_act,
+        )
+        # noinspection PyArgumentList
+        return self.target_type()(model)
+
+
+# MultiHeadMLP builder
+@MongoBuildConfig.register_build_config('MultiHeadMLP')
+class MultiHeadMLPBuildConfig(MongoBuildConfig):
+    """Build config for the MultiHeadMLP as defined in application.avalanche_ext.models.commons.py."""
+
+    # Fields
+    input_size = db.IntField(default=28*28)
+    hidden_size = db.IntField(default=256)
+    hidden_layers = db.IntField(default=2)
+    drop_rate = db.IntField(default=0)
+    relu_act = db.BooleanField(default=True)
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return set()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return {
+            'input_size',
+            'hidden_size',
+            'hidden_layers',
+            'drop_rate',
+            'relu_act',
+        }
+
+    @staticmethod
+    def target_type() -> t.Type[DataType]:
+        return DataType.get_type('Model')
+
+    @classmethod
+    def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
+        result, msg = super().validate_input(data, dtype, context)
+        if not result:
+            return result, msg
+        _, values = context.pop()
+        params: TDesc = values['params']
+        relu_act = params.pop('relu_act', False)
+        ok = isinstance(relu_act, bool)
+        if ok:
+            for param in params.values():
+                if not isinstance(param, int):
+                    ok = False
+                    break
+        if not ok:
+            return False, "One or more parameter(s) are not in the correct type."
+        return True, None
+
+    @classmethod
+    def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):
+        return super(MultiHeadMLPBuildConfig, cls).create(data, dtype, context, save)
+
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
+        model = MultiHeadMLP(
+            input_size=self.input_size,
+            hidden_size=self.hidden_size,
+            hidden_layers=self.hidden_layers,
+            drop_rate=self.drop_rate,
+            relu_act=self.relu_act,
+        )
+        # noinspection PyArgumentList
+        return self.target_type()(model)
+
+
+# SI_CNN builder
+@MongoBuildConfig.register_build_config('SI_CNN')
+class SynapticIntelligenceCNNBuildConfig(MongoBuildConfig):
+
+    # Fields
+    hidden_size = db.IntField(default=512)
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return set()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return {'hidden_size'}
+
+    @staticmethod
+    def target_type() -> t.Type[DataType]:
+        return DataType.get_type('Model')
+
+    @classmethod
+    def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
+        result, msg = super(SynapticIntelligenceCNNBuildConfig, cls).validate_input(data, dtype, context)
+        if not result:
+            return result, msg
+        _, values = context.pop()
+        params: TDesc = values['params']
+        for param in params.values():
+            if not isinstance(param, int):
+                return False, "One or more parameter(s) are not in the correct type."
+        return True, None
+
+    @classmethod
+    def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
+        return super(SynapticIntelligenceCNNBuildConfig, cls).create(data, tp, context, save)
+
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
+        model = SI_CNN(hidden_size=self.hidden_size)
+        # noinspection PyArgumentList
+        return self.target_type()(model)
+
+
 __all__ = [
     'SimpleMLPBuildConfig',
     'SimpleCNNBuildConfig',
     'PNNBuildConfig',
+
+    'MLPBuildConfig',
+    'MultiHeadMLPBuildConfig',
+    'SynapticIntelligenceCNNBuildConfig'
 ]

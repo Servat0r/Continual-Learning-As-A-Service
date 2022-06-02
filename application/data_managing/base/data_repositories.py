@@ -40,14 +40,14 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
     # 2. Uri methods
     @classmethod
     @abstractmethod
-    def get_by_uri(cls, uri: str):
-        return BaseDataRepository.get_class().get_by_uri(uri)
+    def get_by_claas_urn(cls, urn: str):
+        return BaseDataRepository.get_class().get_by_claas_urn(urn)
 
     @classmethod
-    def dfl_uri_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
+    def dfl_claas_urn_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
         username = context.get_username()
         workspace = context.get_workspace()
-        return cls.uri_separator().join(['DataRepository', username, workspace, name])
+        return cls.claas_urn_separator().join(['DataRepository', username, workspace, name])
 
     # 3. General classmethods
     @classmethod
@@ -59,7 +59,7 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
             workspace = Workspace.canonicalize(obj)
             repos = BaseDataRepository.get(workspace, name)
             if len(repos) != 1:
-                raise ValueError(f"Such data repository (name = {name}, workspace = {workspace.uri}) does not exist!")
+                raise ValueError(f"Such data repository (name = {name}, workspace = {workspace.claas_urn}) does not exist!")
             return repos[0]
 
     @classmethod

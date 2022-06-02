@@ -37,7 +37,7 @@ replay_2500_strategy_build = generic_strategy_builder(
     STD_MNIST_TRAIN_MB_SIZE,
     STD_MNIST_TRAIN_EPOCHS,
     STD_MNIST_EVAL_MB_SIZE,
-    memory=500,
+    memory=2500,
 )
 
 gdumb_strategy_build = generic_strategy_builder(
@@ -53,7 +53,7 @@ lwf_strategy_build = generic_strategy_builder(
     STD_MNIST_TRAIN_MB_SIZE,
     STD_MNIST_TRAIN_EPOCHS,
     STD_MNIST_EVAL_MB_SIZE,
-    alpha=[1.0, 1.0, 1.0, 1.0, 1.0],
+    alpha=1.0,
     temperature=1.0,
 )
 

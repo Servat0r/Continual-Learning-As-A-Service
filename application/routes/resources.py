@@ -97,8 +97,8 @@ def build_resource(username, workspace, typename: str | t.Type[DataType], name) 
     if ctp is None:
         return InternalFailure(msg=f"Unknown config type '{typename}' for building resource.")
 
-    uri = ctp.dfl_uri_builder(context, name)
-    resource_document = ctp.get_by_uri(uri)
+    urn = ctp.dfl_claas_urn_builder(context, name)
+    resource_document = ctp.get_by_claas_urn(urn)
 
     if resource_document is None:
         return InternalFailure(
@@ -196,8 +196,8 @@ def delete_resource(username, workspace, typename: str | t.Type[DataType], name)
     if ctp is None:
         return InternalFailure(msg=f"Unknown config type '{typename}' for building resource.")
 
-    uri = ctp.dfl_uri_builder(context, name)
-    resource_document = ctp.get_by_uri(uri)
+    urn = ctp.dfl_claas_urn_builder(context, name)
+    resource_document = ctp.get_by_claas_urn(urn)
     if resource_document is None:
         return InternalFailure(
             msg=f"Failed to build resource document for resource '{name}' of type {typename}."

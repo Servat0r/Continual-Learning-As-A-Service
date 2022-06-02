@@ -5,12 +5,19 @@ from avalanche.training.supervised import Naive, Cumulative, \
 
 from application.utils import TBoolStr, t, TDesc, get_device
 from application.database import db
+from application.models import User, Workspace
 
 from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType
 
+from application.mongo.base import MongoBaseUser
 from application.mongo.resources.mongo_base_configs import *
 from .base_builds import *
+
+from application.mongo.resources.metricsets import *
+from application.mongo.resources.criterions import *
+from application.mongo.resources.optimizers import *
+from application.mongo.resources.models import *
 
 
 # Naive strategy builder
@@ -71,6 +78,7 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
 
     # Fields
     si_lambda = db.ListField(db.FloatField(), required=True)
+    si_lambda_for_all = db.BooleanField(default=False)
     eps = db.FloatField(default=0.0000001)
 
     @staticmethod
@@ -97,7 +105,9 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
         eps = params.get('eps', 0.0000001)
 
         si_checked = True
-        if isinstance(si_lambda, list):
+        if isinstance(si_lambda, float):
+            si_checked = True
+        elif isinstance(si_lambda, list):
             for si_l in si_lambda:
                 if not isinstance(si_l, float):
                     si_checked = False
@@ -112,6 +122,35 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
 
         return True, None
 
+    @classmethod
+    def create(cls, data: TDesc, tp: t.Type[DataType], context: UserWorkspaceResourceContext, save: bool = True):
+        ok, bc_name, params, extras = cls._filter_data(data)
+        model_name = params['model']
+        optim_name = params['optimizer']
+        criterion_name = params['criterion']
+        metricset_name = params['metricset']
+        si_lambda = params['si_lambda']
+        si_lambda_for_all = True if isinstance(si_lambda, float) else False
+        si_lambda = [si_lambda] if si_lambda_for_all else si_lambda
+
+        owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
+        workspace = Workspace.canonicalize(context)
+
+        model = MongoModel.config_type().get_one(owner, workspace, model_name)
+        optim = MongoCLOptimizer.config_type().get_one(owner, workspace, optim_name)
+        criterion = MongoCLCriterion.config_type().get_one(owner, workspace, criterion_name)
+        metricset = MongoStandardMetricSet.config_type().get_one(owner, workspace, metricset_name)
+
+        params['model'] = model
+        params['optimizer'] = optim
+        params['criterion'] = criterion
+        params['metricset'] = metricset
+        params['si_lambda'] = si_lambda
+        params['si_lambda_for_all'] = si_lambda_for_all
+
+        # noinspection PyArgumentList
+        return cls(**params)
+
     def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
         model = self.model.build(context, locked=locked, parents_locked=parents_locked)
         optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
@@ -120,9 +159,11 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
         log_folder = self.get_logging_path(context)
         metricset = self.metricset.build(context)
 
+        si_lambda = self.si_lambda[0] if self.si_lambda_for_all else self.si_lambda
+
         strategy = SynapticIntelligence(
             model.get_value(), optim.get_value(), criterion.get_value(),
-            si_lambda=self.si_lambda, eps=self.eps, device=get_device(),
+            si_lambda=si_lambda, eps=self.eps, device=get_device(),
             train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
             eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
             evaluator=self.get_evaluator(log_folder, metricset),
@@ -136,6 +177,7 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
 
     # Fields
     alpha = db.ListField(db.FloatField(), required=True)
+    alpha_for_all = db.BooleanField(default=False)
     temperature = db.FloatField(required=True)
 
     @staticmethod
@@ -161,8 +203,11 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
         alpha = params['alpha']
         temperature = params['temperature']
 
+        # alpha can be either a float or a list of floats
         alpha_checked = True
-        if isinstance(alpha, list):
+        if isinstance(alpha, float):
+            alpha_checked = True
+        elif isinstance(alpha, list):
             for a in alpha:
                 if not isinstance(a, float):
                     alpha_checked = False
@@ -177,6 +222,35 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
 
         return True, None
 
+    @classmethod
+    def create(cls, data: TDesc, tp: t.Type[DataType], context: UserWorkspaceResourceContext, save: bool = True):
+        ok, bc_name, params, extras = cls._filter_data(data)
+        model_name = params['model']
+        optim_name = params['optimizer']
+        criterion_name = params['criterion']
+        metricset_name = params['metricset']
+        alpha = params['alpha']
+        alpha_for_all = True if isinstance(alpha, float) else False
+        alpha = [alpha] if alpha_for_all else alpha
+
+        owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
+        workspace = Workspace.canonicalize(context)
+
+        model = MongoModel.config_type().get_one(owner, workspace, model_name)
+        optim = MongoCLOptimizer.config_type().get_one(owner, workspace, optim_name)
+        criterion = MongoCLCriterion.config_type().get_one(owner, workspace, criterion_name)
+        metricset = MongoStandardMetricSet.config_type().get_one(owner, workspace, metricset_name)
+
+        params['model'] = model
+        params['optimizer'] = optim
+        params['criterion'] = criterion
+        params['metricset'] = metricset
+        params['alpha'] = alpha
+        params['alpha_for_all'] = alpha_for_all
+
+        # noinspection PyArgumentList
+        return cls(**params)
+
     def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
         model = self.model.build(context, locked=locked, parents_locked=parents_locked)
         optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
@@ -185,9 +259,11 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
         log_folder = self.get_logging_path(context)
         metricset = self.metricset.build(context)
 
+        alpha = self.alpha[0] if self.alpha_for_all else self.alpha
+
         strategy = LwF(
             model.get_value(), optim.get_value(), criterion.get_value(),
-            alpha=self.alpha, temperature=self.temperature, device=get_device(),
+            alpha=alpha, temperature=self.temperature, device=get_device(),
             train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
             eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
             evaluator=self.get_evaluator(log_folder, metricset),
