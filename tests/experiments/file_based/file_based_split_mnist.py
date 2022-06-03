@@ -1,6 +1,10 @@
 from __future__ import annotations
+from typing import Any, Optional
 
-from typing import Any
+import sys
+import traceback
+
+from tests.utils import *
 from ..data import *
 from .base import *
 
@@ -85,7 +89,6 @@ def generate_experience_benchmark_data(exp_num: int, classes_per_exp: int, datas
     return result
 
 
-# todo task labels!
 class SplitMNISTFileBasedTest(BaseFileBasedBenchmarkExperimentTestCase):
 
     username = 'file-based-split-mnist-username'
@@ -95,8 +98,8 @@ class SplitMNISTFileBasedTest(BaseFileBasedBenchmarkExperimentTestCase):
     data_repository_name = BaseFileBasedBenchmarkExperimentTestCase.data_repository_name
 
     num_classes = 10
-    _TRAIN_ITEMS_PER_CATEGORY = 120
-    _TEST_ITEMS_PER_CATEGORY = 12
+    _TRAIN_ITEMS_PER_CATEGORY = 600
+    _TEST_ITEMS_PER_CATEGORY = 60
 
     benchmark_build = {
         'name': "DataManagerBenchmark",
@@ -106,6 +109,7 @@ class SplitMNISTFileBasedTest(BaseFileBasedBenchmarkExperimentTestCase):
         'test_stream': [generate_experience_benchmark_data(exp, 2, 'mnist', 'test') for exp in range(5)],
         'train_transform': {'name': 'TrainMNIST'},
         'eval_transform': {'name': 'EvalMNIST'},
+        'task_labels': [0, 1, 2, 3, 4],
     }
 
     model_build = {

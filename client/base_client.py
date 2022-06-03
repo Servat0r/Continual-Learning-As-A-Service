@@ -408,6 +408,17 @@ class BaseClient:
             files_and_labels: list[tuple[str, str, int]],   # source_path, dest_path, label
             base_path: list[str],
     ):
+
+        """
+        translated: dict = {
+            'files': [],
+            'labels': [],
+        }
+        for src_path, dest_path, label in files_and_labels:
+            ...
+        hello
+        """
+
         translated: list[tuple[str, tuple[str, Any]]] = [
             (str(label), (dest_path.replace('\\', '/'), open(src_path, 'rb')))
             for src_path, dest_path, label in files_and_labels

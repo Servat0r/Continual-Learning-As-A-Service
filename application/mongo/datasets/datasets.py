@@ -2,6 +2,7 @@ from __future__ import annotations
 import torch.utils.data as data
 
 from avalanche.benchmarks import GenericCLScenario, dataset_benchmark
+from avalanche.benchmarks.utils import AvalancheDataset, AvalancheDatasetType
 
 from application.utils import t
 from application.data_managing import BaseDataManager, BaseDataRepository
@@ -126,6 +127,7 @@ def data_manager_dataset_stream(
         transform=None,
         target_transform=None,
         transform_groups: dict = None,
+        task_labels: int | list[int] = None,
 ) -> list[DataManagerDataset]:
     """
     Helper function to
@@ -137,19 +139,35 @@ def data_manager_dataset_stream(
     :param transform:
     :param target_transform:
     :param transform_groups:
+    :param task_labels:
     :return:
     """
     n_experiences = len(files)
+    if task_labels is not None and isinstance(task_labels, int):
+        task_labels_list = []
+        for i in range(n_experiences):
+            task_labels_list.append(task_labels)
+        task_labels = task_labels_list
+    elif isinstance(task_labels, list):
+        if len(task_labels) != n_experiences:
+            raise ValueError("Task labels length must match files length!")
+
+    # now task_labels is either None or a list of int
 
     if transform_groups is None:
         transform_groups = {}
     transform_groups[stream_name] = (transform, target_transform)
 
-    datasets: list[DataManagerDataset] = []
+    datasets: list[AvalancheDataset] = []
     for i in range(n_experiences):
         desc = files[i]
         dset = DataManagerDataset(manager, data_repository, desc, loader)
-        datasets.append(dset)
+        datasets.append(
+            AvalancheDataset(
+                dset, task_labels=(task_labels[i] if task_labels is not None else None),
+                dataset_type=AvalancheDatasetType.CLASSIFICATION,
+            )
+        )
     return datasets
 
 
@@ -164,6 +182,8 @@ def data_manager_datasets_benchmark(
         complete_test_set_only: bool = False,
         loader: t.Callable = default_image_loader,
 
+        task_labels: int | list[int] = None,
+
         train_transform=None, train_target_transform=None,
         eval_transform=None, eval_target_transform=None,
         other_transform_groups: dict[str, t.Sequence[t.Any, t.Any]] = None,
@@ -173,10 +193,12 @@ def data_manager_datasets_benchmark(
     train_datasets = data_manager_dataset_stream(
         'train', manager, data_repository,
         train_build_data, loader=loader,
+        task_labels=task_labels,
     )
     test_datasets = data_manager_dataset_stream(
         'eval', manager, data_repository,
         eval_build_data, loader=loader,
+        task_labels=task_labels,
     )
     other_stream_datasets: dict[str, list[DataManagerDataset]] | None = {}
 
@@ -187,6 +209,7 @@ def data_manager_datasets_benchmark(
             other_stream_datasets[stream_name] = data_manager_dataset_stream(
                 stream_name, manager, data_repository,
                 stream_build, loader=loader,
+                task_labels=task_labels,
             )
 
     if other_transform_groups is not None:

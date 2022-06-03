@@ -267,7 +267,9 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         db.ListField(db.EmbeddedDocumentField(DataStreamExperienceConfig), default=[]),
         default={},
     )
+
     # Other parameters
+    task_labels = db.ListField(db.IntField(), default=None)
     img_type = db.StringField(choices=(L, RGB), default=RGB)
     complete_test_set_only = db.BooleanField(default=False)
 
@@ -308,8 +310,8 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
     @classmethod
     def get_optionals(cls) -> set[str]:
         return super(DataManagerBuildConfig, cls).get_optionals().union({
-            'data_repository', 'complete_test_set_only',
-            'other_streams', 'img_type', 'train_transform',
+            'data_repository', 'complete_test_set_only', 'other_streams',
+            'task_labels', 'img_type', 'train_transform',
             'train_target_transform', 'eval_transform',
             'eval_target_transform', 'other_transform_groups',
         })
@@ -357,16 +359,9 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         test_stream_list = params['test_stream']  # list[list[dict]]
         other_streams_dict = params.get('other_streams', {})  # dict[str, # list[list[dict]]]
 
+        task_labels = params.get('task_labels', None)
         img_type = params.get('img_type', DataManagerBuildConfig.RGB)  # string
         complete_test_set_only = params.get('complete_test_set_only', False)  # boolean
-
-        """
-        train_transform = params.get('train_transform', DataManagerBuildConfig.TO_TENSOR)   # string
-        train_target_transform = params.get('train_target_transform', None)                 # string
-
-        eval_transform = params.get('eval_transform', DataManagerBuildConfig.TO_TENSOR)     # string
-        eval_target_transform = params.get('eval_target_transform', None)                   # string
-        """
 
         train_transform_data = params.get('train_transform', None)
         train_target_transform_data = params.get('train_target_transform', None)
@@ -383,6 +378,14 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
             result, msg = cls._validate_transform_data(transform_data, context)
             if not result:
                 return False, msg
+
+        task_labels_ok = task_labels is None
+        if not task_labels_ok:
+            if isinstance(task_labels, list):
+                task_labels_ok = all(isinstance(label, int) for label in task_labels)
+
+        if not task_labels_ok:
+            return False, "task labels are not of the correct (None | list[int]) type."
 
         if not isinstance(img_type, str):
             return False, "One or more parameters are not of the correct (str) type."
@@ -554,12 +557,13 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
                 test_build_data,
                 other_build_data,
                 self.complete_test_set_only,
-                loader,
-                train_transform,
-                train_target_transform,
-                eval_transform,
-                eval_target_transform,
+                loader=loader,
+                train_transform=train_transform,
+                train_target_transform=train_target_transform,
+                eval_transform=eval_transform,
+                eval_target_transform=eval_target_transform,
                 other_transform_groups=other_transform_groups,
+                task_labels=self.task_labels,
             )
             # noinspection PyArgumentList
             return self.target_type()(benchmark)
