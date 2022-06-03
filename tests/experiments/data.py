@@ -7,15 +7,14 @@ load_dotenv('../test.env', override=True)
 
 # Experiments and models results folder
 # Directory tree should appear as following:
-#   tests/
-#       results/
-#           <dataset_name>/     # e.g. "SplitMNIST"
-#               <strategy_name>/
-#                   csv/
-#                       train_results.csv
-#                       eval_results.csv
-#                   models/
-#                       model.pt    # final model after the experiment
+#   results/
+#       <dataset_name>/     # e.g. "SplitMNIST"
+#           <strategy_name>/
+#               csv/
+#                   train_results.csv
+#                   eval_results.csv
+#               models/
+#                   model.pt    # final model after the experiment
 STD_RESULTS_BASE_FOLDER = os.getenv('BASE_EXPERIMENTS_FOLDER', os.path.join('..', 'results'))
 STD_CSV_FOLDER_NAME = 'csv'
 STD_MODELS_FOLDER_NAME = 'models'
@@ -24,7 +23,6 @@ print(os.getenv('DUMMY', 'n.d.'))
 
 
 # Standard hyperparameters
-# For train epochs, a minimal grid search is done
 # MNIST
 STD_MNIST_TRAIN_MB_SIZE = 30
 STD_MNIST_TRAIN_EPOCHS = 4

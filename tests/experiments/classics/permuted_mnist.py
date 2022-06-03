@@ -1,5 +1,7 @@
 from __future__ import annotations
 import unittest
+
+from ..data import *
 from .base import *
 
 # strategies
@@ -71,34 +73,19 @@ gdumb_experiment_build = generic_experiment_builder(gdumb_strategy_name, benchma
 lwf_experiment_build = generic_experiment_builder(lwf_strategy_name, benchmark_name)
 
 
-class SplitMNISTTest(BaseClassicBenchmarkExperimentTestCase):
-
-    username = 'split-mnist-username'
-    email = 'split_mnist' + EMAIL
-    password = PASSWORD
-    workspace = 'split_mnist_workspace'
+class PermutedMNISTTest(BaseClassicBenchmarkExperimentTestCase):
+    username = 'permuted-mnist-username'
+    email = 'permuted_mnist' + BaseClassicBenchmarkExperimentTestCase.email
+    password = BaseClassicBenchmarkExperimentTestCase.password
+    workspace = 'permuted_mnist_workspace'
 
     benchmark_build = {
-        'name': 'SplitMNIST',
+        'name': 'PermutedMNIST',
         'n_experiences': 5,
-        'shuffle': True,
-        'fixed_class_order': list(range(10)),
-        'return_task_id': True,
-        # An example of composition
+        'seed': 0,
         'train_transform': {
-            'name': 'Compose',
-            'transforms': [
-                {
-                    'name': 'ToTensor',
-                },
-                {
-                    'name': 'Normalize',
-                    'mean': [0.1307],
-                    'std': [0.3081],
-                }
-            ]
+            'name': 'TrainMNIST',
         },
-        # An example of classic transform
         'eval_transform': {
             'name': 'EvalMNIST',
         }
@@ -115,9 +102,9 @@ class SplitMNISTTest(BaseClassicBenchmarkExperimentTestCase):
     optimizer_build = sgd_optimizer_build
     criterion_build = criterion_build
     metricset_build = metricset_build
-    
+
     def get_benchmark_name(self) -> str:
-        return 'split_mnist'
+        return 'permuted_mnist'
 
     experiment_data = [
         {

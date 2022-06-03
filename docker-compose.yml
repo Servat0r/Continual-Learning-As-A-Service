@@ -26,6 +26,7 @@ services:
       - MONGODB_HOSTNAME
     volumes:
       - files_data:/home/CLaaS_Server/files
+      - datasets:/home/CLaaS_Server/common
     depends_on:
       - mongodb
     ports:
@@ -44,4 +45,7 @@ volumes:
     external: true
   files_data:
     name: files_data
+    external: true
+  datasets:
+    name: datasets
     external: true

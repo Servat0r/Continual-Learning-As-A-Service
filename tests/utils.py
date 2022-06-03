@@ -1,9 +1,14 @@
 # Common utils for testcases
 from __future__ import annotations
-from typing import Sequence
+
+from typing import Sequence, Callable, TextIO
 from http import HTTPStatus
 from requests import Response
+
+import sys
+import time
 import unittest
+from functools import wraps
 
 from application import MongoConfig
 
@@ -12,6 +17,19 @@ PASSWORD = '1234?abcD'
 HOST = 'localhost'
 PORT = 5000
 DATABASE_NAME = 'test'
+
+
+def time_measure(log_stream: TextIO = sys.stderr):
+    def measurer(f: Callable):
+        @wraps(f)
+        def new_f(*args, **kwargs):
+            elapsed = time.perf_counter()
+            result = f(*args, **kwargs)
+            elapsed = time.perf_counter() - elapsed
+            print(f"Function execution time elapsed for {elapsed}", file=log_stream)
+            return result
+        return new_f
+    return measurer
 
 
 def default_app_run(app, host='0.0.0.0', port=5000):
@@ -62,6 +80,7 @@ __all__ = [
     'HOST',
     'PORT',
 
+    'time_measure',
     'base_response_handler',
     'BaseMongoTestConfig',
     'BaseTestCase',
