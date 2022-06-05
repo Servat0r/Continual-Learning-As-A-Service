@@ -43,30 +43,42 @@ class BaseFileBasedBenchmarkExperimentTestCase(BaseExperimentTestCase):
     def send_files(self) -> tuple[bool, Optional[Exception]]:
         train_base_dir = [self.get_dataset_name(), 'train']
         test_base_dir = [self.get_dataset_name(), 'test']
+        files_train_dict: list[tuple[str, str, int]] = []
+        files_test_dict: list[tuple[str, str, int]] = []
+
         try:
             for i in range(self.num_classes):
-                files_train_dict: list[tuple[str, str, int]] = []
+                # files_train_dict: list[tuple[str, str, int]] = []
                 basedir = os.path.join(self.source_folder, *train_base_dir, str(i))
                 fnames = os.listdir(basedir)
                 length = self._TRAIN_ITEMS_PER_CATEGORY
                 fnames = fnames[:length] if length >= 0 else fnames
                 for fname in fnames:
                     files_train_dict.append((os.path.join(basedir, fname), '/'.join([str(i), fname]), i))
-                self.assertBaseHandler(
-                    self.client.send_files(self.data_repository_name, files_train_dict, train_base_dir)
-                )
+                """
+                self.assertBaseHandler(self.client.send_files(
+                    self.data_repository_name, files_train_dict, train_base_dir, files_mode='zip',
+                ))
+                """
 
-                files_test_dict: list[tuple[str, str, int]] = []
+                # files_test_dict: list[tuple[str, str, int]] = []
                 basedir = os.path.join(self.source_folder, *test_base_dir, str(i))
                 fnames = os.listdir(basedir)
                 length = self._TEST_ITEMS_PER_CATEGORY
                 fnames = fnames[:length] if length >= 0 else fnames
                 for fname in fnames:
                     files_test_dict.append((os.path.join(basedir, fname), '/'.join([str(i), fname]), i))
-
-                self.assertBaseHandler(
-                    self.client.send_files(self.data_repository_name, files_test_dict, test_base_dir)
-                )
+                """
+                self.assertBaseHandler(self.client.send_files(
+                    self.data_repository_name, files_test_dict, test_base_dir, files_mode='zip',
+                ))
+                """
+            self.assertBaseHandler(self.client.send_files(
+                self.data_repository_name, files_test_dict, test_base_dir, files_mode='zip', zip_file_name='test.zip',
+            ))
+            self.assertBaseHandler(self.client.send_files(
+                self.data_repository_name, files_train_dict, train_base_dir, files_mode='zip', zip_file_name='train.zip',
+            ))
             return True, None
         except Exception as ex:
             print(ex)

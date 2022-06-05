@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import zipfile
+from typing import Any, Callable
+
 import requests
 from http import HTTPStatus
-from typing import Any, Callable
+import json
 from functools import wraps
 
 from .utils import *
@@ -407,26 +410,50 @@ class BaseClient:
             repo_name: str,
             files_and_labels: list[tuple[str, str, int]],   # source_path, dest_path, label
             base_path: list[str],
+            files_mode='plain',  # file transfer mode: either 'plain' (plain files) or 'zip' (a zip file to extract)
+            zip_file_name='files.zip',
     ):
-
-        """
-        translated: dict = {
-            'files': [],
-            'labels': [],
+        translated: list = []     # files, labels, (mode)
+        info: dict = {
+            'labels': {},
+            'modes': {
+                'files': files_mode,
+            }
         }
-        for src_path, dest_path, label in files_and_labels:
-            ...
-        hello
-        """
+        if files_mode == 'plain':
+            for src_path, dest_path, label in files_and_labels:
+                dest_path = dest_path.replace('\\', '/')    # for uniforming unix and windows paths
+                label = str(label)
+                translated.append(('files', (dest_path, open(src_path, 'rb'))))
+                info['labels'][dest_path] = label
+                translated.append(('info', ('info', json.dumps(info))))
+                """
+                translated: list[tuple[str, tuple[str, Any]]] = [
+                    (str(label), (dest_path.replace('\\', '/'), open(src_path, 'rb')))
+                    for src_path, dest_path, label in files_and_labels
+                ]
+                """
+                return self.patch(
+                    [self.data_repositories_base, repo_name, 'folders', 'files'] + base_path,
+                    files=translated, data=info,
+                )
+        elif files_mode == 'zip':
+            with zipfile.ZipFile(zip_file_name, 'w') as zipf:
+                for src_path, dest_path, label in files_and_labels:
+                    dest_path = dest_path.replace('\\', '/')  # for uniforming unix and windows paths
+                    label = str(label)
+                    zipf.write(filename=src_path, arcname=dest_path)
+                    info['labels'][dest_path] = label
 
-        translated: list[tuple[str, tuple[str, Any]]] = [
-            (str(label), (dest_path.replace('\\', '/'), open(src_path, 'rb')))
-            for src_path, dest_path, label in files_and_labels
-        ]
-        return self.patch(
-            [self.data_repositories_base, repo_name, 'folders', 'files'] + base_path,
-            files=translated,
-        )
+            with open(zip_file_name, 'rb') as zipf:
+                translated.append(('files', ('files', zipf)))
+                translated.append(('info', ('info', json.dumps(info))))
+                return self.patch(
+                    [self.data_repositories_base, repo_name, 'folders', 'files'] + base_path,
+                    files=translated, data=info,
+                )
+        else:
+            raise ValueError(f"Files transfer mode '{files_mode}' is unknown or not implemented.")
 
     # Benchmarks
     @check_in_session('auth_token', 'username', 'workspace')

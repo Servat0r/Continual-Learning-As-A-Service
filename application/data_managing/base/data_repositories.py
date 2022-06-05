@@ -141,6 +141,11 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
         pass
 
     @abstractmethod
+    def add_archive(self, stream, labels: dict, base_path_list: list[str], archive_type='zip', locked=False,
+                    parents_locked=False) -> tuple[int, list[str]]:     # total_files_retrieved, added_files
+        pass
+
+    @abstractmethod
     def move_directory(self, src_name: str, dest_name: str,
                        src_parents: list[str] = None, dest_parents: list[str] = None) -> TBoolExc:
         pass

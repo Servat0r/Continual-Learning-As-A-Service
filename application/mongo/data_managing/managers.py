@@ -1,7 +1,12 @@
 from __future__ import annotations
+
+import sys
+import traceback
+
 import torch
 import shutil
 import warnings
+from zipfile import ZipFile
 from PIL import Image
 
 from application import TFRead, TFContent
@@ -175,6 +180,30 @@ class MongoLocalDataManager(BaseDataManager):
             return True, None
         except Exception as ex:
             return False, ex
+
+    def add_archive(self, stream, base_path_list: list[str], tmp_archive_name='tmp_file',
+                    archive_type='zip') -> tuple[int, list[str]]:
+        total = 0
+        created: list[str] = []
+        archive_file_name = f"{tmp_archive_name}.{archive_type}"
+        result, exc = self.create_file((archive_file_name, base_path_list, stream))
+        if not result:
+            print(exc)
+            traceback.print_exception(*sys.exc_info())
+        else:
+            archive_path = self.get_file_path(archive_file_name, base_path_list)
+            archive_dir_path = self.get_dir_path(base_path_list)
+            with ZipFile(archive_path, 'r') as zipf:
+                zipf.printdir()
+                namelist = zipf.namelist()
+                total = len(namelist)
+                for file_name in namelist:
+                    print(file_name)
+                    file_name_2 = file_name
+                    zipf.extract(file_name, path=archive_dir_path)
+                    created.append(file_name_2)
+            self.delete_file(archive_file_name, base_path_list)
+        return total, created
 
     def default_image_loader(self, impath: str):
         return Image.open(impath).convert('RGB')

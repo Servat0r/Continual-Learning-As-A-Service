@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+import time
+import sys
 from datetime import datetime
 
 from application.utils import TBoolExc, TDesc, t
@@ -265,6 +268,24 @@ class MongoDataRepository(MongoBaseDataRepository):
 
             self.save()
             return created
+
+    def add_archive(self, stream, labels: dict, base_path_list: list[str], archive_type='zip', locked=False,
+                    parents_locked=False) -> tuple[int, list[str]]:     # total_files_retrieved, added_files
+        elapsed = time.perf_counter()
+        manager = BaseDataManager.get()
+        with self.resource_write(locked, parents_locked):
+            complete_path_list = self._complete_parents(base_path_list)
+            total, created = manager.add_archive(stream, archive_type=archive_type, base_path_list=complete_path_list)
+            print("Before adding labels")
+            for fpath in created:
+                label = int(labels.get(fpath))
+                fpath = '/'.join(base_path_list + [fpath])
+                self.files[self.normalize(fpath)] = label
+            print("Before saving")
+            self.save()
+        elapsed = time.perf_counter() - elapsed
+        print(f"add_archive to {'/'.join(base_path_list)} elapsed time: {elapsed} seconds", file=sys.stderr)
+        return total, created
 
     def get_file_label(self, file_path: str,
                        locked=False, parents_locked=False) -> int:

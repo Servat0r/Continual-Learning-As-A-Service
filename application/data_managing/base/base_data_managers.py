@@ -9,7 +9,7 @@ from application.utils import TBoolExc, t, abstractmethod, Module
 
 TFContent = t.TypeVar(
     'TFContent',
-    bound=tuple[str, list[str], t.Optional[t.Any]],  # Any is file content or FileStorage
+    bound=tuple[str, list[str], t.Optional[t.Any]],  # Any is file content or FileStorage (filename, dir, content)
 )
 
 TFRead = t.TypeVar(
@@ -163,6 +163,11 @@ class BaseDataManager:
 
     @abstractmethod
     def save_model(self, model: Module, dir_names: list[str], model_name='model.pt') -> TBoolExc:
+        pass
+
+    @abstractmethod
+    def add_archive(self, stream, base_path_list: list[str], tmp_archive_name='tmp_file',
+                    archive_type='zip') -> tuple[int, list[str]]:
         pass
 
 
