@@ -77,6 +77,7 @@ def create_app(config_class=MongoConfig):
 
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
+        app.logger.info("Changes made!")
         app.logger.info(f"{_NAME} startup")
         app.logger.info(f"Using '{get_device()}' device for training and evaluation")
         app.logger.info(f"Using '{app.config.get('EXECUTOR_TYPE')}' pool executor for experiments")

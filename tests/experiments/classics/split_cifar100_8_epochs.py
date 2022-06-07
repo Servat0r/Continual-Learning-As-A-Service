@@ -8,28 +8,28 @@ from .base import *
 naive_strategy_build = generic_strategy_builder(
     'Naive',
     STD_CIFAR_TRAIN_MB_SIZE,
-    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_TRAIN_EPOCHS * 2,
     STD_CIFAR_EVAL_MB_SIZE,
 )
 
 cumulative_strategy_build = generic_strategy_builder(
     'Cumulative',
     STD_CIFAR_TRAIN_MB_SIZE,
-    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_TRAIN_EPOCHS * 2,
     STD_CIFAR_EVAL_MB_SIZE,
 )
 
 joint_training_strategy_build = generic_strategy_builder(
     'JointTraining',
     STD_CIFAR_TRAIN_MB_SIZE,
-    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_TRAIN_EPOCHS * 2,
     STD_CIFAR_EVAL_MB_SIZE,
 )
 
 replay_500_strategy_build = generic_strategy_builder(
     'Replay',
     STD_CIFAR_TRAIN_MB_SIZE,
-    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_TRAIN_EPOCHS * 2,
     STD_CIFAR_EVAL_MB_SIZE,
     memory=500,
 )
@@ -37,7 +37,7 @@ replay_500_strategy_build = generic_strategy_builder(
 replay_2500_strategy_build = generic_strategy_builder(
     'Replay',
     STD_CIFAR_TRAIN_MB_SIZE,
-    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_TRAIN_EPOCHS * 2,
     STD_CIFAR_EVAL_MB_SIZE,
     memory=2500,
 )
@@ -45,7 +45,7 @@ replay_2500_strategy_build = generic_strategy_builder(
 gdumb_strategy_build = generic_strategy_builder(
     'GDumb',
     STD_CIFAR_TRAIN_MB_SIZE,
-    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_TRAIN_EPOCHS * 2,
     STD_CIFAR_EVAL_MB_SIZE,
     memory=500,
 )
@@ -53,7 +53,7 @@ gdumb_strategy_build = generic_strategy_builder(
 lwf_strategy_build = generic_strategy_builder(
     'LwF',
     STD_CIFAR_TRAIN_MB_SIZE,
-    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_TRAIN_EPOCHS * 2,
     STD_CIFAR_EVAL_MB_SIZE,
     alpha=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
     temperature=1.0,
@@ -62,7 +62,11 @@ lwf_strategy_build = generic_strategy_builder(
 # experiments
 naive_experiment_build = generic_experiment_builder(naive_strategy_name, benchmark_name)
 cumulative_experiment_build = generic_experiment_builder(cumulative_strategy_name, benchmark_name)
-joint_training_experiment_build = generic_experiment_builder(joint_training_strategy_name, benchmark_name)
+joint_training_experiment_build = generic_experiment_builder(
+    joint_training_strategy_name,
+    benchmark_name,
+    run_config='JointTraining',
+)
 replay_500_experiment_build = generic_experiment_builder(replay_500_strategy_name, benchmark_name)
 replay_2500_experiment_build = generic_experiment_builder(replay_2500_strategy_name, benchmark_name)
 gdumb_experiment_build = generic_experiment_builder(gdumb_strategy_name, benchmark_name)
@@ -123,7 +127,7 @@ class SplitCIFAR100Test(BaseClassicBenchmarkExperimentTestCase):
     metricset_build = metricset_build
 
     def get_benchmark_name(self) -> str:
-        return 'split_cifar100'
+        return 'split_cifar100_8_epochs'
 
     experiment_data = [
         {

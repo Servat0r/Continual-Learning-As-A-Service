@@ -72,7 +72,8 @@ class BaseClassicBenchmarkExperimentTestCase(BaseExperimentTestCase):
                                        success_codes=HTTPStatus.CREATED)
 
                 for i in range(self.num_iterations):
-                    results_dir = os.path.join(base_exp_dir, str(i), folder)
+                    result_folder = 'default' if len(self.result_folders) <= i else self.result_folders[i]
+                    results_dir = os.path.join(base_exp_dir, result_folder, folder)
                     csv_dir = os.path.join(results_dir, self.csv_folder)
                     models_dir = os.path.join(results_dir, self.models_folder)
 

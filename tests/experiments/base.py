@@ -44,6 +44,10 @@ class BaseExperimentTestCase(BaseTestCase):
 
     experiment_data: list[dict[str, str | dict]] = []
 
+    @property
+    def result_folders(self) -> list[str]:
+        return [str(i) for i in range(self.num_iterations)]
+
     @staticmethod
     @abstractmethod
     def get_benchmark_name() -> str:    # split_mnist, split_cifar10, ...; used for directories

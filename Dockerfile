@@ -20,7 +20,6 @@ RUN venv/bin/pip install gunicorn cryptography
 
 COPY application application
 COPY main.py boot.sh ./
-COPY common common
 RUN mkdir files
 
 COPY .flaskenv ./

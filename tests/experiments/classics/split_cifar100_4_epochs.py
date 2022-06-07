@@ -7,55 +7,55 @@ from .base import *
 # strategies
 naive_strategy_build = generic_strategy_builder(
     'Naive',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
 )
 
 cumulative_strategy_build = generic_strategy_builder(
     'Cumulative',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
 )
 
 joint_training_strategy_build = generic_strategy_builder(
     'JointTraining',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
 )
 
 replay_500_strategy_build = generic_strategy_builder(
     'Replay',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
     memory=500,
 )
 
 replay_2500_strategy_build = generic_strategy_builder(
     'Replay',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
     memory=2500,
 )
 
 gdumb_strategy_build = generic_strategy_builder(
     'GDumb',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
     memory=500,
 )
 
 lwf_strategy_build = generic_strategy_builder(
     'LwF',
-    STD_MNIST_TRAIN_MB_SIZE,
-    STD_MNIST_TRAIN_EPOCHS,
-    STD_MNIST_EVAL_MB_SIZE,
-    alpha=1.0,
+    STD_CIFAR_TRAIN_MB_SIZE,
+    STD_CIFAR_TRAIN_EPOCHS,
+    STD_CIFAR_EVAL_MB_SIZE,
+    alpha=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
     temperature=1.0,
 )
 
@@ -73,28 +73,51 @@ gdumb_experiment_build = generic_experiment_builder(gdumb_strategy_name, benchma
 lwf_experiment_build = generic_experiment_builder(lwf_strategy_name, benchmark_name)
 
 
-class PermutedMNISTTest(BaseClassicBenchmarkExperimentTestCase):
-    username = 'permuted-mnist-username'
-    email = 'permuted_mnist' + BaseClassicBenchmarkExperimentTestCase.email
+class SplitCIFAR100Test(BaseClassicBenchmarkExperimentTestCase):
+    username = 'split-cifar100-username'
+    email = 'split_cifar100' + BaseClassicBenchmarkExperimentTestCase.email
     password = BaseClassicBenchmarkExperimentTestCase.password
-    workspace = 'permuted_mnist_workspace'
+    workspace = 'split_cifar100_workspace'
 
     benchmark_build = {
-        'name': 'PermutedMNIST',
-        'n_experiences': 5,
-        'seed': 0,
+        'name': 'SplitCIFAR100',
+        'n_experiences': 10,
+        'shuffle': True,
+        'fixed_class_order': list(range(100)),
+        'return_task_id': True,
+        # An example of composition
         'train_transform': {
-            'name': 'TrainMNIST',
+            'name': 'Compose',
+            'transforms': [
+                {
+                    'name': 'RandomCrop',
+                    'width': 32,
+                    'height': 32,
+                    'padding': [4],
+                },
+                {
+                    'name': 'RandomHorizontalFlip',
+                },
+                {
+                    'name': 'ToTensor',
+                },
+                {
+                    'name': 'Normalize',
+                    'mean': [0.5071, 0.4865, 0.4409],
+                    'std': [0.2673, 0.2564, 0.2762],
+                }
+            ]
         },
+        # An example of classic transform
         'eval_transform': {
-            'name': 'EvalMNIST',
+            'name': 'EvalCIFAR100',
         }
     }
 
     model_build = {
         'name': 'SimpleMLP',
-        'num_classes': 10,
-        'input_size': 1 * 28 * 28,
+        'num_classes': 100,
+        'input_size': 3 * 32 * 32,
         'hidden_layers': 2,
         'hidden_size': 512,
     }
@@ -104,7 +127,7 @@ class PermutedMNISTTest(BaseClassicBenchmarkExperimentTestCase):
     metricset_build = metricset_build
 
     def get_benchmark_name(self) -> str:
-        return 'permuted_mnist'
+        return 'split_cifar100_4_epochs'
 
     experiment_data = [
         {

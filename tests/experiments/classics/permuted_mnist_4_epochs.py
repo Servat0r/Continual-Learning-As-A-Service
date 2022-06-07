@@ -1,13 +1,10 @@
 from __future__ import annotations
-from typing import Any, Optional
 
-import sys
-import traceback
+import time
+import unittest
 
-from tests.utils import *
 from ..data import *
 from .base import *
-
 
 # strategies
 naive_strategy_build = generic_strategy_builder(
@@ -78,39 +75,33 @@ gdumb_experiment_build = generic_experiment_builder(gdumb_strategy_name, benchma
 lwf_experiment_build = generic_experiment_builder(lwf_strategy_name, benchmark_name)
 
 
-def generate_experience_benchmark_data(exp_num: int, classes_per_exp: int, dataset_base_dir: str,
-                                       folder: str) -> list[dict[str, Any]]:
-    result: list[dict[str, Any]] = []
-    for i in range(classes_per_exp):
-        result.append({
-            'root': f"{dataset_base_dir}/{folder}/{exp_num * i}",
-            'all': True,
-        })
-    return result
+class PermutedMNISTTest(BaseClassicBenchmarkExperimentTestCase):
+    username = 'permuted-mnist-username'
+    email = 'permuted_mnist' + BaseClassicBenchmarkExperimentTestCase.email
+    password = BaseClassicBenchmarkExperimentTestCase.password
+    workspace = 'permuted_mnist_workspace'
 
-
-class SplitMNISTFileBasedTest(BaseFileBasedBenchmarkExperimentTestCase):
-
-    username = 'file-based-split-mnist-username'
-    email = 'file_based_split_mnist' + BaseFileBasedBenchmarkExperimentTestCase.email
-    password = BaseFileBasedBenchmarkExperimentTestCase.password
-    workspace = 'file_based_split_mnist_workspace'
-    data_repository_name = BaseFileBasedBenchmarkExperimentTestCase.data_repository_name
-
-    num_classes = 10
-    _TEST_ITEMS_PER_CATEGORY = 240
-    _TRAIN_ITEMS_PER_CATEGORY = 10 * 240
     num_iterations = 1
+    current_directory_names = None
+
+    # redefined since a test with permuted mnist could take a lot of time
+    @property
+    def result_folders(self) -> list[str]:
+        if self.current_directory_names is None:
+            now = time.time()
+            self.current_directory_names = [f"exec_{now}"]
+        return self.current_directory_names
 
     benchmark_build = {
-        'name': "DataManagerBenchmark",
-        'data_repository': data_repository_name,
-        'img_type': 'greyscale',
-        'train_stream': [generate_experience_benchmark_data(exp, 2, 'mnist', 'train') for exp in range(5)],
-        'test_stream': [generate_experience_benchmark_data(exp, 2, 'mnist', 'test') for exp in range(5)],
-        'train_transform': {'name': 'TrainMNIST'},
-        'eval_transform': {'name': 'EvalMNIST'},
-        'task_labels': [0, 1, 2, 3, 4],
+        'name': 'PermutedMNIST',
+        'n_experiences': 5,
+        'seed': 0,
+        'train_transform': {
+            'name': 'TrainMNIST',
+        },
+        'eval_transform': {
+            'name': 'EvalMNIST',
+        }
     }
 
     model_build = {
@@ -125,13 +116,8 @@ class SplitMNISTFileBasedTest(BaseFileBasedBenchmarkExperimentTestCase):
     criterion_build = criterion_build
     metricset_build = metricset_build
 
-    @staticmethod
-    def get_benchmark_name() -> str:    # split_mnist, split_cifar10, ...; used for directories
-        return 'file_based_split_mnist'
-
-    @staticmethod
-    def get_dataset_name() -> str:      # mnist, cifar10, cifar100, ...; used for data repository subdirs
-        return 'mnist'
+    def get_benchmark_name(self) -> str:
+        return 'permuted_mnist_4_epochs'
 
     experiment_data = [
         {
@@ -177,3 +163,7 @@ class SplitMNISTFileBasedTest(BaseFileBasedBenchmarkExperimentTestCase):
             'experiment_build': lwf_experiment_build,
         },
     ]
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

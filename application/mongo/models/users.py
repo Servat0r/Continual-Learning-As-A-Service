@@ -84,7 +84,7 @@ class MongoUser(MongoBaseUser):
         )
         if user is not None:
             with user.resource_create():
-                user.get_token(expires_in=3600, save=False)
+                user.get_token(expires_in=172800, save=False)
                 if save:
                     user.save(create=True)
                     print(f"Created user '{username}' with id '{user.id}'")
