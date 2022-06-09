@@ -38,7 +38,7 @@ TDMDatasetLabel = t.TypeVar(    # label, all, files
 
 TDMDatasetConfig = t.TypeVar(
     'TDMDatasetConfig',
-    bound=tuple[TDMDatasetDesc, TDMDatasetLabel],
+    bound=tuple[TDMDatasetDesc, TDMDatasetLabel, int],  # default label
 )
 
 
@@ -73,8 +73,9 @@ class DataManagerDataset(data.Dataset):
         self.files: list[str] = []
         self.targets: list[int] = []
 
-        for desc, lbs in config:
-            print(desc, lbs, sep=' *** ')  # todo togliere!
+        for desc, lbs, dfl_lb in config:
+            dfl_lb = int(dfl_lb)
+            print(desc, lbs, dfl_lb, sep=' *** ')  # todo togliere!
             root = desc[0]
             all_files = desc[1]
             files = desc[2]
@@ -85,7 +86,7 @@ class DataManagerDataset(data.Dataset):
                 # self.files += files
                 # self.targets += targets
                 for file in files:
-                    current_files_and_labels[file] = 0  # todo replace with default_label !
+                    current_files_and_labels[file] = dfl_lb
             else:
                 for i in range(len(files)):
                     f = files[i]
@@ -167,7 +168,7 @@ def data_manager_dataset_stream(
         target_transform=None,
         transform_groups: dict = None,
         task_labels: int | list[int] = None,
-) -> list[DataManagerDataset]:
+) -> list[DataManagerDataset | AvalancheDataset]:
     """
     Helper function to
     :param stream_name:

@@ -107,8 +107,8 @@ class SplitMNISTFileBasedTest(BaseFileBasedBenchmarkExperimentTestCase):
     data_repository_name = BaseFileBasedBenchmarkExperimentTestCase.data_repository_name
 
     num_classes = 10
-    _TEST_ITEMS_PER_CATEGORY = 60
-    _TRAIN_ITEMS_PER_CATEGORY = 10 * 60
+    _TEST_ITEMS_PER_CATEGORY = 150
+    _TRAIN_ITEMS_PER_CATEGORY = 10 * 150
     num_iterations = 1
 
     benchmark_build = {
@@ -144,11 +144,11 @@ class SplitMNISTFileBasedTest(BaseFileBasedBenchmarkExperimentTestCase):
 
     experiment_data = [
         {
-            'folder': 'naive',
-            'strategy_name': naive_strategy_name,
-            'strategy_build': naive_strategy_build,
-            'experiment_name': naive_experiment_name,
-            'experiment_build': naive_experiment_build,
+            'folder': 'replay_500',
+            'strategy_name': replay_500_strategy_name,
+            'strategy_build': replay_500_strategy_build,
+            'experiment_name': replay_500_experiment_name,
+            'experiment_build': replay_500_experiment_build,
         },
     ]
 

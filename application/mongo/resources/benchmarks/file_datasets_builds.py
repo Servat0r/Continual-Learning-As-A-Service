@@ -68,7 +68,6 @@ class SelectorConfig(MongoEmbeddedBuildConfig):
         result = super(SelectorConfig, cls).create(data, context, save)
         return None if result is None else t.cast(SelectorConfig, result)
 
-    # todo denormalize (all methods below!)
     def get_root(self) -> str | None:
         if self.root is not None:
             return denormalize_map_field_path(self.root)
@@ -88,19 +87,7 @@ class SelectorConfig(MongoEmbeddedBuildConfig):
     def to_tuple(self) -> TDMDatasetDesc:
         return self.get_root(), self.all_files(), self.get_files()
 
-    # todo implement!
-    def get_all_files(self) -> list[str]:
-        if not self.all_files():
-            return self.get_files()
-        else:
-            pass  # expand all files
 
-    # todo implement!
-    def filter(self, src_root: str, files: list[str]) -> list[str]:
-        pass  # filter files from source that match with selectable files there
-
-
-# todo se riusciamo, definiamo il concetto di "selector" [root, selected]
 class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
     """
     Representing a single folder config, i.e. of the form:
@@ -113,7 +100,7 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
             ]
         },
         "labels": {     # integers by default
-            <label>: {  # todo se riusciamo, mettiamo un selector implicito
+            <label>: {
                 "all": true/false,
                 "files": [
                     ...
@@ -134,7 +121,7 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
     selected = db.EmbeddedDocumentField(SelectorConfig, required=True)
     labels = db.MapField(db.EmbeddedDocumentField(SelectorConfig), default=None)
     default_label = db.IntField(default=0)  # if a label is not specified, 0 will be applied for all
-    use_default_label = db.BooleanField(default=False)  # private!
+    use_repository_labels = db.BooleanField(default=False)
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -142,11 +129,13 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
 
     @classmethod
     def get_optionals(cls) -> set[str]:
-        return super(DataStreamFolderConfig, cls).get_optionals().union({'labels', 'default_label'})
+        return super(DataStreamFolderConfig, cls).get_optionals().union({
+            'labels', 'default_label', 'use_repository_labels',
+        })
 
     @classmethod
     def nullables(cls) -> set[str]:
-        return super(DataStreamFolderConfig, cls).nullables().union({'default_label'})
+        return super(DataStreamFolderConfig, cls).nullables().union({'default_label', 'use_repository_labels'})
 
     @classmethod
     def __add_root_to_selector_data(cls, root: str, selector_data: dict):
@@ -156,13 +145,11 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
     # noinspection PyUnusedLocal
     @classmethod
     def __prepare_for_create(cls, root: str, selected: TDesc, labels: dict[int, TDesc],
-                             default_label: int, other: TDesc = None):
+                             default_label: int):
         cls.__add_root_to_selector_data(root, selected)
         if labels is not None:
             for label, label_data in labels.items():
                 cls.__add_root_to_selector_data(root, label_data)
-        if other is not None:
-            other['use_default_label'] = True if labels is None else False
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
@@ -192,9 +179,13 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         selected = params['selected']
         labels = params.get('labels', None)
         default_label = params.get('default_label', 0)
+        use_repository_labels = params.get('use_repository_labels', False)
 
         if not isinstance(root, str):
             return False, "'root' parameter must be a string!"
+
+        if not isinstance(use_repository_labels, bool):
+            return False, "'use_repository_labels' must be a boolean!"
 
         if not isinstance(selected, dict):
             return False, "'selected' parameter must be a dictionary!"
@@ -238,11 +229,8 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         labels = params.get('labels')
         default_label = params.get('default_label', 0)
         params['default_label'] = 0
-        other: TDesc = {}
 
-        cls.__prepare_for_create(root, selected, labels, default_label, other)
-        use_default_label = other.get('use_default_label', False)
-        params['use_default_label'] = use_default_label
+        cls.__prepare_for_create(root, selected, labels, default_label)
 
         selected = SelectorConfig.create(selected, context, save=False)
         if selected is None:
@@ -282,7 +270,7 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         for label, label_data in self.labels.items():
             label_root, label_all, label_files = label_data.to_tuple()
             labels_desc[int(label)] = (label_all, label_files)
-        return selected_result, labels_desc
+        return selected_result, labels_desc, self.default_label
 
 
 class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
