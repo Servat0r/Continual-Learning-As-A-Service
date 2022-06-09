@@ -6,7 +6,7 @@ from application.database import db
 from application.data_managing import BaseDataManager
 from application.resources import ResourceContext, DataType
 
-from application.mongo.datasets import TDMDatasetDesc, greyscale_image_loader, \
+from application.mongo.datasets import TDMDatasetDesc, TDMDatasetLabel, TDMDatasetConfig, greyscale_image_loader, \
     default_image_loader, data_manager_datasets_benchmark
 from application.mongo.resources.mongo_base_configs import MongoEmbeddedBuildConfig, MongoBuildConfig
 
@@ -274,11 +274,15 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
     def get_files(self) -> list[str] | None:
         return self.selected.get_files()
 
-    def to_tuple(self) -> TDMDatasetDesc:
-        result = self.selected.to_tuple()
-        if result[0] is None:   # root is None
-            result = (self.root, result[1], result[2])
-        return result
+    def to_tuple(self) -> TDMDatasetConfig:  # tuple[tuple[str, bool, list], dict[int, tuple[bool, list]]]
+        selected_result = self.selected.to_tuple()
+        if selected_result[0] is None:   # root is None
+            selected_result = (self.root, selected_result[1], selected_result[2])
+        labels_desc: TDMDatasetLabel = {}
+        for label, label_data in self.labels.items():
+            label_root, label_all, label_files = label_data.to_tuple()
+            labels_desc[int(label)] = (label_all, label_files)
+        return selected_result, labels_desc
 
 
 class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
@@ -371,7 +375,7 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
     def get_document_configs(self) -> list[DataStreamFolderConfig]:
         return self.configs
 
-    def get_tuple_configs(self) -> list[TDMDatasetDesc]:
+    def get_tuple_configs(self) -> list[TDMDatasetConfig]:  # list[tuple[tuple[str, bool, list], dict[int, tuple[bool, list]]]]
         return [config.to_tuple() for config in self.configs]
 
 
@@ -705,10 +709,10 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
 
     def build(self, context: ResourceContext, locked=False, parents_locked=False):
         try:
-            train_build_data: list[list[TDMDatasetDesc]] = [config.get_tuple_configs() for config in self.train_stream]
-            test_build_data: list[list[TDMDatasetDesc]] = [config.get_tuple_configs() for config in self.test_stream]
+            train_build_data: list[list[TDMDatasetConfig]] = [config.get_tuple_configs() for config in self.train_stream]
+            test_build_data: list[list[TDMDatasetConfig]] = [config.get_tuple_configs() for config in self.test_stream]
 
-            other_build_data: dict[str, : list[list[TDMDatasetDesc]]] = \
+            other_build_data: dict[str, : list[list[TDMDatasetConfig]]] = \
                 None if self.other_streams is None or len(self.other_streams) == 0 else {}
 
             if other_build_data is not None:

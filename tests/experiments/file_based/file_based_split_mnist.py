@@ -93,7 +93,7 @@ def generate_experience_benchmark_data(exp_num: int, classes_per_exp: int, datas
                     'all': True,
                 }
             },
-            'default_label': 0,
+            'default_label': num,
         })
     return result
 
@@ -107,8 +107,8 @@ class SplitMNISTFileBasedTest(BaseFileBasedBenchmarkExperimentTestCase):
     data_repository_name = BaseFileBasedBenchmarkExperimentTestCase.data_repository_name
 
     num_classes = 10
-    _TEST_ITEMS_PER_CATEGORY = 2
-    _TRAIN_ITEMS_PER_CATEGORY = 10 * 2
+    _TEST_ITEMS_PER_CATEGORY = 60
+    _TRAIN_ITEMS_PER_CATEGORY = 10 * 60
     num_iterations = 1
 
     benchmark_build = {

@@ -23,9 +23,22 @@ TFL = t.TypeVar(
     bound=t.Union[TFileAndLabel, TFileAndLabelAndBBox],
 )
 
-TDMDatasetDesc = t.TypeVar(
+TDMDatasetDesc = t.TypeVar(     # root, all, files
     'TDMDatasetDesc',
     bound=tuple[t.Optional[str], bool, t.Optional[list[str]]],
+)
+
+TDMDatasetLabel = t.TypeVar(    # label, all, files
+    'TDMDatasetLabel',
+    bound=dict[
+        int,
+        tuple[bool, t.Optional[list[str]]]
+    ],
+)
+
+TDMDatasetConfig = t.TypeVar(
+    'TDMDatasetConfig',
+    bound=tuple[TDMDatasetDesc, TDMDatasetLabel],
 )
 
 
@@ -47,7 +60,7 @@ class DataManagerDataset(data.Dataset):
         self,
         manager: BaseDataManager,
         data_repository: BaseDataRepository,  # data repository in which files are contained
-        desc: list[TDMDatasetDesc],
+        config: list[TDMDatasetConfig],
         # (root (relative to base data repository folder), pick all files?, <file_path> for each file)
         loader: t.Callable = default_image_loader,  # image loader (default for the RGB one)
         transform=None,
@@ -60,11 +73,19 @@ class DataManagerDataset(data.Dataset):
         self.files: list[str] = []
         self.targets: list[int] = []
 
-        for root, all_files, files in desc:
+        for desc, lbs in config:
+            print(desc, lbs, sep=' *** ')  # todo togliere!
+            root = desc[0]
+            all_files = desc[1]
+            files = desc[2]
+            # for root, all_files, files in desc:
+            current_files_and_labels: dict[str, int] = {}
             if all_files:
                 files, targets = self.data_repository.get_all_files(root, include_labels=True)   # already normalized!
-                self.files += files
-                self.targets += targets
+                # self.files += files
+                # self.targets += targets
+                for file in files:
+                    current_files_and_labels[file] = 0  # todo replace with default_label !
             else:
                 for i in range(len(files)):
                     f = files[i]
@@ -76,8 +97,26 @@ class DataManagerDataset(data.Dataset):
                     else:
                         files[i] = '/'.join([root, f])
 
-                self.files += files  # already normalized!
-                self.targets += [data_repository.get_file_label(fpath) for fpath in self.files]
+                # self.files += files  # already normalized!
+                # self.targets += [data_repository.get_file_label(fpath) for fpath in self.files]
+                for file in files:
+                    current_files_and_labels[file] = 0
+
+            for label_val, label_files in lbs.items():
+                label_val = int(label_val)
+                all_files = label_files[0]
+                if all_files:
+                    for file in current_files_and_labels:
+                        current_files_and_labels[file] = label_val
+                else:
+                    actual_files = label_files[1]
+                    if actual_files is not None:
+                        for file in actual_files:
+                            current_files_and_labels[file] = label_val
+
+            for file, label in current_files_and_labels.items():
+                self.files.append(file)
+                self.targets.append(label)
 
         self.loader = loader
         self.transform = transform
@@ -122,7 +161,7 @@ def data_manager_dataset_stream(
         stream_name: str,
         manager: BaseDataManager,
         data_repository: BaseDataRepository,
-        files: list[list[TDMDatasetDesc]],
+        files: list[list[TDMDatasetConfig]],
         loader: t.Callable = default_image_loader,
         transform=None,
         target_transform=None,
@@ -175,8 +214,8 @@ def data_manager_datasets_benchmark(
         manager: BaseDataManager,
         data_repository: BaseDataRepository,
 
-        train_build_data: list[list[TDMDatasetDesc]],
-        eval_build_data: list[list[TDMDatasetDesc]],
+        train_build_data: list[list[TDMDatasetConfig]],
+        eval_build_data: list[list[TDMDatasetConfig]],
 
         other_build_data: dict[str, list[list[TDMDatasetDesc]]] = None,
         complete_test_set_only: bool = False,
@@ -226,6 +265,9 @@ def data_manager_datasets_benchmark(
 
 __all__ = [
     'TDMDatasetDesc',
+    'TDMDatasetLabel',
+    'TDMDatasetConfig',
+
     'default_image_loader',
     'greyscale_image_loader',
     'DataManagerDataset',
