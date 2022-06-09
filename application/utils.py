@@ -155,6 +155,14 @@ def catcher(exc_type: t.Type[Exception] = Exception, dfl_return: t.Any = None):
     return wrapper
 
 
+def normalize_map_field_path(s: str):
+    return s.replace('.', '\\')
+
+
+def denormalize_map_field_path(s: str):
+    return s.replace('\\', '.')
+
+
 # The following function is copied from an older version of the `Continual Learning Baselines` project.
 # Current project GitHub page is: https://github.com/ContinualAI/continual-learning-baselines.
 # Original function comments and citations are left unchanged.
@@ -197,6 +205,9 @@ __all__ = [
 
     'get_all_common_datasets_root',
     'get_common_dataset_root',
+
+    'normalize_map_field_path',
+    'denormalize_map_field_path',
 
     'get_average_metric',
 ]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from torchvision.transforms import ToTensor
 
-from application.utils import TBoolStr, t, TDesc
+from application.utils import TBoolStr, t, TDesc, normalize_map_field_path, denormalize_map_field_path
 from application.database import db
 from application.data_managing import BaseDataManager
 from application.resources import ResourceContext, DataType
@@ -14,28 +14,19 @@ from .transform_builds import *
 from .base_builds import *
 
 
-class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
-    """
-    Representing a single folder config, i.e. of the form:
-    {
-        "root": ...,
-        "all": ...,
-        "files": [
-            ...
-        ]
-    }
-    """
+class SelectorConfig(MongoEmbeddedBuildConfig):
+
     root = db.StringField(default=None)
     all = db.BooleanField(default=True)
     files = db.ListField(db.StringField(), default=None)
 
     @classmethod
     def get_required(cls) -> set[str]:
-        return super(DataStreamFolderConfig, cls).get_required()
+        return super(SelectorConfig, cls).get_required()
 
     @classmethod
     def get_optionals(cls) -> set[str]:
-        return super(DataStreamFolderConfig, cls).get_optionals().union({'root', 'all', 'files'})
+        return super(SelectorConfig, cls).get_optionals()
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
@@ -60,25 +51,234 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
             all_str = all(isinstance(item, str) for item in files)
             if not all_str:
                 return False, "'files' parameter must contain only strings!"
-
         return True, None
 
     @classmethod
-    def create(cls, data: TDesc, context: ResourceContext, save: bool = True) -> DataStreamFolderConfig | None:
-        result = super(DataStreamFolderConfig, cls).create(data, context, save)
-        return None if result is None else t.cast(DataStreamFolderConfig, result)
+    def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
 
+        # path normalization
+        root = data.get('root')
+        files = data.get('files')
+        if root is not None:
+            data['root'] = normalize_map_field_path(root)
+        if files is not None:
+            norm_files = [normalize_map_field_path(s) for s in files]
+            data['files'] = norm_files
+
+        result = super(SelectorConfig, cls).create(data, context, save)
+        return None if result is None else t.cast(SelectorConfig, result)
+
+    # todo denormalize (all methods below!)
     def get_root(self) -> str | None:
-        return self.root
+        if self.root is not None:
+            return denormalize_map_field_path(self.root)
+        else:
+            return None
 
     def all_files(self) -> bool:
         return self.all
 
     def get_files(self) -> list[str] | None:
-        return self.files
+        if self.files is None:
+            return None
+        else:
+            denorm_files = [denormalize_map_field_path(s) for s in self.files]
+            return denorm_files
 
     def to_tuple(self) -> TDMDatasetDesc:
-        return self.root, self.all, self.files
+        return self.get_root(), self.all_files(), self.get_files()
+
+    # todo implement!
+    def get_all_files(self) -> list[str]:
+        if not self.all_files():
+            return self.get_files()
+        else:
+            pass  # expand all files
+
+    # todo implement!
+    def filter(self, src_root: str, files: list[str]) -> list[str]:
+        pass  # filter files from source that match with selectable files there
+
+
+# todo se riusciamo, definiamo il concetto di "selector" [root, selected]
+class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
+    """
+    Representing a single folder config, i.e. of the form:
+    {
+        "root": ...,    # root directory
+        "selected": {   # how to select files: for each file, it will be selected if any of the conditions applies
+            "all": true/false,  # facility to select all files or not
+            "files": [       # list of files
+                ...
+            ]
+        },
+        "labels": {     # integers by default
+            <label>: {  # todo se riusciamo, mettiamo un selector implicito
+                "all": true/false,
+                "files": [
+                    ...
+                ]
+            },
+            ...
+        }
+
+        "root": ...,
+        "all": ...,
+        "files": [
+            ...
+        ]
+    }
+    """
+
+    root = db.StringField(required=True)    # ?
+    selected = db.EmbeddedDocumentField(SelectorConfig, required=True)
+    labels = db.MapField(db.EmbeddedDocumentField(SelectorConfig), default=None)
+    default_label = db.IntField(default=0)  # if a label is not specified, 0 will be applied for all
+    use_default_label = db.BooleanField(default=False)  # private!
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return super(DataStreamFolderConfig, cls).get_required().union({'root', 'selected'})
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return super(DataStreamFolderConfig, cls).get_optionals().union({'labels', 'default_label'})
+
+    @classmethod
+    def nullables(cls) -> set[str]:
+        return super(DataStreamFolderConfig, cls).nullables().union({'default_label'})
+
+    @classmethod
+    def __add_root_to_selector_data(cls, root: str, selector_data: dict):
+        if selector_data.get('root') is None:
+            selector_data['root'] = root
+
+    # noinspection PyUnusedLocal
+    @classmethod
+    def __prepare_for_create(cls, root: str, selected: TDesc, labels: dict[int, TDesc],
+                             default_label: int, other: TDesc = None):
+        cls.__add_root_to_selector_data(root, selected)
+        if labels is not None:
+            for label, label_data in labels.items():
+                cls.__add_root_to_selector_data(root, label_data)
+        if other is not None:
+            other['use_default_label'] = True if labels is None else False
+
+    @classmethod
+    def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
+        params: TDesc = {}
+        extras = data.copy()
+
+        for name in cls.get_required():
+            val = data.get(name)
+            if (val is not None) or cls.is_nullable(name):
+                params[name] = val
+                extras.pop(name, None)
+            else:
+                return False, f"None value was given for non-nullable field '{name}'."
+
+        for name in cls.get_optionals():
+            val = data.get(name)
+            if (val is not None) or cls.is_nullable(name):
+                params[name] = val
+                extras.pop(name, None)
+            else:
+                return False, f"None value was given for non-nullable field '{name}'."
+        # result: required & optional; data_copy: extras
+        if len(extras) > 0 and not cls.has_extras():
+            return False, "Unexpected extra arguments."
+
+        root = params['root']
+        selected = params['selected']
+        labels = params.get('labels', None)
+        default_label = params.get('default_label', 0)
+
+        if not isinstance(root, str):
+            return False, "'root' parameter must be a string!"
+
+        if not isinstance(selected, dict):
+            return False, "'selected' parameter must be a dictionary!"
+        cls.__add_root_to_selector_data(root, selected)
+
+        if labels is not None:
+            if not isinstance(labels, dict):
+                return False, "'labels' parameter must be a dictionary!"
+            for label, label_data in labels.items():
+                # noinspection PyBroadException
+                try:
+                    # noinspection PyUnusedLocal
+                    lb = int(label)
+                except Exception:
+                    return False, "Each label in 'labels' must be an integer!"
+                if not isinstance(label_data, dict):
+                    return False, "Each label description in 'labels' parameter must be a dictionary!"
+                cls.__add_root_to_selector_data(root, label_data)
+
+
+        if not isinstance(default_label, int):
+            return False, "'default_label' must be either an integer or a string representing an integer!"
+
+        result, msg = SelectorConfig.validate_input(selected, context)
+        if not result:
+            return False, f"Failed to validate 'selected' parameter: '{msg}'."
+
+        for label, label_data in labels.items():
+            result, msg = SelectorConfig.validate_input(label_data, context)
+            if not result:
+                return False, f"Failed to validate label data corresponding to label '{label}': '{msg}'."
+
+        return True, None
+
+    @classmethod
+    def create(cls, data: TDesc, context: ResourceContext, save: bool = True) -> DataStreamFolderConfig | None:
+
+        ok, bc_name, params, extras = cls._filter_data(data)
+        root = params['root']
+        selected = params['selected']
+        labels = params.get('labels')
+        default_label = params.get('default_label', 0)
+        params['default_label'] = 0
+        other: TDesc = {}
+
+        cls.__prepare_for_create(root, selected, labels, default_label, other)
+        use_default_label = other.get('use_default_label', False)
+        params['use_default_label'] = use_default_label
+
+        selected = SelectorConfig.create(selected, context, save=False)
+        if selected is None:
+            return None
+        else:
+            params['selected'] = selected
+
+        if labels is not None:
+            labels_objs: dict[str, SelectorConfig] = {}
+            for label, label_data in labels.items():
+                label = str(label)
+                label_data = SelectorConfig.create(label_data, context, save=False)
+                labels_objs[label] = label_data
+            params['labels'] = labels_objs
+
+        obj = cls(**params)
+        return obj
+
+    def get_root(self) -> str | None:
+        return self.root
+
+    def get_selected(self):
+        return self.selected
+
+    # utility wrappers
+    def all_files(self) -> bool:
+        return self.selected.all_files()
+
+    def get_files(self) -> list[str] | None:
+        return self.selected.get_files()
+
+    def to_tuple(self) -> TDMDatasetDesc:
+        result = self.selected.to_tuple()
+        if result[0] is None:   # root is None
+            result = (self.root, result[1], result[2])
+        return result
 
 
 class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
@@ -120,7 +320,7 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
             val = data.get(name)
             if (val is not None) or cls.is_nullable(name):
                 params[name] = val
-                extras.pop(name)
+                extras.pop(name, None)
             else:
                 return False, f"None value was given for non-nullable field '{name}'."
 
@@ -128,7 +328,7 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
             val = data.get(name)
             if (val is not None) or cls.is_nullable(name):
                 params[name] = val
-                extras.pop(name)
+                extras.pop(name, None)
             else:
                 return False, f"None value was given for non-nullable field '{name}'."
         # result: required & optional; data_copy: extras
@@ -142,7 +342,7 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
         for i in range(len(configs)):
             result, msg = DataStreamFolderConfig.validate_input(configs[i], context)
             if not result:
-                return False, f"Failed to build {i + 1}-th config: '{msg}'."
+                return False, f"Failed to validate {i + 1}-th config: '{msg}'."
 
         return True, None
 

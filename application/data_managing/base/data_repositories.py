@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from application.utils import TBoolExc, t, abstractmethod
+from application.utils import TBoolExc, t, abstractmethod, normalize_map_field_path, denormalize_map_field_path
 from application.models import User, Workspace
 from .base_data_managers import TFContent
 
@@ -31,11 +31,11 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
 
     @staticmethod
     def normalize(s: str):
-        return s.replace('.', '\\')
+        return normalize_map_field_path(s)
 
     @staticmethod
     def denormalize(s: str):
-        return s.replace('\\', '.')
+        return denormalize_map_field_path(s)
 
     # 2. Uri methods
     @classmethod

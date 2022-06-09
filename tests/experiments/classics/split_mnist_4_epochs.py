@@ -120,7 +120,7 @@ class SplitMNISTTest(BaseClassicBenchmarkExperimentTestCase):
     
     @staticmethod
     def get_benchmark_name() -> str:
-        return 'split_mnist'
+        return 'split_mnist_4_epochs'
 
     experiment_data = [
         {
