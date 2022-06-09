@@ -32,7 +32,7 @@ TDMDatasetLabel = t.TypeVar(    # label, all, files
     'TDMDatasetLabel',
     bound=dict[
         int,
-        tuple[bool, t.Optional[list[str]]]
+        tuple[t.Optional[str], bool, t.Optional[list[str]]]
     ],
 )
 
@@ -105,12 +105,14 @@ class DataManagerDataset(data.Dataset):
 
             for label_val, label_files in lbs.items():
                 label_val = int(label_val)
-                all_files = label_files[0]
+                all_files = label_files[1]
+                root = label_files[0]
                 if all_files:
                     for file in current_files_and_labels:
-                        current_files_and_labels[file] = label_val
+                        if root is None or file.startswith(root):
+                            current_files_and_labels[file] = label_val
                 else:
-                    actual_files = label_files[1]
+                    actual_files = label_files[2]
                     if actual_files is not None:
                         for file in actual_files:
                             current_files_and_labels[file] = label_val

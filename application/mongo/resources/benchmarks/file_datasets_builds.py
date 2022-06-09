@@ -26,7 +26,7 @@ class SelectorConfig(MongoEmbeddedBuildConfig):
 
     @classmethod
     def get_optionals(cls) -> set[str]:
-        return super(SelectorConfig, cls).get_optionals()
+        return super(SelectorConfig, cls).get_optionals().union({'root', 'all', 'files'})
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
@@ -135,9 +135,16 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         return super(DataStreamFolderConfig, cls).nullables().union({'labels', 'default_label'})
 
     @classmethod
-    def __add_root_to_selector_data(cls, root: str, selector_data: dict):
-        if selector_data.get('root') is None:
+    def __add_root_to_selector_data(cls, root: str, selector_data: dict, add=False):
+        sel_root = selector_data.get('root')
+        if sel_root is None:
             selector_data['root'] = root
+        elif add:
+            root_list = root.split('/')
+            sel_root_list = sel_root.split('/')
+            root_list = [item for item in root_list if len(item) > 0]
+            sel_root_list = [item for item in sel_root_list if len(item) > 0]
+            selector_data['root'] = '/'.join(root_list + sel_root_list)
 
     # noinspection PyUnusedLocal
     @classmethod
@@ -146,7 +153,7 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         cls.__add_root_to_selector_data(root, selected)
         if labels is not None:
             for label, label_data in labels.items():
-                cls.__add_root_to_selector_data(root, label_data)
+                cls.__add_root_to_selector_data(root, label_data, add=True)
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
@@ -182,7 +189,6 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
 
         if not isinstance(selected, dict):
             return False, "'selected' parameter must be a dictionary!"
-        cls.__add_root_to_selector_data(root, selected)
 
         if labels is not None:
             if not isinstance(labels, dict):
@@ -196,7 +202,6 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
                     return False, "Each label in 'labels' must be an integer!"
                 if not isinstance(label_data, dict):
                     return False, "Each label description in 'labels' parameter must be a dictionary!"
-                cls.__add_root_to_selector_data(root, label_data)
 
 
         if not isinstance(default_label, int):
@@ -223,12 +228,12 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         labels = params.get('labels', {})
         default_label = params.get('default_label', 0)
 
-        print(f"HIV: root = {root}")
-        print(f"HIV: selected = {selected}")
+        print(f"OPS: root = {root}")
+        print(f"OPS: selected = {selected}")
 
         cls.__prepare_for_create(root, selected, labels, default_label)
 
-        print(f"HIV: selected = {selected}")
+        print(f"OPS: selected = {selected}")
 
         selected = SelectorConfig.create(selected, context, save=False)
         if selected is None:
@@ -268,7 +273,7 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         if self.labels is not None:
             for label, label_data in self.labels.items():
                 label_root, label_all, label_files = label_data.to_tuple()
-                labels_desc[int(label)] = (label_all, label_files)
+                labels_desc[int(label)] = (label_root, label_all, label_files)
         return selected_result, labels_desc, self.default_label
 
 
