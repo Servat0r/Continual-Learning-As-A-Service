@@ -8,12 +8,6 @@ from application.resources.utils import *
 from application.resources.contexts import *
 
 
-TFContentLabel = t.TypeVar(
-    'TFContentLabel',
-    bound=tuple[TFContent, int]  # (file, label)
-)
-
-
 class BaseDataRepository(JSONSerializable, URIBasedResource):
 
     # 0.0. Actual class methods
@@ -137,11 +131,11 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
         pass
 
     @abstractmethod
-    def add_files(self, files: t.Iterable[TFContentLabel], locked=False, parents_locked=False) -> list[str]:
+    def add_files(self, files: t.Iterable[TFContent], locked=False, parents_locked=False) -> list[str]:
         pass
 
     @abstractmethod
-    def add_archive(self, stream, labels: dict, base_path_list: list[str], archive_type='zip', locked=False,
+    def add_archive(self, stream, base_path_list: list[str], archive_type='zip', locked=False,
                     parents_locked=False) -> tuple[int, list[str]]:     # total_files_retrieved, added_files
         pass
 
@@ -155,15 +149,8 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
         pass
 
     @abstractmethod
-    def get_file_label(self, file_path: str) -> int:
-        pass
-
-    @abstractmethod
-    def get_all_files(self, root_path: str, include_labels=True) -> tuple[list[str], list[int]]:
+    def get_all_files(self, root_path: str) -> list[str]:
         pass
 
 
-__all__ = [
-    'TFContentLabel',
-    'BaseDataRepository',
-]
+__all__ = ['BaseDataRepository']

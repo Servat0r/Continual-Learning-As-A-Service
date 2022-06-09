@@ -121,7 +121,6 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
     selected = db.EmbeddedDocumentField(SelectorConfig, required=True)
     labels = db.MapField(db.EmbeddedDocumentField(SelectorConfig), default=None)
     default_label = db.IntField(default=0)  # if a label is not specified, 0 will be applied for all
-    use_repository_labels = db.BooleanField(default=False)
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -129,13 +128,11 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
 
     @classmethod
     def get_optionals(cls) -> set[str]:
-        return super(DataStreamFolderConfig, cls).get_optionals().union({
-            'labels', 'default_label', 'use_repository_labels',
-        })
+        return super(DataStreamFolderConfig, cls).get_optionals().union({'labels', 'default_label'})
 
     @classmethod
     def nullables(cls) -> set[str]:
-        return super(DataStreamFolderConfig, cls).nullables().union({'default_label', 'use_repository_labels'})
+        return super(DataStreamFolderConfig, cls).nullables().union({'labels', 'default_label'})
 
     @classmethod
     def __add_root_to_selector_data(cls, root: str, selector_data: dict):
@@ -179,13 +176,9 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         selected = params['selected']
         labels = params.get('labels', None)
         default_label = params.get('default_label', 0)
-        use_repository_labels = params.get('use_repository_labels', False)
 
         if not isinstance(root, str):
             return False, "'root' parameter must be a string!"
-
-        if not isinstance(use_repository_labels, bool):
-            return False, "'use_repository_labels' must be a boolean!"
 
         if not isinstance(selected, dict):
             return False, "'selected' parameter must be a dictionary!"
@@ -213,10 +206,11 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         if not result:
             return False, f"Failed to validate 'selected' parameter: '{msg}'."
 
-        for label, label_data in labels.items():
-            result, msg = SelectorConfig.validate_input(label_data, context)
-            if not result:
-                return False, f"Failed to validate label data corresponding to label '{label}': '{msg}'."
+        if labels is not None:
+            for label, label_data in labels.items():
+                result, msg = SelectorConfig.validate_input(label_data, context)
+                if not result:
+                    return False, f"Failed to validate label data corresponding to label '{label}': '{msg}'."
 
         return True, None
 
@@ -226,11 +220,15 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         ok, bc_name, params, extras = cls._filter_data(data)
         root = params['root']
         selected = params['selected']
-        labels = params.get('labels')
+        labels = params.get('labels', {})
         default_label = params.get('default_label', 0)
-        params['default_label'] = 0
+
+        print(f"HIV: root = {root}")
+        print(f"HIV: selected = {selected}")
 
         cls.__prepare_for_create(root, selected, labels, default_label)
+
+        print(f"HIV: selected = {selected}")
 
         selected = SelectorConfig.create(selected, context, save=False)
         if selected is None:
@@ -267,9 +265,10 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         if selected_result[0] is None:   # root is None
             selected_result = (self.root, selected_result[1], selected_result[2])
         labels_desc: TDMDatasetLabel = {}
-        for label, label_data in self.labels.items():
-            label_root, label_all, label_files = label_data.to_tuple()
-            labels_desc[int(label)] = (label_all, label_files)
+        if self.labels is not None:
+            for label, label_data in self.labels.items():
+                label_root, label_all, label_files = label_data.to_tuple()
+                labels_desc[int(label)] = (label_all, label_files)
         return selected_result, labels_desc, self.default_label
 
 

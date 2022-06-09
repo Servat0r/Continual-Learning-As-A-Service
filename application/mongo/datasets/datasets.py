@@ -82,7 +82,7 @@ class DataManagerDataset(data.Dataset):
             # for root, all_files, files in desc:
             current_files_and_labels: dict[str, int] = {}
             if all_files:
-                files, targets = self.data_repository.get_all_files(root, include_labels=True)   # already normalized!
+                files = self.data_repository.get_all_files(root)   # already normalized!
                 # self.files += files
                 # self.targets += targets
                 for file in files:

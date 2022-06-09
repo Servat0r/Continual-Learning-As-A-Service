@@ -3,13 +3,11 @@ from __future__ import annotations
 import json
 from http import HTTPStatus
 from flask import Blueprint, request
-from werkzeug.datastructures import FileStorage
-from zipfile import ZipFile
 
 from application.errors import *
-from application.utils import checked_json, make_success_dict, t, os
+from application.utils import checked_json, make_success_dict
 from application.validation import *
-from application.data_managing import TFContentLabel
+from application.data_managing import TFContent
 from application.models import Workspace
 
 from .auth import token_auth, check_current_user_ownership
@@ -21,38 +19,6 @@ _MissingFile = ServerResponseError(
     'MissingFile',
     "Request lacks an attached file object.",
 )
-
-
-class ZipFileStorage:
-
-    def __init__(self, stream, name=None, filename=None):
-        self.stream = stream
-        self.name = name
-        self.filename = filename
-
-    def read(self, n: int) -> str | bytes:
-        return self.stream.read(n)
-
-    def write(self, s: t.AnyStr) -> int:
-        return self.stream.write(s)
-
-    def save(self, dst, buffer_size=16384):
-        from shutil import copyfileobj
-
-        close_dst = False
-
-        if hasattr(dst, "__fspath__"):
-            dst = os.fspath(dst)
-
-        if isinstance(dst, str):
-            dst = open(dst, "wb")
-            close_dst = True
-
-        try:
-            copyfileobj(self.stream, dst, buffer_size)
-        finally:
-            if close_dst:
-                dst.close()
 
 
 data_repositories_bp = Blueprint('data_repositories', __name__,
@@ -373,9 +339,8 @@ def send_files(username, wname, name, path):
     else:
         files = filestores.getlist('files')
         info = json.load(filestores.getlist('info')[0].stream)
-        labels = info['labels']  # json.load(filestores.getlist('labels')[0].stream)
         modes = info['modes']  # json.load(filestores.getlist('modes')[0].stream)
-        files_and_labels: list[TFContentLabel] = []
+        files_and_labels: list[TFContent] = []
         files_mode = modes.get('files', 'plain')
 
         if files_mode == 'plain':
@@ -384,51 +349,23 @@ def send_files(username, wname, name, path):
                 result, msg = validate_path(file_path)
                 if not result:
                     return InvalidPath(msg)
-                label = labels.get(file_path, 0)
                 pathlist = file_path.split('/')
                 pathlist = [item for item in pathlist if len(item) > 0]
 
                 dir_path_list = base_path_list + pathlist[:-1]
                 file_name = pathlist[-1]
-                files_and_labels.append(
-                    ((file_name, dir_path_list, fstorage), int(label))
-                )
+                files_and_labels.append((file_name, dir_path_list, fstorage))
             successes = data_repository.add_files(files_and_labels)
             data['success'] += successes
             data['n_success'] += len(successes)
 
         elif files_mode == 'zip':
             for fstorage in files:  # zip file
-                total, successes = data_repository.add_archive(fstorage, labels, base_path_list)
+                total, successes = data_repository.add_archive(fstorage, base_path_list)
                 data['success'] += successes
                 data['n_success'] += len(successes)
         else:
             return InternalFailure(msg=f"File transfer mode '{files_mode}' is unknown or not implemented.")
-
-        """
-        for label in filestores:
-            files: list[FileStorage] = filestores.getlist(label)
-            total += len(files)
-            files_and_labels: list[TFContentLabel] = []
-            for fstorage in files:
-
-                file_path = fstorage.filename
-                result, msg = validate_path(file_path)
-                if not result:
-                    return InvalidPath(msg)
-
-                pathlist = file_path.split('/')
-                pathlist = [item for item in pathlist if len(item) > 0]
-                dir_path_list = base_path_list + pathlist[:-1]
-
-                file_name = pathlist[-1]
-                files_and_labels.append(
-                    ((file_name, dir_path_list, fstorage), int(label))
-                )
-            successes = data_repository.add_files(files_and_labels)
-            data['success'] += successes
-            data['n_success'] += len(successes)
-        """
 
         if data['n_success'] >= total:
             return make_success_dict(data=data)

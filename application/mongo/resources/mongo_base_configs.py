@@ -71,13 +71,13 @@ class MongoEmbeddedBuildConfig(db.EmbeddedDocument):
 
         bc_name = data_copy.get('name')
         if bc_name is not None:
-            data_copy.pop('name')
+            data_copy.pop('name', None)
 
         for name in cls.get_required():
             val = data.get(name)
             if (val is not None) or cls.is_nullable(name):
                 result[name] = val
-                data_copy.pop(name)
+                data_copy.pop(name, None)
             else:
                 return False, bc_name, {}, {}
 
@@ -85,7 +85,7 @@ class MongoEmbeddedBuildConfig(db.EmbeddedDocument):
             val = data.get(name)
             if (val is not None) or cls.is_nullable(name):
                 result[name] = val
-                data_copy.pop(name)
+                data_copy.pop(name, None)
         return True, bc_name, result, data_copy
 
     # noinspection PyUnusedLocal
@@ -189,13 +189,13 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
 
         bc_name = data_copy.get('name')
         if bc_name is not None:
-            data_copy.pop('name')
+            data_copy.pop('name', None)
 
         for name in cls.get_required():
             val = data.get(name)
             if (val is not None) or cls.is_nullable(name):
                 result[name] = val
-                data_copy.pop(name)
+                data_copy.pop(name, None)
             else:
                 return False, bc_name, {}, {}
 
@@ -203,7 +203,7 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
             val = data.get(name)
             if (val is not None) or cls.is_nullable(name):
                 result[name] = val
-                data_copy.pop(name)
+                data_copy.pop(name, None)
         return True, bc_name, result, data_copy
 
     # noinspection PyUnusedLocal
