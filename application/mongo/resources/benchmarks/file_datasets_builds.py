@@ -371,7 +371,7 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
         return [config.to_tuple() for config in self.configs]
 
 
-@MongoBuildConfig.register_build_config('DataManagerBenchmark')
+@MongoBuildConfig.register_build_config('CustomFileBasedClassificationDatasetBenchmark')
 class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
     """
     This build config models a benchmark built starting from
@@ -379,7 +379,7 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
     happens for paths_benchmark.
     The configuration has the following syntax:
     {
-        "name": "DataManagerBenchmark",
+        "name": "CustomFileBasedClassificationDatasetBenchmark",
         "data_repository": <data_repository_name>,
         "img_type": "greyscale"/"RGB",       # image type (determines which image loader to use)
         "complete_test_set_only": true/false,

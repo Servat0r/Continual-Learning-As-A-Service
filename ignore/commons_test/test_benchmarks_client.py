@@ -231,7 +231,7 @@ if __name__ == '__main__':
 
     """
     _fmnist_bmark_data = {
-        'name': 'DataManagerBenchmark',
+        'name': 'CustomFileBasedClassificationDatasetBenchmark',
         'data_repository': repository_name,
         'img_type': 'greyscale',
         'train_stream': [
@@ -262,7 +262,7 @@ if __name__ == '__main__':
     """
 
     _fmnist_bmark_data = {
-        'name': "DataManagerBenchmark",
+        'name': "CustomFileBasedClassificationDatasetBenchmark",
         'data_repository': repository_name,
         'img_type': 'greyscale',
         'train_stream': [
