@@ -350,6 +350,122 @@ class SynapticIntelligenceCNNBuildConfig(MongoBuildConfig):
         return self.target_type()(model)
 
 
+# VGGSmall builder
+@MongoBuildConfig.register_build_config('VGGSmall')
+class VGGSmallBuildConfig(MongoBuildConfig):
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return super(VGGSmallBuildConfig, cls).get_required()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return super(VGGSmallBuildConfig, cls).get_optionals()
+
+    @staticmethod
+    def target_type() -> t.Type[DataType]:
+        return DataType.get_type('Model')
+
+    @classmethod
+    def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
+        result, msg = super(VGGSmallBuildConfig, cls).validate_input(data, dtype, context)
+        if not result:
+            return result, msg
+        _, values = context.pop()
+        return True, None
+
+    @classmethod
+    def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):
+        return super(VGGSmallBuildConfig, cls).create(data, dtype, context, save)
+
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
+        model = VGGSmall()
+        # noinspection PyArgumentList
+        return self.target_type()(model)
+
+
+# MultiHeadVGGClassifier builder
+@MongoBuildConfig.register_build_config('MultiHeadVGGClassifier')
+class MultiHeadVGGClassifierBuildConfig(MongoBuildConfig):
+
+    # Fields
+    in_features = db.IntField(required=True)
+    n_classes = db.IntField(required=True)
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return super(MultiHeadVGGClassifierBuildConfig, cls).get_required().union({'in_features', 'n_classes'})
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return super(MultiHeadVGGClassifierBuildConfig, cls).get_optionals()
+
+    @staticmethod
+    def target_type() -> t.Type[DataType]:
+        return DataType.get_type('Model')
+
+    @classmethod
+    def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
+        result, msg = super(MultiHeadVGGClassifierBuildConfig, cls).validate_input(data, dtype, context)
+        if not result:
+            return result, msg
+        _, values = context.pop()
+        params: TDesc = values['params']
+        for param in params.values():
+            if not isinstance(param, int):
+                return False, "One or more parameter(s) are not in the correct type."
+        return True, None
+
+    @classmethod
+    def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):
+        return super(MultiHeadVGGClassifierBuildConfig, cls).create(data, dtype, context, save)
+
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
+        model = MultiHeadVGGClassifier(self.in_features, self.n_classes)
+        # noinspection PyArgumentList
+        return self.target_type()(model)
+
+
+# MultiHeadVGGSmall builder
+@MongoBuildConfig.register_build_config('MultiHeadVGGSmall')
+class MultiHeadVGGSmallBuildConfig(MongoBuildConfig):
+    
+    n_classes = db.IntField(default=20)
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return super(MultiHeadVGGSmallBuildConfig, cls).get_required()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return super(MultiHeadVGGSmallBuildConfig, cls).get_optionals().union({'n_classes'})
+
+    @staticmethod
+    def target_type() -> t.Type[DataType]:
+        return DataType.get_type('Model')
+
+    @classmethod
+    def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
+        result, msg = super(MultiHeadVGGSmallBuildConfig, cls).validate_input(data, dtype, context)
+        if not result:
+            return result, msg
+        _, values = context.pop()
+        params: TDesc = values['params']
+        for param in params.values():
+            if not isinstance(param, int):
+                return False, "One or more parameter(s) are not in the correct type."
+        return True, None
+
+    @classmethod
+    def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):
+        return super(MultiHeadVGGSmallBuildConfig, cls).create(data, dtype, context, save)
+
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
+        model = MultiHeadVGGSmall(self.n_classes)
+        # noinspection PyArgumentList
+        return self.target_type()(model)
+
+
 __all__ = [
     'SimpleMLPBuildConfig',
     'SimpleCNNBuildConfig',
@@ -357,5 +473,9 @@ __all__ = [
 
     'MLPBuildConfig',
     'MultiHeadMLPBuildConfig',
-    'SynapticIntelligenceCNNBuildConfig'
+    'SynapticIntelligenceCNNBuildConfig',
+
+    'VGGSmallBuildConfig',
+    'MultiHeadVGGClassifierBuildConfig',
+    'MultiHeadVGGSmall',
 ]
