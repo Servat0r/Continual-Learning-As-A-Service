@@ -55,7 +55,7 @@ lwf_strategy_build = generic_strategy_builder(
     STD_CIFAR_TRAIN_MB_SIZE,
     STD_CIFAR_TRAIN_EPOCHS * 2,
     STD_CIFAR_EVAL_MB_SIZE,
-    alpha=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+    alpha=1.0,
     temperature=1.0,
 )
 
@@ -84,7 +84,8 @@ class SplitCIFAR100Test(BaseClassicBenchmarkExperimentTestCase):
         'n_experiences': 10,
         'shuffle': True,
         'fixed_class_order': list(range(100)),
-        'return_task_id': True,
+        'return_task_id': False,
+        'seed': 0,
         # An example of composition
         'train_transform': {
             'name': 'Compose',
@@ -118,7 +119,7 @@ class SplitCIFAR100Test(BaseClassicBenchmarkExperimentTestCase):
         'name': 'SimpleMLP',
         'num_classes': 100,
         'input_size': 3 * 32 * 32,
-        'hidden_layers': 2,
+        'hidden_layers': 1,
         'hidden_size': 512,
     }
 

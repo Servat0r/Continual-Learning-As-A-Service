@@ -85,7 +85,8 @@ class SplitMNISTTest(BaseClassicBenchmarkExperimentTestCase):
         'n_experiences': 5,
         'shuffle': True,
         'fixed_class_order': list(range(10)),
-        'return_task_id': True,
+        'return_task_id': False,
+        'seed': 0,
         # An example of composition
         'train_transform': {
             'name': 'Compose',
@@ -110,7 +111,7 @@ class SplitMNISTTest(BaseClassicBenchmarkExperimentTestCase):
         'name': 'SimpleMLP',
         'num_classes': 10,
         'input_size': 1 * 28 * 28,
-        'hidden_layers': 2,
+        'hidden_layers': 1,
         'hidden_size': 512,
     }
 
