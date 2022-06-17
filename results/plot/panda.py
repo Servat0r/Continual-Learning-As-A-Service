@@ -149,6 +149,27 @@ class ExperimentPlotter:
             frames[strategy] = frame
         return experiences, frames
 
+    @staticmethod
+    def means_stdev(source_csv_path: str, dest_csv_path: str, columns: list[str]):
+        src_frame = pd.read_csv(source_csv_path)[columns]
+        means_lines = []
+        stdev_lines = []
+        experiences = list(src_frame[['Experience']].unique())
+        for exp in experiences:
+            sub_frame = src_frame.loc[src_frame['Experience'] == exp]
+            means = sub_frame.mean()
+            stdevs = sub_frame.std()
+
+            line = [means[header] for header in columns]
+            means_lines.append(line)
+
+            line = [stdevs[header] for header in columns]
+            stdev_lines.append(line)
+        means_frame = pd.DataFrame(means_lines, columns=columns)
+        stdev_frame = pd.DataFrame(stdev_lines, columns=columns)
+        means_frame.to_csv(f"{dest_csv_path}_means.csv")
+        stdev_frame.to_csv(f"{dest_csv_path}_stdevs.csv")
+
     def plot_graph(
             self, experiences: list[int], frames: dict[str, pd.DataFrame],
             out_file_name: str, header_name: str, x_label: str, y_label: str,
@@ -193,6 +214,22 @@ class ExperimentPlotter:
 
         means_frame = pd.DataFrame(means_lines, columns=['Experience']+list(strategies))
         stdevs_frame = pd.DataFrame(stdev_lines, columns=['Experience']+list(strategies))
+
+        means_stdev_lines = []
+        for i in range(len(means_lines)):
+            means = means_lines[i]
+            stdevs = stdev_lines[i]
+            means_stdev_line = [means[0]]
+            for j in range(1, len(means)):
+                means_stdev_line += [means[j], stdevs[j]]
+            means_stdev_lines.append(means_stdev_line)
+
+        means_stdev_columns = ['Experience']
+        for strategy in strategies:
+            means_stdev_columns.append(f"{strategy}_means")
+            means_stdev_columns.append(f"{strategy}_stdevs")
+        means_stdevs_frame = pd.DataFrame(means_stdev_lines, columns=means_stdev_columns)
+        means_stdevs_frame.to_csv(os.path.join(save_dir, f"{self.experiment_name}_{out_file_name}_means_stdev.csv"))
 
         y1 = means_frame.sub(stdevs_frame)
         y2 = means_frame.add(stdevs_frame)
