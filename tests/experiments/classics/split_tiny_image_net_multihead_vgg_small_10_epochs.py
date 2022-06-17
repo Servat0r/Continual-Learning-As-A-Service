@@ -143,13 +143,6 @@ class SplitTinyImageNetMultiHeadVGGSmallTest(BaseClassicBenchmarkExperimentTestC
             'experiment_build': cumulative_experiment_build,
         },
         {
-            'folder': 'joint_training',
-            'strategy_name': joint_training_strategy_name,
-            'strategy_build': joint_training_strategy_build,
-            'experiment_name': joint_training_experiment_name,
-            'experiment_build': joint_training_experiment_build,
-        },
-        {
             'folder': 'replay_500',
             'strategy_name': replay_500_strategy_name,
             'strategy_build': replay_500_strategy_build,
@@ -171,6 +164,16 @@ class SplitTinyImageNetMultiHeadVGGSmallTest(BaseClassicBenchmarkExperimentTestC
             'experiment_build': lwf_experiment_build,
         },
     ]
+
+
+joint_training_experiment_data = {
+    'folder': 'joint_training',
+    'strategy_name': joint_training_strategy_name,
+    'strategy_build': joint_training_strategy_build,
+    'experiment_name': joint_training_experiment_name,
+    'experiment_build': joint_training_experiment_build,
+},
+
 
 
 if __name__ == '__main__':

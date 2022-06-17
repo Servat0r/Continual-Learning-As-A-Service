@@ -10,7 +10,7 @@ docs/ignore/
 docs/json_examples/
 dbscripts/
 ignore/
-results/
+results/ignore/
 tests/source_datasets/
 tests/*.env
 tests/ignore/

@@ -1,0 +1,5 @@
+training_exp,epoch,training_items,training_accuracy,val_accuracy,training_timing,val_timing,training_ram_usage,val_ram_usage
+0,0,300000,0.8892,-1,233.5493,-1,4064.3359,-1
+0,1,300000,0.9578,-1,237.0094,-1,4065.4766,-1
+0,2,300000,0.9721,-1,236.3048,-1,4066.8047,-1
+0,3,300000,0.9796,-1,232.6027,-1,4067.8711,-1
