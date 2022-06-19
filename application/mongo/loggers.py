@@ -128,14 +128,14 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
         vals_to_print: list[int | float] = []
 
         for name in self.metric_names['train']:
-            current_value = -1
+            current_value = 0
             val_start = mnames_translations().get(name).get(mtype)
             if val_start is not None:
                 for val in metric_values:
                     if val.name.startswith(val_start):
                         current_value = val.value
                         break
-            val_current_value = self.val_dict.get(name, -1)
+            val_current_value = self.val_dict.get(name, 0)
             vals_to_print += [current_value, val_current_value]
         
         self.print_train_metrics(
@@ -157,7 +157,7 @@ class ExtendedCSVLogger(BaseLogger, SupervisedPlugin):
         vals_to_print: list[int | float] = []
         
         for name in self.metric_names['eval']:
-            current_value = -1
+            current_value = 0
             val_start = mnames_translations().get(name).get(mtype)
             if val_start is not None:
                 for val in metric_values:

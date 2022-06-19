@@ -238,8 +238,10 @@ class ExperimentPlotter:
             plt.plot('Experience', strategy, data=means_frame)
             plt.fill_between(means_frame['Experience'], y1[strategy], y2[strategy], alpha=.25)
 
+        # plt.title(self.experiment_name)
         plt.xlabel(x_label)
         plt.ylabel(y_label)
+        plt.grid(visible=True)
         plt.legend()
         if self.save_graphs:
             plt.savefig(os.path.join(save_dir, f"{self.experiment_name}_{out_file_name}.png"))
@@ -270,9 +272,103 @@ class ExperimentPlotter:
             header_name='EvalForgetting', x_label='experiences', y_label='forgetting',
         )
 
+    def all_experiences_forgetting_graph(
+            self, experiences: list[int], strategy: str, header_name: str = 'eval_forgetting',
+            x_label: str = 'experiences', y_label: str = 'forgetting', out_file_name: str = 'forgetting', show=True,
+    ):
+        eval_csv_name = 'eval_results.csv' if strategy != 'joint_training' else 'eval_results_ext.csv'
+        dir_paths = [
+            os.path.join(self.experiment_base_dir, exec_id, strategy, 'csv') for exec_id in self.executions
+        ]
+        eval_file_paths = [os.path.join(dir_path, eval_csv_name) for dir_path in dir_paths]
+        frames: list[pd.DataFrame] = [pd.read_csv(file) for file in eval_file_paths]
+        main_frame = pd.DataFrame(experiences, columns=['Experience'])
+        stdev_frame = pd.DataFrame(experiences, columns=['Experience'])
+        for exp in experiences:
+            local_frames = [frame.loc[frame['eval_exp'] == exp][[header_name]] for frame in frames]
+            for i in range(len(local_frames)):
+                local_frames[i] = local_frames[i].rename(columns={header_name: str(i)})
+            local_frame = pd.concat(local_frames, axis=1)
+            means = local_frame.mean(axis=1)
+            stdevs = local_frame.std(axis=1)
+            local_mean_frame = pd.DataFrame(means.tolist(), columns=[str(exp)])
+            local_stdev_frame = pd.DataFrame(stdevs.tolist(), columns=[str(exp)])
+            main_frame = pd.concat([main_frame, local_mean_frame], axis=1)
+            stdev_frame = pd.concat([stdev_frame, local_stdev_frame], axis=1)
+        print(main_frame)
+        print(stdev_frame)
+        save_dir = os.path.join(self.out_folder_root, self.out_folder_relpath)
+        os.makedirs(save_dir, exist_ok=True)
+        main_frame.to_csv(os.path.join(save_dir, f"{self.experiment_name}_{out_file_name}_forgetting_means.csv"))
+        stdev_frame.to_csv(os.path.join(save_dir, f"{self.experiment_name}_{out_file_name}_forgetting_stdevs.csv"))
+        plt.figure()
+        y1 = main_frame.sub(stdev_frame)
+        y2 = main_frame.add(stdev_frame)
+        print(y1)
+        print(y2)
+        for exp in experiences:
+            plt.plot('Experience', str(exp), data=main_frame)
+            plt.fill_between(main_frame['Experience'], y1[str(exp)], y2[str(exp)], alpha=.2)
+
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        plt.grid(visible=True)
+        plt.legend()
+        if self.save_graphs:
+            plt.savefig(os.path.join(save_dir, f"{self.experiment_name}_{out_file_name}_forgetting.png"))
+        if show:
+            plt.show()
+        return main_frame, stdev_frame
+
+    def compare_forgettings(
+            self, exp: int, experiences: list[int], frames: dict[str, tuple[pd.DataFrame, pd.DataFrame]],
+            x_label: str = 'experiences', y_label: str = 'forgetting', show=True, out_file_name: str = 'forgetting',
+    ):
+        strategies = frames.keys()
+        out_means_frame = pd.DataFrame(experiences, columns=['Experience'])
+        out_stdevs_frame = pd.DataFrame(experiences, columns=['Experience'])
+        for strategy in strategies:
+            strategy_means_frame = frames[strategy][0][[str(exp)]].rename(columns={str(exp): strategy})
+            strategy_stdevs_frame = frames[strategy][1][[str(exp)]].rename(columns={str(exp): strategy})
+            out_means_frame = pd.concat([out_means_frame, strategy_means_frame], axis=1)
+            out_stdevs_frame = pd.concat([out_stdevs_frame, strategy_stdevs_frame], axis=1)
+        y1 = out_means_frame.sub(out_stdevs_frame)
+        y2 = out_means_frame.add(out_stdevs_frame)
+        plt.figure()
+        for strategy in strategies:
+            plt.plot('Experience', strategy, data=out_means_frame)
+            plt.fill_between(out_means_frame['Experience'], y1[strategy], y2[strategy], alpha=.2)
+
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        plt.grid(visible=True)
+        plt.legend()
+        save_dir = os.path.join(self.out_folder_root, self.out_folder_relpath)
+        if self.save_graphs:
+            plt.savefig(os.path.join(save_dir, f"{self.experiment_name}_{out_file_name}_forgetting.png"))
+        if show:
+            plt.show()
+        return out_means_frame, out_stdevs_frame
+
+    def create_forgettings_graph(self, experiences: list[int]):
+        frames: dict[str, tuple[pd.DataFrame, pd.DataFrame]] = {}
+        for strategy in self.strategies:
+            means_frame, stdevs_frame = self.all_experiences_forgetting_graph(experiences, strategy)
+            frames[strategy] = (means_frame, stdevs_frame)
+        out_means_frame, out_stdevs_frame = self.compare_forgettings(0, experiences, frames)
+        print(out_means_frame)
+        print(out_stdevs_frame)
+
 
 if __name__ == '__main__':
     data = {
+        'SplitTinyImageNet_20_epochs': {
+            'experiment_name': 'SplitTinyImageNet',
+            'experiment_base_dir': 'split_tiny_imagenet_multihead_mlp_20_epochs',
+            'strategies': ['naive', 'cumulative', 'replay_500', 'replay_2500', 'lwf'],
+            'save_graphs': True,
+            'executions': ['0'],
+        },
         'SplitMNIST': {
             'experiment_name': 'SplitMNIST',
             'experiment_base_dir': 'split_mnist_8_epochs',
@@ -281,6 +377,13 @@ if __name__ == '__main__':
             'experiment_name': 'SplitCIFAR100',
             'experiment_base_dir': 'split_cifar100_8_epochs',
             'save_graphs': True,
+        },
+        'SplitCIFAR100Replay5000': {
+            'experiment_name': 'SplitCIFAR100_Replay5000',
+            'experiment_base_dir': 'split_cifar100_8_epochs_replay5000',
+            'save_graphs': True,
+            'executions': ['0'],
+            'strategies': ['naive', 'cumulative', 'joint_training', 'replay_500', 'replay_2500', 'replay_5000', 'lwf'],
         },
         'PermutedMNIST': {
             'experiment_name': 'PermutedMNIST',
@@ -299,9 +402,16 @@ if __name__ == '__main__':
     }
 
     plotter = ExperimentPlotter('', '')
+    """
+    exp_data = data['SplitMNIST']
+    plotter.set_params(**exp_data)
+    plotter.strategies = ['naive', 'cumulative', 'replay_500', 'replay_2500', 'lwf']
+    plotter.create_forgettings_graph([0, 1, 2, 3, 4])
+    """
     for exp_label, exp_data in data.items():
         plotter.set_params(**exp_data)
         experiences, frames = plotter.create()
         plotter.timing_graph(experiences, frames)
         plotter.patterns_graph(experiences, frames)
         plotter.accuracy_graph(experiences, frames)
+

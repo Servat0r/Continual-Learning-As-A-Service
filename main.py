@@ -69,7 +69,7 @@ def make_shell_context():
         'DataManager': BaseDataManager,
 
         # datasets
-        'Dataset': DataManagerDataset,
+        'Dataset': FileBasedClassificationDataset,
 
         # resources
         'DataType': DataType, 'Benchmark': MongoBenchmark,

@@ -11,6 +11,6 @@ docs/json_examples/
 dbscripts/
 ignore/
 results/ignore/
-tests/source_datasets/
+tests/source_datasets/mnist/
 tests/*.env
 tests/ignore/

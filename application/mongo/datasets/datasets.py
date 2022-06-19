@@ -50,7 +50,7 @@ def greyscale_image_loader(manager: BaseDataManager, impath: str):
     return manager.greyscale_image_loader(impath)
 
 
-class DataManagerDataset(data.Dataset):
+class FileBasedClassificationDataset(data.Dataset):
     """
     This class extends the basic Pytorch Dataset class to handle list of paths
     as the main data source.
@@ -170,7 +170,7 @@ def data_manager_dataset_stream(
         target_transform=None,
         transform_groups: dict = None,
         task_labels: int | list[int] = None,
-) -> list[DataManagerDataset | AvalancheDataset]:
+) -> list[FileBasedClassificationDataset | AvalancheDataset]:
     """
     Helper function to
     :param stream_name:
@@ -203,7 +203,7 @@ def data_manager_dataset_stream(
     datasets: list[AvalancheDataset] = []
     for i in range(n_experiences):
         desc = files[i]
-        dset = DataManagerDataset(manager, data_repository, desc, loader)
+        dset = FileBasedClassificationDataset(manager, data_repository, desc, loader)
         datasets.append(
             AvalancheDataset(
                 dset, task_labels=(task_labels[i] if task_labels is not None else None),
@@ -242,7 +242,7 @@ def data_manager_datasets_benchmark(
         eval_build_data, loader=loader,
         task_labels=task_labels,
     )
-    other_stream_datasets: dict[str, list[DataManagerDataset]] | None = {}
+    other_stream_datasets: dict[str, list[FileBasedClassificationDataset]] | None = {}
 
     if other_build_data is None or len(other_build_data) == 0:
         other_stream_datasets = None
@@ -273,7 +273,7 @@ __all__ = [
 
     'default_image_loader',
     'greyscale_image_loader',
-    'DataManagerDataset',
+    'FileBasedClassificationDataset',
     'data_manager_dataset_stream',
     'data_manager_datasets_benchmark',
 ]

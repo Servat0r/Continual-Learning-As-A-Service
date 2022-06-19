@@ -467,6 +467,10 @@ class BaseClient:
         return self.post(self.benchmarks_base, data=data)
 
     @check_in_session('auth_token', 'username', 'workspace')
+    def get_benchmark(self, name: str):
+        return self.get([self.benchmarks_base, name])
+
+    @check_in_session('auth_token', 'username', 'workspace')
     def rename_benchmark(self, name: str, new_name: str):
         return self.update_benchmark(name, {'name': new_name})
 
@@ -488,6 +492,10 @@ class BaseClient:
         if description is not None:
             data['description'] = description
         return self.post(self.metricsets_base, data=data)
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def get_metricset(self, name: str):
+        return self.get([self.metricsets_base, name])
 
     @check_in_session('auth_token', 'username', 'workspace')
     def rename_metric_set(self, name: str, new_name: str):
@@ -513,6 +521,10 @@ class BaseClient:
         return self.post(self.models_base, data=data)
 
     @check_in_session('auth_token', 'username', 'workspace')
+    def get_model(self, name: str):
+        return self.get([self.models_base, name])
+
+    @check_in_session('auth_token', 'username', 'workspace')
     def rename_model(self, name: str, new_name: str):
         return self.update_model(name, {'name': new_name})
 
@@ -534,6 +546,10 @@ class BaseClient:
         if description is not None:
             data['description'] = description
         return self.post(self.optimizers_base, data=data)
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def get_optimizer(self, name: str):
+        return self.get([self.optimizers_base, name])
 
     @check_in_session('auth_token', 'username', 'workspace')
     def rename_optimizer(self, name: str, new_name: str):
@@ -559,6 +575,10 @@ class BaseClient:
         return self.post(self.criterions_base, data=data)
 
     @check_in_session('auth_token', 'username', 'workspace')
+    def get_criterion(self, name: str):
+        return self.get([self.criterions_base, name])
+
+    @check_in_session('auth_token', 'username', 'workspace')
     def rename_criterion(self, name: str, new_name: str):
         return self.update_criterion(name, {'name': new_name})
 
@@ -580,6 +600,10 @@ class BaseClient:
         if description is not None:
             data['description'] = description
         return self.post(self.strategies_base, data=data)
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def get_strategy(self, name: str):
+        return self.get([self.strategies_base, name])
 
     @check_in_session('auth_token', 'username', 'workspace')
     def rename_strategy(self, name: str, new_name: str):

@@ -19,6 +19,18 @@ def create_strategy(username, wname):
     return add_new_resource(username, wname, _DFL_STRATEGY_NAME_)
 
 
+@strategies_bp.get('/<resource:name>/')
+@strategies_bp.get('/<resource:name>')
+def get_strategy(username, wname, name):
+    """
+    :param username:
+    :param wname:
+    :param name:
+    :return:
+    """
+    return get_resource(username, wname, _DFL_STRATEGY_NAME_, name)
+
+
 @strategies_bp.patch('/<resource:name>/')
 @strategies_bp.patch('/<resource:name>/')
 @token_auth.login_required
@@ -49,6 +61,7 @@ def delete_strategy(username, wname, name):
 __all__ = [
     'strategies_bp',
     'create_strategy',
+    'get_strategy',
     'update_strategy',
     'delete_strategy',
 ]

@@ -19,6 +19,18 @@ def create_benchmark(username, wname):
     return add_new_resource(username, wname, _DFL_BENCHMARK_NAME_)
 
 
+@benchmarks_bp.get('/<resource:name>/')
+@benchmarks_bp.get('/<resource:name>')
+def get_benchmark(username, wname, name):
+    """
+    :param username:
+    :param wname:
+    :param name:
+    :return:
+    """
+    return get_resource(username, wname, _DFL_BENCHMARK_NAME_, name)
+
+
 @benchmarks_bp.patch('/<resource:name>/')
 @benchmarks_bp.patch('/<resource:name>/')
 @token_auth.login_required
@@ -55,6 +67,7 @@ def delete_benchmark(username, wname, name):
 __all__ = [
     'benchmarks_bp',
     'create_benchmark',
+    'get_benchmark',
     'update_benchmark',
     'delete_benchmark',
 ]

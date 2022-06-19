@@ -158,7 +158,7 @@ class SplitMNISTFileBasedTest(BaseFileBasedBenchmarkExperimentTestCase):
 
     @staticmethod
     def get_benchmark_name() -> str:    # split_mnist, split_cifar10, ...; used for directories
-        return 'file_based_split_mnist_8_epovhs'
+        return 'file_based_split_mnist_8_epochs'
 
     @staticmethod
     def get_dataset_name() -> str:      # mnist, cifar10, cifar100, ...; used for data repository subdirs
