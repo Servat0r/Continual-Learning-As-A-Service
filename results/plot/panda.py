@@ -1,5 +1,7 @@
 # Playing with pandas
 from __future__ import annotations
+
+from typing import Callable
 import os
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -88,6 +90,19 @@ class ExperimentPlotter:
     
     DEFAULT_OUT_FOLDER_RELPATH = 'graphs'
     
+    @staticmethod
+    def default_replay_patterns_handler(strategy: str) -> Callable[[pd.DataFrame], pd.DataFrame]:
+        """
+        :param strategy: A string of the form "Replay_<buffer_size>".
+        :return: Adapted frame for taking into account replay buffer.
+        """
+        buffer_size = int(strategy.split('_')[-1])
+
+        def handler(frame):
+            frame[strategy] = frame[strategy].astype(int) + buffer_size
+            return frame
+        return handler
+
     def __init__(
             self,
             experiment_name: str,
@@ -97,6 +112,7 @@ class ExperimentPlotter:
             out_folder_root: str = None,
             out_folder_relpath: str = None,
             save_graphs: bool = False,
+            strategy_frames_handlers: dict[str, dict[str, Callable[[pd.DataFrame], pd.DataFrame]]] = None,
     ):
         self.experiment_name = experiment_name
         self.experiment_base_dir = os.path.join('..', experiment_base_dir)
@@ -105,6 +121,7 @@ class ExperimentPlotter:
         self.out_folder_root = self.experiment_base_dir if out_folder_root is None else out_folder_root
         self.out_folder_relpath = self.DEFAULT_OUT_FOLDER_RELPATH if out_folder_relpath is None else out_folder_relpath
         self.save_graphs = save_graphs
+        self.strategy_frames_handlers = strategy_frames_handlers
 
     def set_params(
             self,
@@ -115,6 +132,7 @@ class ExperimentPlotter:
             out_folder_root: str = None,
             out_folder_relpath: str = None,
             save_graphs: bool = False,
+            strategy_frames_handlers: dict[str, dict[str, Callable[[pd.DataFrame], pd.DataFrame]]] = None,
     ):
         self.experiment_name = experiment_name
         self.experiment_base_dir = os.path.join('..', experiment_base_dir)
@@ -123,6 +141,7 @@ class ExperimentPlotter:
         self.out_folder_root = self.experiment_base_dir if out_folder_root is None else out_folder_root
         self.out_folder_relpath = self.DEFAULT_OUT_FOLDER_RELPATH if out_folder_relpath is None else out_folder_relpath
         self.save_graphs = save_graphs
+        self.strategy_frames_handlers = strategy_frames_handlers
 
     # noinspection PyShadowingNames
     def create(self) -> tuple[list[int], dict[str, pd.DataFrame]]:
@@ -191,8 +210,14 @@ class ExperimentPlotter:
             frame = frames[strategy]
             if main_frame is None:
                 main_frame = frame[['Experience']]
+            local_strategy_frame_handler = self.strategy_frames_handlers.get(strategy)
+            if local_strategy_frame_handler is not None:
+                local_strategy_frame_handler = local_strategy_frame_handler.get(header_name)
             local_frame = frame[[header_name]].rename(columns={header_name: strategy})
+            if local_strategy_frame_handler is not None:
+                local_frame = local_strategy_frame_handler(local_frame)
             main_frame = pd.concat([main_frame, local_frame], axis=1)
+
         print(main_frame)
         save_dir = os.path.join(self.out_folder_root, self.out_folder_relpath)
         os.makedirs(save_dir, exist_ok=True)
@@ -238,7 +263,6 @@ class ExperimentPlotter:
             plt.plot('Experience', strategy, data=means_frame)
             plt.fill_between(means_frame['Experience'], y1[strategy], y2[strategy], alpha=.25)
 
-        # plt.title(self.experiment_name)
         plt.xlabel(x_label)
         plt.ylabel(y_label)
         plt.grid(visible=True)
@@ -361,6 +385,13 @@ class ExperimentPlotter:
 
 
 if __name__ == '__main__':
+
+    default_strategy_frame_handlers = {
+        k: {
+            'TrainingItems': ExperimentPlotter.default_replay_patterns_handler(k)
+        } for k in ('replay_500', 'replay_2500', 'replay_5000')
+    }
+
     data = {
         'SplitTinyImageNet_20_epochs': {
             'experiment_name': 'SplitTinyImageNet',
@@ -368,15 +399,19 @@ if __name__ == '__main__':
             'strategies': ['naive', 'cumulative', 'replay_500', 'replay_2500', 'lwf'],
             'save_graphs': True,
             'executions': ['0'],
+            'strategy_frames_handlers': default_strategy_frame_handlers,
         },
         'SplitMNIST': {
             'experiment_name': 'SplitMNIST',
             'experiment_base_dir': 'split_mnist_8_epochs',
+            'strategy_frames_handlers': default_strategy_frame_handlers,
+            'save_graphs': True,
         },
         'SplitCIFAR100': {
             'experiment_name': 'SplitCIFAR100',
             'experiment_base_dir': 'split_cifar100_8_epochs',
             'save_graphs': True,
+            'strategy_frames_handlers': default_strategy_frame_handlers,
         },
         'SplitCIFAR100Replay5000': {
             'experiment_name': 'SplitCIFAR100_Replay5000',
@@ -384,20 +419,26 @@ if __name__ == '__main__':
             'save_graphs': True,
             'executions': ['0'],
             'strategies': ['naive', 'cumulative', 'joint_training', 'replay_500', 'replay_2500', 'replay_5000', 'lwf'],
+            'strategy_frames_handlers': default_strategy_frame_handlers,
         },
         'PermutedMNIST': {
             'experiment_name': 'PermutedMNIST',
             'experiment_base_dir': 'permuted_mnist_4_epochs',
+            'strategy_frames_handlers': default_strategy_frame_handlers,
+            'save_graphs': True,
         },
         'FileBasedSplitMNIST': {
             'experiment_name': 'FileBasedSplitMNIST',
             'experiment_base_dir': 'file_based_split_mnist_8_epochs',
+            'strategy_frames_handlers': default_strategy_frame_handlers,
+            'save_graphs': True,
         },
         'SplitTinyImageNet': {
             'experiment_name': 'SplitTinyImageNet',
             'experiment_base_dir': 'split_tiny_imagenet_multihead_mlp_10_epochs',
             'strategies': ['naive', 'cumulative', 'replay_500', 'replay_2500', 'lwf'],
             'save_graphs': True,
+            'strategy_frames_handlers': default_strategy_frame_handlers,
         },
     }
 
