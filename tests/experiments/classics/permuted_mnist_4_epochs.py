@@ -109,7 +109,7 @@ class PermutedMNISTTest(BaseClassicBenchmarkExperimentTestCase):
         'num_classes': 10,
         'input_size': 1 * 28 * 28,
         'hidden_layers': 2,
-        'hidden_size': 512,
+        'hidden_size': 256,
     }
 
     optimizer_build = sgd_optimizer_build

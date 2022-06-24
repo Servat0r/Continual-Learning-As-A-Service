@@ -1,7 +1,7 @@
 from __future__ import annotations
 from avalanche.training.templates import SupervisedTemplate
-from avalanche.training.supervised import Naive, Cumulative, \
-    SynapticIntelligence, LwF, Replay, CWRStar, GDumb, AGEM, JointTraining
+from avalanche.training.supervised import Naive, Cumulative, JointTraining, \
+    Replay, GDumb, SynapticIntelligence, LwF, EWC, CWRStar, AGEM
 
 from application.utils import TBoolStr, t, TDesc, get_device
 from application.database import db
@@ -56,6 +56,7 @@ class CumulativeBuildConfig(MongoBaseStrategyBuildConfig):
         return super().get_optionals()
 
 
+# Joint Training
 @MongoBuildConfig.register_build_config('JointTraining')
 class JointTrainingBuildConfig(MongoBaseStrategyBuildConfig):
 
@@ -172,6 +173,7 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
         return self.target_type()(strategy, model, optim, criterion, metricset)
 
 
+# Learning without Forgetting
 @MongoBuildConfig.register_build_config('LwF')
 class LwFBuildConfig(MongoBaseStrategyBuildConfig):
 
@@ -272,6 +274,106 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
         return self.target_type()(strategy, model, optim, criterion, metricset)
 
 
+# Elastic Weights Consolidation
+@MongoBuildConfig.register_build_config('EWC')
+class EWCBuildConfig(MongoBaseStrategyBuildConfig):
+
+    # Fields
+    ewc_lambda = db.FloatField(required=True)
+    mode = db.StringField(default="separate")
+    decay_factor = db.FloatField(default=None)
+    keep_importance_data = db.BooleanField(default=False)
+
+    @staticmethod
+    def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
+        return EWC
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return super(EWCBuildConfig, cls).get_required().union({'ewc_lambda'})
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return super(EWCBuildConfig, cls).get_optionals().union({'mode', 'decay_factor', 'keep_importance_data'})
+
+    @classmethod
+    def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: UserWorkspaceResourceContext) -> TBoolStr:
+        result, msg = super(EWCBuildConfig, cls).validate_input(data, dtype, context)
+        if not result:
+            return result, msg
+
+        iname, values = context.pop()
+        params: TDesc = values['params']
+        ewc_lambda = params['ewc_lambda']
+        mode = params.get('mode', 'separate')
+        decay_factor = params.get('decay_factor')
+        keep_importance_data = params.get('keep_importance_data', False)
+
+        if not isinstance(ewc_lambda, float):
+            return False, "Parameter 'ewc_lambda' must be a float!"
+
+        if not isinstance(mode, str):
+            return False, "Parameter 'mode' must be a string!"
+
+        if decay_factor is not None and not isinstance(decay_factor, float):
+            return False, "Parameter 'decay_factor' must be a float!"
+
+        if not isinstance(keep_importance_data, bool):
+            return False, "Parameter 'keep_importance_data' must be a boolean!"
+
+        return True, None
+
+    @classmethod
+    def create(cls, data: TDesc, tp: t.Type[DataType], context: UserWorkspaceResourceContext, save: bool = True):
+        ok, bc_name, params, extras = cls._filter_data(data)
+        model_name = params['model']
+        optim_name = params['optimizer']
+        criterion_name = params['criterion']
+        metricset_name = params['metricset']
+        mode = params.get('mode', 'separate')
+        decay_factor = params.get('decay_factor')
+        keep_importance_data = params.get('keep_importance_data', False)
+
+        owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
+        workspace = Workspace.canonicalize(context)
+
+        model = MongoModel.config_type().get_one(owner, workspace, model_name)
+        optim = MongoCLOptimizer.config_type().get_one(owner, workspace, optim_name)
+        criterion = MongoCLCriterion.config_type().get_one(owner, workspace, criterion_name)
+        metricset = MongoStandardMetricSet.config_type().get_one(owner, workspace, metricset_name)
+
+        params['model'] = model
+        params['optimizer'] = optim
+        params['criterion'] = criterion
+        params['metricset'] = metricset
+        params['mode'] = mode
+        params['keep_importance_data'] = keep_importance_data
+        params['decay_factor'] = decay_factor
+
+        # noinspection PyArgumentList
+        return cls(**params)
+
+    def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
+        model = self.model.build(context, locked=locked, parents_locked=parents_locked)
+        optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
+        criterion = self.criterion.build(context, locked=locked, parents_locked=parents_locked)
+
+        log_folder = self.get_logging_path(context)
+        metricset = self.metricset.build(context)
+
+        strategy = EWC(
+            model.get_value(), optim.get_value(), criterion.get_value(),
+            ewc_lambda=self.ewc_lambda, mode=self.mode, decay_factor=self.decay_factor,
+            keep_importance_data=self.keep_importance_data, device=get_device(),
+            train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
+            eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
+            evaluator=self.get_evaluator(log_folder, metricset),
+        )
+        # noinspection PyArgumentList
+        return self.target_type()(strategy, model, optim, criterion, metricset)
+
+
+# (Classic) Replay
 @MongoBuildConfig.register_build_config('Replay')
 class ReplayBuildConfig(MongoBaseStrategyBuildConfig):
 
@@ -489,6 +591,7 @@ __all__ = [
 
     'SynapticIntelligenceBuildConfig',
     'LwFBuildConfig',
+    'EWCBuildConfig',
 
     'ReplayBuildConfig',
     'GDumbBuildConfig',

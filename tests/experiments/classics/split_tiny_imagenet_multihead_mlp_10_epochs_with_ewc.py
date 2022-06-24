@@ -5,13 +5,6 @@ import time
 from ..data import *
 from .base import *
 
-# optimizer (redefined)
-adam_optimizer_build = {
-    'name': 'Adam',
-    'learning_rate': 0.001,
-    'model': model_name,
-}
-
 # strategies
 naive_strategy_build = generic_strategy_builder(
     'Naive',
@@ -77,6 +70,14 @@ si_strategy_build = generic_strategy_builder(
     eps=0.001,
 )
 
+ewc_strategy_name = 'ewc_strategy'
+ewc_strategy_build = generic_strategy_builder(
+    'EWC',
+    STD_MNIST_TRAIN_MB_SIZE,
+    STD_MNIST_TRAIN_EPOCHS * 2,
+    STD_MNIST_EVAL_MB_SIZE,
+    ewc_lambda=1.0,
+)
 
 # experiments
 naive_experiment_build = generic_experiment_builder(naive_strategy_name, benchmark_name)
@@ -92,6 +93,9 @@ gdumb_experiment_build = generic_experiment_builder(gdumb_strategy_name, benchma
 lwf_experiment_build = generic_experiment_builder(lwf_strategy_name, benchmark_name)
 si_experiment_name = 'synaptic_intelligence_experiment'
 si_experiment_build = generic_experiment_builder(si_strategy_name, benchmark_name)
+
+ewc_experiment_name = 'ewc_experiment'
+ewc_experiment_build = generic_experiment_builder(ewc_strategy_name, benchmark_name)
 
 
 class SplitTinyImageNetMultiHeadMLPTest(BaseClassicBenchmarkExperimentTestCase):
@@ -133,21 +137,38 @@ class SplitTinyImageNetMultiHeadMLPTest(BaseClassicBenchmarkExperimentTestCase):
         'hidden_size': 256,
     }
 
-    optimizer_build = adam_optimizer_build
+    optimizer_build = sgd_optimizer_build
     criterion_build = criterion_build
     metricset_build = metricset_build
 
     @staticmethod
     def get_benchmark_name() -> str:
-        return 'split_tiny_imagenet_multihead_mlp_10_epochs_with_si'
+        return 'split_tiny_imagenet_multihead_mlp_10_epochs_with_ewc'
 
     experiment_data = [
         {
-            'folder': 'si',
-            'strategy_name': si_strategy_name,
-            'strategy_build': si_strategy_build,
-            'experiment_name': si_experiment_name,
-            'experiment_build': si_experiment_build,
+            'folder': 'ewc',
+            'strategy_name': ewc_strategy_name,
+            'strategy_build': ewc_strategy_build,
+            'experiment_name': ewc_experiment_name,
+            'experiment_build': ewc_experiment_build,
+        },
+    ]
+
+    experiment_data_bak = [
+        {
+            'folder': 'ewc',
+            'strategy_name': ewc_strategy_name,
+            'strategy_build': ewc_strategy_build,
+            'experiment_name': ewc_experiment_name,
+            'experiment_build': ewc_experiment_build,
+        },
+        {
+            'folder': 'lwf',
+            'strategy_name': lwf_strategy_name,
+            'strategy_build': lwf_strategy_build,
+            'experiment_name': lwf_experiment_name,
+            'experiment_build': lwf_experiment_build,
         },
         {
             'folder': 'naive',

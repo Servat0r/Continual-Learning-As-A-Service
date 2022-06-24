@@ -25,7 +25,7 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
     input_size = db.IntField(default=28*28)
     hidden_size = db.IntField(default=512)
     hidden_layers = db.IntField(default=1)
-    drop_rate = db.IntField(default=0.5)
+    drop_rate = db.FloatField(default=0.0)
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -52,9 +52,15 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
             return result, msg
         _, values = context.pop()
         params: TDesc = values['params']
-        for param in params.values():
-            if not isinstance(param, int):
-                return False, "One or more parameter(s) are not in the correct type."
+        drop_rate = params.pop('drop_rate', 0.0)
+        ok = isinstance(drop_rate, float)
+        if ok:
+            for param in params.values():
+                if param != 'drop_rate' and not isinstance(param, int):
+                    ok = False
+                    break
+        if not ok:
+            return False, "One or more parameter(s) are not in the correct type."
         return True, None
 
     @classmethod
@@ -188,7 +194,7 @@ class MLPBuildConfig(MongoBuildConfig):
     hidden_size = db.IntField(default=256)
     hidden_layers = db.IntField(default=2)
     output_size = db.IntField(default=10)
-    drop_rate = db.IntField(default=0)
+    drop_rate = db.FloatField(default=0.0)
     relu_act = db.BooleanField(default=True)
 
     @classmethod
@@ -218,7 +224,8 @@ class MLPBuildConfig(MongoBuildConfig):
         _, values = context.pop()
         params: TDesc = values['params']
         relu_act = params.pop('relu_act', False)
-        ok = isinstance(relu_act, bool)
+        drop_rate = params.pop('drop_rate', 0.0)
+        ok = isinstance(relu_act, bool) and isinstance(drop_rate, float)
         if ok:
             for param in params.values():
                 if not isinstance(param, int):
@@ -254,7 +261,7 @@ class MultiHeadMLPBuildConfig(MongoBuildConfig):
     input_size = db.IntField(default=28*28)
     hidden_size = db.IntField(default=256)
     hidden_layers = db.IntField(default=2)
-    drop_rate = db.IntField(default=0)
+    drop_rate = db.FloatField(default=0.0)
     relu_act = db.BooleanField(default=True)
 
     @classmethod
@@ -282,8 +289,9 @@ class MultiHeadMLPBuildConfig(MongoBuildConfig):
             return result, msg
         _, values = context.pop()
         params: TDesc = values['params']
-        relu_act = params.pop('relu_act', False)
-        ok = isinstance(relu_act, bool)
+        relu_act = params.pop('relu_act', True)
+        drop_rate = params.pop('drop_rate', 0.0)
+        ok = isinstance(relu_act, bool) and isinstance(drop_rate, float)
         if ok:
             for param in params.values():
                 if not isinstance(param, int):

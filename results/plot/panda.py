@@ -393,6 +393,25 @@ if __name__ == '__main__':
     }
 
     data = {
+        'PermutedMNIST': {
+            'experiment_name': 'PermutedMNIST',
+            'experiment_base_dir': 'permuted_mnist_5_epochs_1000hidden_ewc',
+            'strategy_frames_handlers': default_strategy_frame_handlers,
+            'strategies': ['ewc'],  # 'lwf', 'naive', 'cumulative', 'replay_500', 'replay_2500'],
+            'save_graphs': True,
+            'executions': ['ewc_only'],
+        },
+    }
+
+    data_SplitFashionMNIST = {
+        'experiment_name': 'SplitFashionMNIST',
+        'experiment_base_dir': 'split_fashion_mnist_8_epochs',
+        'strategies': ['naive', 'cumulative', 'replay_500', 'replay_2500', 'lwf'],
+        'strategy_frames_handlers': default_strategy_frame_handlers,
+        'save_graphs': True,
+    }
+
+    data_bak = {
         'SplitTinyImageNet_20_epochs': {
             'experiment_name': 'SplitTinyImageNet',
             'experiment_base_dir': 'split_tiny_imagenet_multihead_mlp_20_epochs',
