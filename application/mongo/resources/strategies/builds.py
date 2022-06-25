@@ -38,6 +38,13 @@ class NaiveBuildConfig(MongoBaseStrategyBuildConfig):
     def get_optionals(cls) -> set[str]:
         return super().get_optionals()
 
+    def extra_build_params_process(self) -> TDesc:
+        return {}
+
+    @classmethod
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
+        return params
+
 
 # Cumulative strategy builder
 @MongoBuildConfig.register_build_config('Cumulative')
@@ -55,6 +62,13 @@ class CumulativeBuildConfig(MongoBaseStrategyBuildConfig):
     def get_optionals(cls) -> set[str]:
         return super().get_optionals()
 
+    @classmethod
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
+        return params
+
+    def extra_build_params_process(self) -> TDesc:
+        return {}
+
 
 # Joint Training
 @MongoBuildConfig.register_build_config('JointTraining')
@@ -71,6 +85,13 @@ class JointTrainingBuildConfig(MongoBaseStrategyBuildConfig):
     @classmethod
     def get_optionals(cls) -> set[str]:
         return super().get_optionals()
+
+    @classmethod
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
+        return params
+
+    def extra_build_params_process(self) -> TDesc:
+        return {}
 
 
 # Synaptic Intelligence strategy builder
@@ -123,54 +144,19 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
 
         return True, None
 
+
     @classmethod
-    def create(cls, data: TDesc, tp: t.Type[DataType], context: UserWorkspaceResourceContext, save: bool = True):
-        ok, bc_name, params, extras = cls._filter_data(data)
-        model_name = params['model']
-        optim_name = params['optimizer']
-        criterion_name = params['criterion']
-        metricset_name = params['metricset']
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
         si_lambda = params['si_lambda']
         si_lambda_for_all = True if isinstance(si_lambda, float) else False
         si_lambda = [si_lambda] if si_lambda_for_all else si_lambda
-
-        owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
-        workspace = Workspace.canonicalize(context)
-
-        model = MongoModel.config_type().get_one(owner, workspace, model_name)
-        optim = MongoCLOptimizer.config_type().get_one(owner, workspace, optim_name)
-        criterion = MongoCLCriterion.config_type().get_one(owner, workspace, criterion_name)
-        metricset = MongoStandardMetricSet.config_type().get_one(owner, workspace, metricset_name)
-
-        params['model'] = model
-        params['optimizer'] = optim
-        params['criterion'] = criterion
-        params['metricset'] = metricset
         params['si_lambda'] = si_lambda
         params['si_lambda_for_all'] = si_lambda_for_all
+        return params
 
-        # noinspection PyArgumentList
-        return cls(**params)
-
-    def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
-        model = self.model.build(context, locked=locked, parents_locked=parents_locked)
-        optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
-        criterion = self.criterion.build(context, locked=locked, parents_locked=parents_locked)
-
-        log_folder = self.get_logging_path(context)
-        metricset = self.metricset.build(context)
-
+    def extra_build_params_process(self) -> TDesc:
         si_lambda = self.si_lambda[0] if self.si_lambda_for_all else self.si_lambda
-
-        strategy = SynapticIntelligence(
-            model.get_value(), optim.get_value(), criterion.get_value(),
-            si_lambda=si_lambda, eps=self.eps, device=get_device(),
-            train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
-            eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(log_folder, metricset),
-        )
-        # noinspection PyArgumentList
-        return self.target_type()(strategy, model, optim, criterion, metricset)
+        return {'si_lambda': si_lambda, 'eps': self.eps}
 
 
 # Learning without Forgetting
@@ -221,57 +207,20 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
 
         if not isinstance(temperature, float):
             return False, "Parameter 'temperature' is not of the correct type."
-
         return True, None
 
     @classmethod
-    def create(cls, data: TDesc, tp: t.Type[DataType], context: UserWorkspaceResourceContext, save: bool = True):
-        ok, bc_name, params, extras = cls._filter_data(data)
-        model_name = params['model']
-        optim_name = params['optimizer']
-        criterion_name = params['criterion']
-        metricset_name = params['metricset']
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
         alpha = params['alpha']
         alpha_for_all = True if isinstance(alpha, float) else False
         alpha = [alpha] if alpha_for_all else alpha
-
-        owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
-        workspace = Workspace.canonicalize(context)
-
-        model = MongoModel.config_type().get_one(owner, workspace, model_name)
-        optim = MongoCLOptimizer.config_type().get_one(owner, workspace, optim_name)
-        criterion = MongoCLCriterion.config_type().get_one(owner, workspace, criterion_name)
-        metricset = MongoStandardMetricSet.config_type().get_one(owner, workspace, metricset_name)
-
-        params['model'] = model
-        params['optimizer'] = optim
-        params['criterion'] = criterion
-        params['metricset'] = metricset
         params['alpha'] = alpha
         params['alpha_for_all'] = alpha_for_all
+        return params
 
-        # noinspection PyArgumentList
-        return cls(**params)
-
-    def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
-        model = self.model.build(context, locked=locked, parents_locked=parents_locked)
-        optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
-        criterion = self.criterion.build(context, locked=locked, parents_locked=parents_locked)
-
-        log_folder = self.get_logging_path(context)
-        metricset = self.metricset.build(context)
-
+    def extra_build_params_process(self) -> TDesc:
         alpha = self.alpha[0] if self.alpha_for_all else self.alpha
-
-        strategy = LwF(
-            model.get_value(), optim.get_value(), criterion.get_value(),
-            alpha=alpha, temperature=self.temperature, device=get_device(),
-            train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
-            eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(log_folder, metricset),
-        )
-        # noinspection PyArgumentList
-        return self.target_type()(strategy, model, optim, criterion, metricset)
+        return {'alpha': alpha, 'temperature': self.temperature}
 
 
 # Elastic Weights Consolidation
@@ -324,53 +273,22 @@ class EWCBuildConfig(MongoBaseStrategyBuildConfig):
         return True, None
 
     @classmethod
-    def create(cls, data: TDesc, tp: t.Type[DataType], context: UserWorkspaceResourceContext, save: bool = True):
-        ok, bc_name, params, extras = cls._filter_data(data)
-        model_name = params['model']
-        optim_name = params['optimizer']
-        criterion_name = params['criterion']
-        metricset_name = params['metricset']
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
         mode = params.get('mode', 'separate')
         decay_factor = params.get('decay_factor')
         keep_importance_data = params.get('keep_importance_data', False)
-
-        owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
-        workspace = Workspace.canonicalize(context)
-
-        model = MongoModel.config_type().get_one(owner, workspace, model_name)
-        optim = MongoCLOptimizer.config_type().get_one(owner, workspace, optim_name)
-        criterion = MongoCLCriterion.config_type().get_one(owner, workspace, criterion_name)
-        metricset = MongoStandardMetricSet.config_type().get_one(owner, workspace, metricset_name)
-
-        params['model'] = model
-        params['optimizer'] = optim
-        params['criterion'] = criterion
-        params['metricset'] = metricset
         params['mode'] = mode
         params['keep_importance_data'] = keep_importance_data
         params['decay_factor'] = decay_factor
+        return params
 
-        # noinspection PyArgumentList
-        return cls(**params)
-
-    def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
-        model = self.model.build(context, locked=locked, parents_locked=parents_locked)
-        optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
-        criterion = self.criterion.build(context, locked=locked, parents_locked=parents_locked)
-
-        log_folder = self.get_logging_path(context)
-        metricset = self.metricset.build(context)
-
-        strategy = EWC(
-            model.get_value(), optim.get_value(), criterion.get_value(),
-            ewc_lambda=self.ewc_lambda, mode=self.mode, decay_factor=self.decay_factor,
-            keep_importance_data=self.keep_importance_data, device=get_device(),
-            train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
-            eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(log_folder, metricset),
-        )
-        # noinspection PyArgumentList
-        return self.target_type()(strategy, model, optim, criterion, metricset)
+    def extra_build_params_process(self) -> TDesc:
+        return {
+            'ewc_lambda': self.ewc_lambda,
+            'mode': self.mode,
+            'decay_factor': self.decay_factor,
+            'keep_importance_data': self.keep_importance_data,
+        }
 
 
 # (Classic) Replay
@@ -406,24 +324,12 @@ class ReplayBuildConfig(MongoBaseStrategyBuildConfig):
             return False, "Parameter 'memory' is not of the correct type."
         return True, None
 
-    def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
-        model = self.model.build(context, locked=locked, parents_locked=parents_locked)
-        optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
-        criterion = self.criterion.build(context, locked=locked, parents_locked=parents_locked)
+    @classmethod
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
+        return params
 
-        log_folder = self.get_logging_path(context)
-        metricset = self.metricset.build(context)
-
-        # noinspection PyArgumentList
-        strategy = self.get_avalanche_strategy()(
-            model.get_value(), optim.get_value(), criterion.get_value(),
-            mem_size=self.memory, device=get_device(),
-            train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
-            eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(log_folder, metricset),
-        )
-        # noinspection PyArgumentList
-        return self.target_type()(strategy, model, optim, criterion, metricset)
+    def extra_build_params_process(self) -> TDesc:
+        return {'mem_size': self.memory}
 
 
 @MongoBuildConfig.register_build_config('CWRStar')
@@ -458,24 +364,12 @@ class CWRStarBuildConfig(MongoBaseStrategyBuildConfig):
             return False, "Parameter 'layer_name' is not of the correct type."
         return True, None
 
-    def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
-        model = self.model.build(context, locked=locked, parents_locked=parents_locked)
-        optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
-        criterion = self.criterion.build(context, locked=locked, parents_locked=parents_locked)
+    @classmethod
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
+        return params
 
-        log_folder = self.get_logging_path(context)
-        metricset = self.metricset.build(context)
-
-        # noinspection PyArgumentList
-        strategy = self.get_avalanche_strategy()(
-            model.get_value(), optim.get_value(), criterion.get_value(),
-            cwr_layer_name=self.layer_name, device=get_device(),
-            train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
-            eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(log_folder, metricset),
-        )
-        # noinspection PyArgumentList
-        return self.target_type()(strategy, model, optim, criterion, metricset)
+    def extra_build_params_process(self) -> TDesc:
+        return {'cwr_layer_name': self.layer_name}
 
 
 @MongoBuildConfig.register_build_config('GDumb')
@@ -510,24 +404,12 @@ class GDumbBuildConfig(MongoBaseStrategyBuildConfig):
             return False, "Parameter 'memory' is not of the correct type."
         return True, None
 
-    def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
-        model = self.model.build(context, locked=locked, parents_locked=parents_locked)
-        optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
-        criterion = self.criterion.build(context, locked=locked, parents_locked=parents_locked)
+    @classmethod
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
+        return params
 
-        log_folder = self.get_logging_path(context)
-        metricset = self.metricset.build(context)
-
-        # noinspection PyArgumentList
-        strategy = self.get_avalanche_strategy()(
-            model.get_value(), optim.get_value(), criterion.get_value(),
-            mem_size=self.memory, device=get_device(),
-            train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
-            eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(log_folder, metricset),
-        )
-        # noinspection PyArgumentList
-        return self.target_type()(strategy, model, optim, criterion, metricset)
+    def extra_build_params_process(self) -> TDesc:
+        return {'mem_size': self.memory}
 
 
 @MongoBuildConfig.register_build_config('AGEM')
@@ -563,24 +445,15 @@ class AGEMBuildConfig(MongoBaseStrategyBuildConfig):
         all_int = all(isinstance(val, int) for val in [patterns_per_size, sample_size])
         return (True, None) if all_int else (False, "Parameter 'memory' is not of the correct type.")
 
-    def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
-        model = self.model.build(context, locked=locked, parents_locked=parents_locked)
-        optim = self.optimizer.build(context, locked=locked, parents_locked=parents_locked)
-        criterion = self.criterion.build(context, locked=locked, parents_locked=parents_locked)
+    @classmethod
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
+        return params
 
-        log_folder = self.get_logging_path(context)
-        metricset = self.metricset.build(context)
-
-        # noinspection PyArgumentList
-        strategy = self.get_avalanche_strategy()(
-            model.get_value(), optim.get_value(), criterion.get_value(),
-            mem_size=self.memory, device=get_device(),
-            train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
-            eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
-            evaluator=self.get_evaluator(log_folder, metricset),
-        )
-        # noinspection PyArgumentList
-        return self.target_type()(strategy, model, optim, criterion, metricset)
+    def extra_build_params_process(self) -> TDesc:
+        return {
+            'patterns_per_size': self.patterns_per_size,
+            'sample_size': self.sample_size,
+        }
 
 
 __all__ = [

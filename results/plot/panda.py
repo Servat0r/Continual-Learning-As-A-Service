@@ -393,6 +393,17 @@ if __name__ == '__main__':
     }
 
     data = {
+        'SplitMNISTEWC': {
+            'experiment_name': 'SplitMNIST',
+            'experiment_base_dir': 'split_mnist_8_epochs_ewc',
+            'strategy_frames_handlers': default_strategy_frame_handlers,
+            'strategies': ['ewc', 'lwf', 'naive', 'lwf_replay_250', 'ewc_replay_200'],
+            'save_graphs': True,
+            'executions': ['0'],
+        }
+    }
+
+    data_SplitFashionMNIST = {
         'PermutedMNIST': {
             'experiment_name': 'PermutedMNIST',
             'experiment_base_dir': 'permuted_mnist_5_epochs_1000hidden_ewc',
@@ -401,14 +412,13 @@ if __name__ == '__main__':
             'save_graphs': True,
             'executions': ['ewc_only'],
         },
-    }
-
-    data_SplitFashionMNIST = {
-        'experiment_name': 'SplitFashionMNIST',
-        'experiment_base_dir': 'split_fashion_mnist_8_epochs',
-        'strategies': ['naive', 'cumulative', 'replay_500', 'replay_2500', 'lwf'],
-        'strategy_frames_handlers': default_strategy_frame_handlers,
-        'save_graphs': True,
+        'SplitFMNIST': {
+            'experiment_name': 'SplitFashionMNIST',
+            'experiment_base_dir': 'split_fashion_mnist_8_epochs',
+            'strategies': ['naive', 'cumulative', 'replay_500', 'replay_2500', 'lwf'],
+            'strategy_frames_handlers': default_strategy_frame_handlers,
+            'save_graphs': True,
+        }
     }
 
     data_bak = {

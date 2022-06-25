@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from avalanche.logging import InteractiveLogger
+from avalanche.core import SupervisedPlugin
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.plugins import EvaluationPlugin
 
@@ -9,18 +10,83 @@ from application.utils import abstractmethod, get_device, t, TDesc, TBoolStr
 from application.data_managing import BaseDataManager
 from application.models import User, Workspace
 
-from application.resources.contexts import UserWorkspaceResourceContext
+from application.resources.contexts import ResourceContext, UserWorkspaceResourceContext
 from application.resources.base import DataType
 from application.resources.datatypes import StandardMetricSet
 
 from application.mongo.base import MongoBaseUser
 from application.mongo.loggers import ExtendedCSVLogger
 
-from application.mongo.resources.mongo_base_configs import MongoBuildConfig
+from application.mongo.resources.mongo_base_configs import MongoBuildConfig, MongoEmbeddedBuildConfig
 from application.mongo.resources.metricsets import *
 from application.mongo.resources.criterions import *
 from application.mongo.resources.optimizers import *
 from application.mongo.resources.models import *
+
+
+# Base class for StrategyPlugins
+class StrategyPluginConfig(MongoEmbeddedBuildConfig):
+
+    meta = {
+        'abstract': True,
+        'allow_inheritance': True,
+    }
+
+    __CONFIGS__: TDesc = {}
+
+    @staticmethod
+    def register_plugin_config(name: str = None):
+        def registerer(cls):
+            nonlocal name
+            if name is None:
+                name = cls.__name__
+            StrategyPluginConfig.__CONFIGS__[name] = cls
+            return cls
+
+        return registerer
+
+    @classmethod
+    def get_by_name(cls, name: str | TDesc) -> StrategyPluginConfig | None:
+        if isinstance(name, str):
+            return cls.__CONFIGS__.get(name)
+        elif isinstance(name, dict):
+            cname = name.get('name')
+            if cname is None:
+                raise ValueError('Missing name')
+            else:
+                return cls.__CONFIGS__.get(cname)
+
+    @classmethod
+    def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
+        return super(StrategyPluginConfig, cls).validate_input(data, context)
+
+    @classmethod
+    @abstractmethod
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
+        pass
+
+    @classmethod
+    def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
+        ok, bc_name, params, extras = cls._filter_data(data)    # Validation "skipped"
+        actuals: TDesc = params
+        if cls.has_extras():
+            for item in extras.items():
+                actuals[item[0]] = item[1]
+        actuals = cls.extra_create_params_process(actuals)
+        # noinspection PyArgumentList
+        return cls(**actuals)
+
+    @abstractmethod
+    def get_plugin(self) -> SupervisedPlugin:
+        pass
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return super(StrategyPluginConfig, cls).get_required()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return super(StrategyPluginConfig, cls).get_optionals()
 
 
 class MongoBaseStrategyBuildConfig(MongoBuildConfig):
@@ -40,6 +106,7 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
     eval_mb_size = db.IntField(default=None)
     eval_every = db.IntField(default=-1)
     metricset = db.ReferenceField(MongoStandardMetricSetConfig, required=True)
+    plugins = db.ListField(db.EmbeddedDocumentField(StrategyPluginConfig), default=None)
 
     @staticmethod
     @abstractmethod
@@ -81,6 +148,7 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
             'train_epochs',
             'eval_mb_size',
             'eval_every',
+            'plugins',
         }
 
     @staticmethod
@@ -105,6 +173,20 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         if not int_check or eval_every < -1:
             return False, "One or more parameters are not in the correct type."
 
+        plugins = params.get('plugins', None)
+        if plugins is not None:
+            if not isinstance(plugins, list):
+                return False, "'plugins' parameter must be a list!"
+            for plugin_data in plugins:
+                if not isinstance(plugin_data, dict):
+                    return False, "'plugins' items must be dictionaries!"
+                plugin_config = StrategyPluginConfig.get_by_name(plugin_data)
+                if plugin_config is None:
+                    return False, f"Unknown plugin config name: '{plugin_data.get('name')}'"
+                result, msg = plugin_config.validate_input(plugin_data, context)
+                if not result:
+                    return False, f"Failed to validate plugins data: '{msg}'"
+
         model_name = params['model']
         optim_name = params['optimizer']
         criterion_name = params['criterion']
@@ -125,6 +207,16 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         return True, None
 
     @classmethod
+    @abstractmethod
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
+        """
+        Logic for converting strategy-specific extra parameters.
+        :param params:
+        :return: Updated dictionary.
+        """
+        pass
+
+    @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: UserWorkspaceResourceContext, save: bool = True):
         ok, bc_name, params, extras = cls._filter_data(data)
         model_name = params['model']
@@ -140,13 +232,33 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         criterion = MongoCLCriterion.config_type().get_one(owner, workspace, criterion_name)
         metricset = MongoStandardMetricSet.config_type().get_one(owner, workspace, metricset_name)
 
+        plugins_data = params.get('plugins', None)
+        plugins = []
+        if plugins_data is not None:
+            for plugin_data in plugins_data:
+                plugin_config = StrategyPluginConfig.get_by_name(plugin_data)
+                plugin = plugin_config.create(plugin_data, context, save=False)
+                plugins.append(plugin)
+
         params['model'] = model
         params['optimizer'] = optim
         params['criterion'] = criterion
         params['metricset'] = metricset
+        params['plugins'] = plugins
+
+        params = cls.extra_create_params_process(params)
 
         # noinspection PyArgumentList
         return cls(**params)
+
+    @abstractmethod
+    def extra_build_params_process(self) -> TDesc:
+        """
+        Implements logic for strategy extra parameters.
+        :return: A dictionary of the form {'param_name': param_value} that is passed
+        to the corresponding Avalanche strategy.
+        """
+        pass
 
     def build(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False):
         model = self.model.build(context, locked=locked, parents_locked=parents_locked)
@@ -156,9 +268,18 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         log_folder = self.get_logging_path(context)
         metricset = self.metricset.build(context)
 
+        plugins = None
+        if self.plugins is not None and len(self.plugins) > 0:
+            plugins = []
+            for plugin_data in self.plugins:
+                plugin = plugin_data.get_plugin()
+                plugins.append(plugin)
+
+        extra_params = self.extra_build_params_process()
+
         strategy = self.get_avalanche_strategy()(
-            model.get_value(), optim.get_value(),
-            criterion.get_value(), device=get_device(),
+            model.get_value(), optim.get_value(), criterion.get_value(),
+            device=get_device(), **extra_params, plugins=plugins,
             train_mb_size=self.train_mb_size, train_epochs=self.train_epochs,
             eval_mb_size=self.eval_mb_size, eval_every=self.eval_every,
             evaluator=self.get_evaluator(log_folder, metricset),
@@ -167,4 +288,7 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         return self.target_type()(strategy, model, optim, criterion, metricset)
 
 
-__all__ = ['MongoBaseStrategyBuildConfig']
+__all__ = [
+    'MongoBaseStrategyBuildConfig',
+    'StrategyPluginConfig',
+]
