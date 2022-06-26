@@ -20,6 +20,13 @@ class SelectorConfig(MongoEmbeddedBuildConfig):
     all = db.BooleanField(default=True)
     files = db.ListField(db.StringField(), default=None)
 
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'root': self.root,
+            'all': self.all,
+            'files': self.files,
+        }
+
     @classmethod
     def get_required(cls) -> set[str]:
         return super(SelectorConfig, cls).get_required()
@@ -121,6 +128,14 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
     selected = db.EmbeddedDocumentField(SelectorConfig, required=True)
     labels = db.MapField(db.EmbeddedDocumentField(SelectorConfig), default=None)
     default_label = db.IntField(default=0)  # if a label is not specified, 0 will be applied for all
+
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'root': self.root,
+            'selected': self.selected.to_dict(links=False),
+            'labels': self.labels.to_dict(links=False),
+            'default_label': self.default_label,
+        }
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -249,6 +264,7 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
                 labels_objs[label] = label_data
             params['labels'] = labels_objs
 
+        # noinspection PyArgumentList
         obj = cls(**params)
         return obj
 
@@ -297,6 +313,11 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
 
     configs = db.ListField(db.EmbeddedDocumentField(DataStreamFolderConfig), default=[])
 
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'configs': [config.to_dict(links=False) for config in self.configs],
+        }
+    
     @classmethod
     def get_required(cls) -> set[str]:
         return super(DataStreamExperienceConfig, cls).get_required()
@@ -478,11 +499,30 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         db.ListField(db.EmbeddedDocumentField(TransformConfig)),
         default=None
     )
+    
+    def to_dict(self, links=True) -> TDesc:
+        data = {
+            'train_stream': [train_config.to_dict(links=False) for train_config in self.train_stream],
+            'test_stream': [test_config.to_dict(links=False) for test_config in self.test_stream],
+            'other_streams': {
+                k: [config.to_dict(links=False) for config in v] for k, v in self.other_streams.items()
+            },
+            'task_labels': self.task_labels,
+            'img_type': self.img_type,
+            'complete_test_set_only': self.complete_test_set_only,
 
-    # train_transform = db.StringField(choices=(None, TO_TENSOR), default=TO_TENSOR)
-    # train_target_transform = db.StringField(choices=(None, TO_TENSOR), default=None)
-    # eval_transform = db.StringField(choices=(None, TO_TENSOR), default=TO_TENSOR)
-    # eval_target_transform = db.StringField(choices=(None, TO_TENSOR), default=None)
+            'train_transform': self.train_transform.to_dict(links=False),
+            'train_target_transform': self.train_target_transform.to_dict(links=False),
+
+            'eval_transform': self.eval_transform.to_dict(links=False),
+            'eval_target_transform': self.eval_target_transform.to_dict(links=False),
+
+            'other_transform_groups': {
+                k: [transform.to_dict(links=False) for transform in v] for k, v in self.other_transform_groups.items()
+            }
+        }
+        data.update(super().to_dict(links=links))
+        return data
 
     def get_loader(self):
         img_type = self.img_type

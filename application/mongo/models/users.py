@@ -187,11 +187,14 @@ class MongoUser(MongoBaseUser):
         if save:
             self.save()
 
-    def to_dict(self, include_email=False):
+    def to_dict(self, include_email=False, links=True):
         data = {
             'username': self.username,
             'metadata': self.metadata.to_dict(),
         }
+        if links:
+            workspaces = Workspace.get(self)
+            data['workspaces'] = [workspace.to_dict(links=False) for workspace in workspaces]
         if include_email:
             data['email'] = self.email
         return data

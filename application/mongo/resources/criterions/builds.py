@@ -13,6 +13,9 @@ from application.mongo.resources.mongo_base_configs import *
 @MongoBuildConfig.register_build_config('CrossEntropyLoss')
 class CrossEntropyLossBuildConfig(MongoBuildConfig):
 
+    def to_dict(self, links=True) -> TDesc:
+        return super().to_dict(links=links)
+
     @classmethod
     def get_required(cls) -> set[str]:
         return set()

@@ -69,11 +69,12 @@ def get_workspace(username, wname):
         return NotExistingUser(user=username)
     context = UserWorkspaceResourceContext(username, wname)
     urn = Workspace.dfl_claas_urn_builder(context)
-    data = Workspace.get_by_claas_urn(urn).to_dict()
-    if data is None:
-        return ResourceNotFound(resource=wname)
-    else:
+    workspace = Workspace.get_by_claas_urn(urn)
+    if workspace is not None:
+        data = workspace.to_dict()
         return make_success_dict(HTTPStatus.OK, data=data)
+    else:
+        return ResourceNotFound(resource=wname)
 
 
 @workspaces_bp.get('/')
@@ -102,8 +103,10 @@ def rename_workspace(username, wname):
     :param wname:
     :return:
     """
-    result, error = check_current_user_ownership(username,
-                                                 f"You cannot rename another user ({username}) workspace ({wname}).")
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot rename another user ({username}) workspace ({wname}).",
+    )
     if not result:
         return error
 
@@ -222,9 +225,11 @@ def set_workspace_status(username, wname):
 
 __all__ = [
     'workspaces_bp',
+
     'create_workspace',
     'get_workspace',
     'get_workspaces',
+
     'rename_workspace',
     'delete_workspace',
     'get_workspace_status',

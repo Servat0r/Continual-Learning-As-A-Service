@@ -34,6 +34,9 @@ class StrategyPluginConfig(MongoEmbeddedBuildConfig):
 
     __CONFIGS__: TDesc = {}
 
+    def to_dict(self, links=True) -> TDesc:
+        return super().to_dict(links=links)
+
     @staticmethod
     def register_plugin_config(name: str = None):
         def registerer(cls):
@@ -55,6 +58,13 @@ class StrategyPluginConfig(MongoEmbeddedBuildConfig):
                 raise ValueError('Missing name')
             else:
                 return cls.__CONFIGS__.get(cname)
+
+    @classmethod
+    def get_key(cls) -> str | None:
+        for name, cl in cls.__CONFIGS__.items():
+            if cls == cl:
+                return name
+        return None
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
@@ -107,6 +117,21 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
     eval_every = db.IntField(default=-1)
     metricset = db.ReferenceField(MongoStandardMetricSetConfig, required=True)
     plugins = db.ListField(db.EmbeddedDocumentField(StrategyPluginConfig), default=None)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'model': self.model.to_dict(links=False) if links else self.model.get_name(),
+            'optimizer': self.optimizer.to_dict(links=False) if links else self.optimizer.get_name(),
+            'criterion': self.criterion.to_dict(links=False) if links else self.criterion.get_name(),
+            'train_mb_size': self.train_mb_size,
+            'train_epochs': self.train_epochs,
+            'eval_mb_size': self.eval_mb_size,
+            'eval_every': self.eval_every,
+            'metricset': self.metricset.to_dict(links=False) if links else self.metricset.get_name(),
+            'plugins': [plugin.to_dict(links=False) if links else plugin.get_name() for plugin in self.plugins],
+        })
+        return data
 
     @staticmethod
     @abstractmethod

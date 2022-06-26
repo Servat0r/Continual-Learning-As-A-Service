@@ -212,6 +212,8 @@ class MongoWorkspace(MongoBaseWorkspace):
                 return False, ex.args[0]
 
     def save(self, create=False) -> bool:
+        # noinspection PyBroadException
+        # noinspection PyUnusedLocal
         try:
             if create:
                 db.Document.save(self, force_insert=create)
@@ -227,13 +229,17 @@ class MongoWorkspace(MongoBaseWorkspace):
         if save:
             self.save()
 
-    def to_dict(self) -> TDesc:
-        return {
+    def to_dict(self, links=True) -> TDesc:
+        data = {
             'name': self.name,
             'status': self.status,
-            'owner': self.owner.to_dict(),
             'metadata': self.metadata.to_dict(),
         }
+        if links:
+            data['owner'] = self.owner.to_dict(links=False)
+        else:
+            data['owner'] = self.owner.get_name()
+        return data
 
     # 7. Query-like methods
     def data_repositories(self):

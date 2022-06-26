@@ -9,7 +9,7 @@ from .base_datatypes import *
 
 class BaseMetadata(JSONSerializable):
 
-    def to_dict(self) -> TDesc:
+    def to_dict(self, links=True) -> TDesc:
         return {
             'created': self.get_created(),
             'last_modified': self.get_last_modified(),
@@ -28,7 +28,7 @@ class BaseMetadata(JSONSerializable):
         pass
 
 
-class BuildConfig(NameBasedResource):
+class BuildConfig(JSONSerializable, NameBasedResource):
 
     __CONFIGS__: TDesc = {}
 
@@ -60,6 +60,13 @@ class BuildConfig(NameBasedResource):
                 return cls.__CONFIGS__.get(cname)
 
     @classmethod
+    def get_key(cls) -> str | None:
+        for name, cl in cls.__CONFIGS__.items():
+            if cls == cl:
+                return name
+        return None
+
+    @classmethod
     @abstractmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
         pass
@@ -78,7 +85,7 @@ class BuildConfig(NameBasedResource):
         pass
 
 
-class ResourceConfig(URIBasedResource):
+class ResourceConfig(JSONSerializable, URIBasedResource):
 
     # .................... #
     @classmethod

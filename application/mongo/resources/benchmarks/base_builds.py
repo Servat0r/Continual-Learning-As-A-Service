@@ -49,6 +49,12 @@ class MongoBaseBenchmarkBuildConfig(MongoBuildConfig):
     def target_type() -> t.Type[DataType]:
         return DataType.get_type('Benchmark')
 
+    @abstractmethod
+    def to_dict(self, links=True) -> TDesc:
+        data = {'data_repository': self.data_repository} if self.data_repository is not None else {}
+        data.update(super().to_dict())
+        return data
+
 
 class MongoBaseClassicBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig):
 
@@ -64,6 +70,42 @@ class MongoBaseClassicBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig):
     shuffle = db.BooleanField(default=True)
     train_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
     eval_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
+
+    @staticmethod
+    @abstractmethod
+    def default_train_transform() -> t.Type[TransformConfig]:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def default_eval_transform() -> t.Type[TransformConfig]:
+        pass
+
+    def extra_dict_data(self) -> TDesc:
+        """
+        Method used to add build config-specific fields to resource dict.
+        MongoBaseClassicBenchmarkBuildConfig subclasses should redefine this method ONLY
+        if they have extra fields or they want to include extra information.
+        :return: A dictionary used for updating main representation dict in to_dict(...).
+        """
+        return {}
+
+    def to_dict(self, links=True) -> TDesc:
+        data = {
+            'n_experiences': self.n_experiences,
+            'return_task_id': self.return_task_id,
+            'seed': self.seed,
+            'fixed_class_order': self.fixed_class_order,
+            'shuffle': self.shuffle,
+        }
+        if self.train_transform is not None:
+            data['train_transform'] = self.train_transform.to_dict(links=False),
+        if self.eval_transform is not None:
+            data['eval_transform'] = self.eval_transform.to_dict(links=False),
+        data.update(super().to_dict(links=links))
+        extra = self.extra_dict_data()
+        data.update(extra)
+        return data
 
     @staticmethod
     @abstractmethod

@@ -24,6 +24,18 @@ class SGDBuildConfig(MongoBuildConfig):
     nesterov = db.BooleanField(default=False)
     model = db.ReferenceField(MongoModelConfig, required=True)  # for parameters
 
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'learning_rate': self.learning_rate,
+            'momentum': self.momentum,
+            'dampening': self.dampening,
+            'weight_decay': self.weight_decay,
+            'nesterov': self.nesterov,
+            'model': self.model.to_dict(links=False) if links else self.model.get_name(),
+        })
+        return data
+
     @classmethod
     def get_required(cls) -> set[str]:
         return {'model', 'learning_rate'}
@@ -114,6 +126,16 @@ class AdamBuildConfig(MongoBuildConfig):
     eps = db.FloatField(default=1e-8)
     weight_decay = db.FloatField(default=0.0)
     model = db.ReferenceField(MongoModelConfig, required=True)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'learning_rate': self.learning_rate,
+            'eps': self.eps,
+            'weight_decay': self.weight_decay,
+            'model': self.model.to_dict(links=False) if links else self.model.get_name(),
+        })
+        return data
 
     @classmethod
     def get_required(cls) -> set[str]:

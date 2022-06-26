@@ -140,7 +140,7 @@ class Workspace(JSONSerializable, URIBasedResource):
         pass
 
     @abstractmethod
-    def to_dict(self) -> TDesc:
+    def to_dict(self, links=True) -> TDesc:
         pass
 
     # 7. Query-like methods

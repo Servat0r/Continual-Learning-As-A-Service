@@ -20,6 +20,14 @@ class SplitMNISTBuildConfig(MongoBaseClassicBenchmarkBuildConfig):
     Build config for a standard SplitMNIST benchmark based on avalanche.benchmarks.classics#SplitMNIST function.
     """
     @staticmethod
+    def default_train_transform() -> t.Type[TransformConfig]:
+        return DefaultMNISTTrainTransformConfig
+
+    @staticmethod
+    def default_eval_transform() -> t.Type[TransformConfig]:
+        return DefaultMNISTEvalTransformConfig
+
+    @staticmethod
     def benchmark_generator() -> t.Callable:
         return SplitMNIST
 
@@ -41,6 +49,17 @@ class SplitFashionMNISTBuildConfig(MongoBaseClassicBenchmarkBuildConfig):
 
     # Fields
     first_batch_with_half_classes = db.BooleanField(required=False, default=False)
+
+    def extra_dict_data(self) -> TDesc:
+        return {'first_batch_with_half_classes': self.first_batch_with_half_classes}
+
+    @staticmethod
+    def default_train_transform() -> TransformConfig:
+        return DefaultMNISTTrainTransformConfig()
+
+    @staticmethod
+    def default_eval_transform() -> TransformConfig:
+        return DefaultMNISTEvalTransformConfig()
 
     @staticmethod
     def benchmark_generator() -> t.Callable:
@@ -106,6 +125,18 @@ class PermutedMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
     seed = db.IntField(default=None)
     train_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
     eval_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = {
+            'n_experiences': self.n_experiences,
+            'seed': self.seed,
+        }
+        if self.train_transform is not None:
+            data['train_transform'] = self.train_transform.to_dict(links=False)
+        if self.eval_transform is not None:
+            data['eval_transform'] = self.eval_transform.to_dict(links=False)
+        data.update(super().to_dict(links=links))
+        return data
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -197,7 +228,18 @@ class SplitCIFAR10BuildConfig(MongoBaseClassicBenchmarkBuildConfig):
     
     # Fields
     first_exp_with_half_classes = db.BooleanField(default=False)
-    
+
+    def extra_dict_data(self) -> TDesc:
+        return {'first_exp_with_half_classes': self.first_exp_with_half_classes}
+
+    @staticmethod
+    def default_train_transform() -> TransformConfig:
+        return DefaultCIFAR10TrainTransformConfig()
+
+    @staticmethod
+    def default_eval_transform() -> TransformConfig:
+        return DefaultCIFAR10EvalTransformConfig()
+
     @staticmethod
     def benchmark_generator() -> t.Callable:
         return SplitCIFAR10
@@ -259,6 +301,17 @@ class SplitCIFAR100BuildConfig(MongoBaseClassicBenchmarkBuildConfig):
 
     # Fields
     first_exp_with_half_classes = db.BooleanField(default=False)
+
+    def extra_dict_data(self) -> TDesc:
+        return {'first_exp_with_half_classes': self.first_exp_with_half_classes}
+
+    @staticmethod
+    def default_train_transform() -> TransformConfig:
+        return DefaultCIFAR100TrainTransformConfig()
+
+    @staticmethod
+    def default_eval_transform() -> TransformConfig:
+        return DefaultCIFAR100EvalTransformConfig()
 
     @staticmethod
     def benchmark_generator() -> t.Callable:
@@ -333,6 +386,26 @@ class CORe50BuildConfig(MongoBaseBenchmarkBuildConfig):
     mini = db.BooleanField(default=False)   # True -> 32x32 images; False -> 128x128 images
     train_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
     eval_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = {
+            'scenario': self.scenario,
+            'run': self.run,
+            'object_lvl': self.object_lvl,
+            'mini': self.mini,
+            'train_transform': self.train_transform.to_dict(links=False),
+            'eval_transform': self.eval_transform.to_dict(links=False),
+        }
+        data.update(super().to_dict(links=links))
+        return data
+    
+    @staticmethod
+    def default_train_transform() -> TransformConfig:
+        return DefaultCORe50TrainTransformConfig()
+
+    @staticmethod
+    def default_eval_transform() -> TransformConfig:
+        return DefaultCORe50EvalTransformConfig()
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -437,6 +510,14 @@ class SplitTinyImageNetBuildConfig(MongoBaseClassicBenchmarkBuildConfig):
     @staticmethod
     def dataset_name() -> str:
         return 'tiny_imagenet'
+
+    @staticmethod
+    def default_train_transform() -> TransformConfig:
+        return DefaultTinyImageNetTrainTransformConfig()
+
+    @staticmethod
+    def default_eval_transform() -> TransformConfig:
+        return DefaultTinyImageNetEvalTransformConfig()
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:

@@ -9,6 +9,7 @@ from application.utils import TBoolStr, TBoolExc, TDesc, abstractmethod, t
 from application.validation import *
 from application.models import User, Workspace
 
+from application.resources.utils import JSONSerializable
 from application.resources.contexts import ResourceContext, UserWorkspaceResourceContext
 from application.resources.base import BuildConfig, ResourceConfig, BaseMetadata, DataType
 
@@ -17,12 +18,18 @@ from application.mongo.mongo_base_metadata import MongoBaseMetadata
 from application.mongo.base import MongoBaseUser, MongoBaseWorkspace
 
 
-class MongoEmbeddedBuildConfig(db.EmbeddedDocument):
+class MongoEmbeddedBuildConfig(db.EmbeddedDocument, JSONSerializable):
 
     meta = {
         'abstract': True,
         'allow_inheritance': True,
     }
+
+    @abstractmethod
+    def to_dict(self, links=True) -> TDesc:
+        cls = type(self)
+        name = cls.get_key()
+        return {'name': name}
 
     @classmethod
     @abstractmethod
@@ -141,6 +148,12 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
 
     def __init__(self, *args, **values):
         db.EmbeddedDocument.__init__(self, *args, **values)
+
+    @abstractmethod
+    def to_dict(self, links=True) -> TDesc:
+        cls = type(self)
+        name = cls.get_key()
+        return {'name': name}
 
     @classmethod
     @abstractmethod
@@ -297,11 +310,42 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
     def parents(self) -> set[RWLockableDocument]:
         return {self.workspace}
 
+    def extra_linked_dict_repr(self) -> TDesc:
+        """
+        Method used to add resource-specific fields to resource dict.
+        MongoResourceConfig subclasses should redefine this method ONLY
+        if they have extra fields or they want to include extra information.
+        :return: A dictionary used for updating main representation dict in to_dict(...).
+        """
+        return {}
+
+    def to_dict(self, links=True) -> TDesc:
+        data = {
+            'name': self.name,
+            'description': self.description,
+            'metadata': self.metadata.to_dict(),
+            'build': self.build_config.to_dict(links=False),
+            'owner': self.owner.to_dict(links=False) if links else self.owner.get_name(),
+            'workspace': self.workspace.to_dict(links=False) if links else self.workspace.get_name(),
+        }
+        extra = self.extra_linked_dict_repr()
+        data.update(extra)
+        """
+        if links:
+            data['owner'] = self.owner.to_dict(links=False)
+            data['workspace'] = self.workspace.to_dict(links=False)
+            extra = self.extra_linked_dict_repr()
+            data.update(extra)
+        else:
+            data['owner'] = self.owner.get_name()
+            data['workspace'] = self.workspace.get_name()
+        """
+        return data
+
     # .................... #
     @classmethod
     def get(cls, owner: str | MongoBaseUser = None, workspace: str | MongoBaseWorkspace = None,
-            name: str = None) -> list[MongoResourceConfig]:
-        args = {}
+            name: str = None, **args) -> list[MongoResourceConfig]:
         if owner is not None:
             owner = User.canonicalize(owner)
             args['owner'] = owner
@@ -317,8 +361,8 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
 
     @classmethod
     def get_one(cls, owner: str | MongoBaseUser = None, workspace: str | MongoBaseWorkspace = None,
-                name: str = None, check_unique=False) -> MongoResourceConfig | None:
-        results = cls.get(owner, workspace, name)
+                name: str = None, check_unique=False, **args) -> MongoResourceConfig | None:
+        results = cls.get(owner, workspace, name, **args)
         if check_unique and len(results) > 1:
             raise RuntimeError("Query returned more than one result!")
         return results[0] if len(results) > 0 else None
@@ -496,7 +540,8 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
 
         if new_build_config is not None:
             data.pop('build')
-            return self.build_config.update(data, context)
+            new_build_config.pop('name', None)    # Cannot modify build config!
+            return self.build_config.update(new_build_config, context)
 
         return True, None
 

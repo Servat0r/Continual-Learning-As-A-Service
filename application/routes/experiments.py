@@ -199,7 +199,7 @@ def get_experiment_settings(username, wname, name):
     if err_response:
         return err_response
     else:
-        data = experiment_config.to_dict(settings=True)
+        data = experiment_config.to_dict()
         return make_success_dict(data=data)
 
 
@@ -274,6 +274,7 @@ def delete_experiment(username, wname, name):
 
 __all__ = [
     'experiments_bp',
+
     'create_experiment',
     'setup_experiment',
 

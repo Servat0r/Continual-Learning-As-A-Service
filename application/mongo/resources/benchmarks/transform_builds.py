@@ -85,6 +85,11 @@ class ToTensorConfig(TransformConfig):
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
         return super(ToTensorConfig, cls).create(data, context, save)
 
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'ToTensor',
+        }
+
     def get_transform(self):
         return ToTensor()
 
@@ -94,6 +99,13 @@ class CenterCropConfig(TransformConfig):
 
     width = db.IntField(required=True)
     height = db.IntField(required=True)
+
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'CenterCrop',
+            'width': self.width,
+            'height': self.height,
+        }
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -133,6 +145,16 @@ class RandomCropConfig(TransformConfig):
     padding = db.ListField(db.IntField(), default=None)
     pad_if_needed = db.BooleanField(default=False)
     fill = db.IntField(default=0)
+
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'RandomCrop',
+            'width': self.width,
+            'height': self.height,
+            'padding': self.padding,
+            'pad_if_needed': self.pad_if_needed,
+            'fill': self.fill,
+        }
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -185,6 +207,12 @@ class RandomHorizontalFlipConfig(TransformConfig):
     # Fields
     p = db.FloatField(default=0.5)
 
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'RandomHorizontalFlip',
+            'p': self.p,
+        }
+
     @classmethod
     def get_required(cls) -> set[str]:
         return super(RandomHorizontalFlipConfig, cls).get_required()
@@ -219,6 +247,14 @@ class NormalizeConfig(TransformConfig):
     mean = db.ListField(db.FloatField(), required=True)
     std = db.ListField(db.FloatField(), required=True)
     inplace = db.BooleanField(default=False)
+
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'Normalize',
+            'mean': self.mean,
+            'std': self.std,
+            'inplace': self.inplace,
+        }
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -279,6 +315,12 @@ class ComposeConfig(TransformConfig):
 
     transforms = db.ListField(db.EmbeddedDocumentField(TransformConfig), required=True)
 
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'Compose',
+            'transforms': [transform.to_dict(links=False) for transform in self.transforms],
+        }
+
     @classmethod
     def get_required(cls) -> set[str]:
         return super(ComposeConfig, cls).get_required().union({'transforms'})
@@ -332,6 +374,11 @@ class ComposeConfig(TransformConfig):
 @TransformConfig.register_transform_config('TrainMNIST')
 class DefaultMNISTTrainTransformConfig(TransformConfig):
 
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'TrainMNIST',
+        }
+
     @classmethod
     def get_required(cls) -> set[str]:
         return set()
@@ -356,6 +403,11 @@ class DefaultMNISTTrainTransformConfig(TransformConfig):
 
 @TransformConfig.register_transform_config('EvalMNIST')
 class DefaultMNISTEvalTransformConfig(TransformConfig):
+
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'EvalMNIST',
+        }
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -382,6 +434,11 @@ class DefaultMNISTEvalTransformConfig(TransformConfig):
 # CIFAR10 transforms
 @TransformConfig.register_transform_config('TrainCIFAR10')
 class DefaultCIFAR10TrainTransformConfig(TransformConfig):
+
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'TrainCIFAR10',
+        }
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -415,6 +472,11 @@ class DefaultCIFAR10TrainTransformConfig(TransformConfig):
 @TransformConfig.register_transform_config('EvalCIFAR10')
 class DefaultCIFAR10EvalTransformConfig(TransformConfig):
 
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'EvalCIFAR10',
+        }
+
     @classmethod
     def get_required(cls) -> set[str]:
         return set()
@@ -445,6 +507,11 @@ class DefaultCIFAR10EvalTransformConfig(TransformConfig):
 # CIFAR100 transforms
 @TransformConfig.register_transform_config('TrainCIFAR100')
 class DefaultCIFAR100TrainTransformConfig(TransformConfig):
+
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'TrainCIFAR100',
+        }
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -478,6 +545,11 @@ class DefaultCIFAR100TrainTransformConfig(TransformConfig):
 @TransformConfig.register_transform_config('EvalCIFAR100')
 class DefaultCIFAR100EvalTransformConfig(TransformConfig):
 
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'EvalCIFAR100',
+        }
+
     @classmethod
     def get_required(cls) -> set[str]:
         return set()
@@ -509,6 +581,11 @@ class DefaultCIFAR100EvalTransformConfig(TransformConfig):
 @TransformConfig.register_transform_config('TrainCORe50')
 class DefaultCORe50TrainTransformConfig(TransformConfig):
 
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'TrainCORe50',
+        }
+
     @classmethod
     def get_required(cls) -> set[str]:
         return set()
@@ -538,6 +615,11 @@ class DefaultCORe50TrainTransformConfig(TransformConfig):
 @TransformConfig.register_transform_config('EvalCORe50')
 class DefaultCORe50EvalTransformConfig(TransformConfig):
 
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'EvalCORe50',
+        }
+
     @classmethod
     def get_required(cls) -> set[str]:
         return set()
@@ -566,6 +648,11 @@ class DefaultCORe50EvalTransformConfig(TransformConfig):
 # Tiny ImageNet transforms
 @TransformConfig.register_transform_config('TrainTinyImageNet')
 class DefaultTinyImageNetTrainTransformConfig(TransformConfig):
+
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'TrainTinyImageNet',
+        }
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -597,6 +684,11 @@ class DefaultTinyImageNetTrainTransformConfig(TransformConfig):
 
 @TransformConfig.register_transform_config('EvalTinyImageNet')
 class DefaultTinyImageNetEvalTransformConfig(TransformConfig):
+
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'EvalTinyImageNet',
+        }
 
     @classmethod
     def get_required(cls) -> set[str]:

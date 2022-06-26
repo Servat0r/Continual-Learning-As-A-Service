@@ -27,6 +27,17 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
     hidden_layers = db.IntField(default=1)
     drop_rate = db.FloatField(default=0.0)
 
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'num_classes': self.num_classes,
+            'input_size': self.input_size,
+            'hidden_size': self.hidden_size,
+            'hidden_layers': self.hidden_layers,
+            'drop_rate': self.drop_rate,
+        })
+        return data
+
     @classmethod
     def get_required(cls) -> set[str]:
         return set()
@@ -86,6 +97,11 @@ class SimpleCNNBuildConfig(MongoBuildConfig):
     # Fields
     num_classes = db.IntField(default=10)
 
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({'num_classes': self.num_classes})
+        return data
+
     @classmethod
     def get_required(cls) -> set[str]:
         return set()
@@ -133,6 +149,16 @@ class PNNBuildConfig(MongoBuildConfig):
     hidden_features_per_column = db.IntField(default=100)
     adapter = db.StringField(choices=(_MLP, _LINEAR), default=_MLP)
     
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'num_layers': self.num_layers,
+            'in_features': self.in_features,
+            'hidden_features_per_column': self.hidden_features_per_column,
+            'adapter': self.adapter,
+        })
+        return data
+
     @classmethod
     def get_required(cls) -> set[str]:
         return set()
@@ -196,6 +222,18 @@ class MLPBuildConfig(MongoBuildConfig):
     output_size = db.IntField(default=10)
     drop_rate = db.FloatField(default=0.0)
     relu_act = db.BooleanField(default=True)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'input_size': self.input_size,
+            'hidden_size': self.hidden_size,
+            'hidden_layers': self.hidden_layers,
+            'output_size': self.output_size,
+            'drop_rate': self.drop_rate,
+            'relu_act': self.relu_act,
+        })
+        return data
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -264,6 +302,17 @@ class MultiHeadMLPBuildConfig(MongoBuildConfig):
     drop_rate = db.FloatField(default=0.0)
     relu_act = db.BooleanField(default=True)
 
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'input_size': self.input_size,
+            'hidden_size': self.hidden_size,
+            'hidden_layers': self.hidden_layers,
+            'drop_rate': self.drop_rate,
+            'relu_act': self.relu_act,
+        })
+        return data
+
     @classmethod
     def get_required(cls) -> set[str]:
         return set()
@@ -324,6 +373,11 @@ class SynapticIntelligenceCNNBuildConfig(MongoBuildConfig):
     # Fields
     hidden_size = db.IntField(default=512)
 
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({'hidden_size': self.hidden_size})
+        return data
+
     @classmethod
     def get_required(cls) -> set[str]:
         return set()
@@ -362,6 +416,9 @@ class SynapticIntelligenceCNNBuildConfig(MongoBuildConfig):
 @MongoBuildConfig.register_build_config('VGGSmall')
 class VGGSmallBuildConfig(MongoBuildConfig):
 
+    def to_dict(self, links=True) -> TDesc:
+        return super().to_dict(links=links)
+
     @classmethod
     def get_required(cls) -> set[str]:
         return super(VGGSmallBuildConfig, cls).get_required()
@@ -399,6 +456,14 @@ class MultiHeadVGGClassifierBuildConfig(MongoBuildConfig):
     # Fields
     in_features = db.IntField(required=True)
     n_classes = db.IntField(required=True)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'in_features': self.in_features,
+            'n_classes': self.n_classes,
+        })
+        return data
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -439,6 +504,11 @@ class MultiHeadVGGClassifierBuildConfig(MongoBuildConfig):
 class MultiHeadVGGSmallBuildConfig(MongoBuildConfig):
     
     n_classes = db.IntField(default=20)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({'n_classes': self.n_classes})
+        return data
 
     @classmethod
     def get_required(cls) -> set[str]:

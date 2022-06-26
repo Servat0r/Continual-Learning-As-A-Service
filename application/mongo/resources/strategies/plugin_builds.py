@@ -19,6 +19,14 @@ class SynapticIntelligencePluginConfig(StrategyPluginConfig):
     si_lambda_for_all = db.BooleanField(default=False)
     eps = db.FloatField(default=0.0000001)
 
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'si_lambda': self.si_lambda[0] if self.si_lambda_for_all else self.si_lambda,
+            'eps': self.eps,
+        })
+        return data
+
     @classmethod
     def get_required(cls) -> set[str]:
         return (super().get_required() or set()).union({'si_lambda'})
@@ -76,6 +84,11 @@ class ReplayPluginConfig(StrategyPluginConfig):
     # Fields
     memory = db.IntField(default=200)
 
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({'memory': self.memory})
+        return data
+
     @classmethod
     def get_required(cls) -> set[str]:
         return super(ReplayPluginConfig, cls).get_required()
@@ -113,6 +126,14 @@ class LwFPluginConfig(StrategyPluginConfig):
     alpha = db.ListField(db.FloatField(), required=True)
     alpha_for_all = db.BooleanField(default=False)
     temperature = db.FloatField(required=True)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'alpha': self.alpha[0] if self.alpha_for_all else self.alpha,
+            'temperature': self.temperature,
+        })
+        return data
 
     @classmethod
     def validate_input(cls, data: TDesc, context: UserWorkspaceResourceContext) -> TBoolStr:
@@ -165,6 +186,16 @@ class EWCPluginConfig(StrategyPluginConfig):
     mode = db.StringField(default="separate")
     decay_factor = db.FloatField(default=None)
     keep_importance_data = db.BooleanField(default=False)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'ewc_lambda': self.ewc_lambda,
+            'mode': self.mode,
+            'decay_factor': self.decay_factor,
+            'keep_importance_data': self.keep_importance_data,
+        })
+        return data
 
     @classmethod
     def validate_input(cls, data: TDesc, context: UserWorkspaceResourceContext) -> TBoolStr:

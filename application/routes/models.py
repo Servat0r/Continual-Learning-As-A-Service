@@ -1,6 +1,7 @@
 from flask import Blueprint, request
+from http import HTTPStatus
 
-from application.utils import checked_json
+from application.utils import checked_json, make_success_dict
 from .auth import token_auth
 from .resources import *
 
@@ -21,6 +22,7 @@ def create_model(username, wname):
 
 @models_bp.get('/<resource:name>/')
 @models_bp.get('/<resource:name>')
+@token_auth.login_required
 def get_model(username, wname, name):
     """
     :param username: 
@@ -28,11 +30,15 @@ def get_model(username, wname, name):
     :param name: 
     :return: 
     """
-    return get_resource(username, wname, _DFL_MODEL_NAME_, name)
+    resource, response = get_resource(username, wname, _DFL_MODEL_NAME_, name)
+    if response is not None:    # error
+        return response
+    else:
+        return make_success_dict(HTTPStatus.OK, resource.to_dict())
 
 
 @models_bp.patch('/<resource:name>/')
-@models_bp.patch('/<resource:name>/')
+@models_bp.patch('/<resource:name>')
 @token_auth.login_required
 def update_model(username, wname, name):
     """

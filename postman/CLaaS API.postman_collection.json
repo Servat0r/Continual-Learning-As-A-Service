@@ -1,0 +1,1717 @@
+{
+	"info": {
+		"_postman_id": "40cab713-d2ff-4f19-9269-125e9c80b1e5",
+		"name": "CLaaS Server",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "19630853"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"{{username1}}\",\r\n    \"password\": \"{{password1}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"logout",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"{{username1}}\",\r\n    \"email\": \"{{email1}}\",\r\n    \"password\": \"{{password1}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetUser",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetAllUsers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "EditUser",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"{{username1}}\",\r\n    \"email\": \"{{email1_1}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "EditPassword",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"old_password\": \"{{password1}}\",\r\n    \"new_password\": \"{{password1_1}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1_1}}/password/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1_1}}",
+								"password",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteUser",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Workspaces",
+			"item": [
+				{
+					"name": "CreateWorkspace",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{workspace1}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetWorkspace",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetWorkspaces",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteWorkspace",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "RenameWorkspace",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"new_name\": {{workspace1_1}}\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/name/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"name",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetWorkspaceStatus",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/status/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"status",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "SetWorkspaceStatus",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"status\": \"OPEN\"\r\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/status/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"status",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Benchmarks",
+			"item": [
+				{
+					"name": "CreateBenchmark",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{benchmark}}\",\r\n    \"description\": \"description\",\r\n    \"build\": {\r\n        \"name\": \"SplitMNIST\",\r\n        \"n_experiences\": 5,\r\n        \"seed\": 0,\r\n        \"train_transform\": {\r\n            \"name\": \"TrainMNIST\"\r\n        },\r\n        \"eval_transform\": {\r\n            \"name\": \"EvalMNIST\"\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/benchmarks",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"benchmarks"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetBenchmark",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/benchmarks/{{benchmark}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"benchmarks",
+								"{{benchmark}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateBenchmark",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{benchmark}}\",\r\n    \"build\":{\r\n        \"name\": \"SplitMNIST\",\r\n        \"n_experiences\": 10,\r\n        \"seed\": 1\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/benchmarks/{{benchmark}}/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"benchmarks",
+								"{{benchmark}}",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteBenchmark",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/benchmarks/{{benchmark}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"benchmarks",
+								"{{benchmark}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Criterions",
+			"item": [
+				{
+					"name": "CreateCriterion",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{criterion}}\",\r\n    \"description\": \"description\",\r\n    \"build\": {\r\n        \"name\": \"CrossEntropyLoss\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/criterions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"criterions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetCriterion",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/criterions/{{criterion}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"criterions",
+								"{{criterion}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateCriterion",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"criterion\",\r\n    \"build\": {\r\n        \"name\": \"CrossEntropyLoss\"\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/criterions/{{criterion}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"criterions",
+								"{{criterion}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteCriterion",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/criterions/{{criterion}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"criterions",
+								"{{criterion}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "DataRepositories",
+			"item": [
+				{
+					"name": "CreateDataRepository",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{repository}}\",\r\n    \"description\": \"description\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/data",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"data"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetDataRepository",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/data/{{repository}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"data",
+								"{{repository}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetDataRepositoryDesc",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/data/{{repository}}/desc",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"data",
+								"{{repository}}",
+								"desc"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CreateSubFolder",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"fashion_mnist\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/data/{{repository}}/folders",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"data",
+								"{{repository}}",
+								"folders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "MoveFolder",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"src_path\": \"test\",\r\n    \"dest_path\": \"mnist/test\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/data/{{repository}}/folders",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"data",
+								"{{repository}}",
+								"folders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteSubFolder",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/data/{{repository}}/folders/{{folder_path}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"data",
+								"{{repository}}",
+								"folders",
+								"{{folder_path}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteDataRepository",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/data/{{repository}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"data",
+								"{{repository}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "SendFiles",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": []
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/data/{{repository}}/folders/files/{{folder_path}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"data",
+								"{{repository}}",
+								"folders",
+								"files",
+								"{{folder_path}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Experiments",
+			"item": [
+				{
+					"name": "CreateExperiment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{naive_experiment}}\",\r\n    \"description\": \"description\",\r\n    \"build\": {\r\n        \"name\": \"SplitMNIST\",\r\n        \"n_experiences\": 5,\r\n        \"seed\": 0\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"experiments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "SetupExperiment",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"build\":{\r\n        \"name\": \"SplitMNIST\",\r\n        \"n_experiences\": 10,\r\n        \"seed\": 1\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments/{{naive_experiment}}/setup",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"experiments",
+								"{{naive_experiment}}",
+								"setup"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "SetExperimentStatus",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"status\": \"START\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments/{{naive_experiment}}/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"experiments",
+								"{{naive_experiment}}",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetExperimentStatus",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments/{{naive_experiment}}/status/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"experiments",
+								"{{naive_experiment}}",
+								"status",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetExperimentResults",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments/{{naive_experiment}}/results/exec",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"experiments",
+								"{{naive_experiment}}",
+								"results",
+								"exec"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetExperimentExecutionResults",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments/{{naive_experiment}}/results/exec/{{exec_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"experiments",
+								"{{naive_experiment}}",
+								"results",
+								"exec",
+								"{{exec_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetExperimentSettings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments/{{naive_experiment}}/settings/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"experiments",
+								"{{naive_experiment}}",
+								"settings",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetExperimentModel",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments/{{naive_experiment}}/model/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"experiments",
+								"{{naive_experiment}}",
+								"model",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetExperimentExecutionModel",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments/{{naive_experiment}}/model/{{exec_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"experiments",
+								"{{naive_experiment}}",
+								"model",
+								"{{exec_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetExperimentCSVResults",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments/{{naive_experiment}}/results/csv",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"experiments",
+								"{{naive_experiment}}",
+								"results",
+								"csv"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetExperimentExecutionCSVResults",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments/{{naive_experiment}}/results/csv/{{exec_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"experiments",
+								"{{naive_experiment}}",
+								"results",
+								"csv",
+								"{{exec_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteExperiment",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments/{{naive_experiment}}/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"experiments",
+								"{{naive_experiment}}",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "MetricSets",
+			"item": [
+				{
+					"name": "CreateMetricSet",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{metricset}}\",\r\n    \"description\": \"description\",\r\n    \"build\": {\r\n        \"name\": \"StandardMetricSet\",\r\n        \"accuracy\": {\r\n            \"minibatch\": true,\r\n            \"epoch\": true,\r\n            \"experience\": true,\r\n            \"stream\": true\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/metricsets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"metricsets"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetMetricSet",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/metricsets/{{metricset}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"metricsets",
+								"{{metricset}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateMetricSet",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{metricset}}\",\r\n    \"build\": {\r\n        \"accuracy\": {\r\n            \"minibatch\": false,\r\n            \"epoch\": false,\r\n            \"experience\": true,\r\n            \"stream\": true\r\n        }\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/metricsets/{{metricset}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"metricsets",
+								"{{metricset}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteMetricSet",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/metricsets/{{metricset}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"metricsets",
+								"{{metricset}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Models",
+			"item": [
+				{
+					"name": "CreateModel",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{model}}\",\r\n    \"description\": \"description\",\r\n    \"build\": {\r\n        \"name\": \"SimpleMLP\",\r\n        \"num_classes\": 10\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/models",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"models"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetModel",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/models/{{model}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"models",
+								"{{model}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateModel",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{model}}\",\r\n    \"build\":{\r\n        \"name\": \"SimpleMLP\",\r\n        \"hidden_size\": 1024\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/models/{{model}}/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"models",
+								"{{model}}",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteModel",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/models/{{model}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"models",
+								"{{model}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Optimizers",
+			"item": [
+				{
+					"name": "CreateOptimizer",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{optimizer}}\",\r\n    \"description\": \"description\",\r\n    \"build\": {\r\n        \"name\": \"SGD\",\r\n        \"model\": \"{{model}}\",\r\n        \"learning_rate\": 0.001,\r\n        \"momentum\": 0.9\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/optimizers",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"optimizers"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetOptimizer",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/optimizers/{{optimizer}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"optimizers",
+								"{{optimizer}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateOptimizer",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"description\": \"...\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/optimizers/{{optimizer}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"optimizers",
+								"{{optimizer}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteOptimizer",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/optimizers/{{optimizer}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"optimizers",
+								"{{optimizer}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Strategies",
+			"item": [
+				{
+					"name": "CreateStrategy",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"{{naive_strategy}}\",\r\n    \"description\": \"description\",\r\n    \"build\": {\r\n        \"name\": \"Naive\",\r\n        \"model\": \"{{model}}\",\r\n        \"optimizer\": \"{{optimizer}}\",\r\n        \"criterion\": \"{{criterion}}\",\r\n        \"metricset\": \"{{metricset}}\",\r\n        \"train_mb_size\": 30,\r\n        \"train_epochs\": 8,\r\n        \"eval_mb_size\": 30\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/strategies",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"strategies"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GetStrategy",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/strategies/{{naive_strategy}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"strategies",
+								"{{naive_strategy}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateStrategy",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"build\":{\r\n        \"name\": \"Replay\",\r\n        \"memory\": 500\r\n    }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/strategies/{{naive_strategy}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"strategies",
+								"{{naive_strategy}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DeleteStrategy",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/strategies/{{naive_strategy}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"strategies",
+								"{{naive_strategy}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "QfscmBizQk53Tsg5JHh5cCxFQlt8WctBrbXMH+f8V9EzTo/Ti2+HnVDlePdMlXGMDf2+UxhlR5FJ4n6GB+pRfpi4Pt9AZ2D8IluJl6ccdEyBMevs6OJonxw26k3CNLVi",
+			"type": "string"
+		},
+		{
+			"key": "username1",
+			"value": "user1",
+			"type": "string"
+		},
+		{
+			"key": "username1_1",
+			"value": "servator",
+			"type": "string"
+		},
+		{
+			"key": "email1",
+			"value": "servator@example.com",
+			"type": "string"
+		},
+		{
+			"key": "email1_1",
+			"value": "s.correnti@example.com",
+			"type": "string"
+		},
+		{
+			"key": "password1",
+			"value": "xpc@59LA",
+			"type": "string"
+		},
+		{
+			"key": "password1_1",
+			"value": "LwC6%901#p",
+			"type": "string"
+		},
+		{
+			"key": "workspace1",
+			"value": "wspace1",
+			"type": "string"
+		},
+		{
+			"key": "workspace1_1",
+			"value": "wspace1_1",
+			"type": "string"
+		},
+		{
+			"key": "benchmark",
+			"value": "benchmark",
+			"type": "string"
+		},
+		{
+			"key": "criterion",
+			"value": "criterion",
+			"type": "string"
+		},
+		{
+			"key": "metricset",
+			"value": "metricset",
+			"type": "string"
+		},
+		{
+			"key": "model",
+			"value": "model",
+			"type": "string"
+		},
+		{
+			"key": "optimizer",
+			"value": "optimizer",
+			"type": "string"
+		},
+		{
+			"key": "naive_strategy",
+			"value": "naive_strategy",
+			"type": "string"
+		},
+		{
+			"key": "naive_experiment",
+			"value": "naive_experiment",
+			"type": "string"
+		},
+		{
+			"key": "repository",
+			"value": "repository",
+			"type": "string"
+		},
+		{
+			"key": "folder_path",
+			"value": "mnist/test",
+			"type": "string"
+		}
+	]
+}

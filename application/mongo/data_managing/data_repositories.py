@@ -125,7 +125,7 @@ class MongoDataRepository(MongoBaseDataRepository):
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
             try:
                 BenchmarkClass = t.cast(ReferrableDataType, DataType.get_type('Benchmark')).config_type()
-                benchmarks = BenchmarkClass.get(workspace=self.get_workspace())
+                benchmarks = BenchmarkClass.get(data_repository=self)  # workspace=self.get_workspace()) todo check!
                 for benchmark in benchmarks:
                     benchmark.delete(context, parents_locked=True)
 
@@ -184,15 +184,20 @@ class MongoDataRepository(MongoBaseDataRepository):
     def data_repo_base_dir(self) -> str:
         return f"DataRepository_{self.get_id()}"
 
-    def to_dict(self) -> TDesc:
+    def to_dict(self, links=True) -> TDesc:
         files = [self.denormalize(k) for k in self.files]
-        return {
+        result = {
             'name': self.name,
             'root': self.root,
-            'workspace': self.workspace.to_dict(),
+            'workspace': self.workspace.to_dict(links=False),
             'metadata': self.metadata.to_dict(),
             'files': files,
         }
+        if links:
+            BenchmarkClass = t.cast(ReferrableDataType, DataType.get_type('Benchmark')).config_type()
+            benchmarks = list(BenchmarkClass.get(data_repository=self))  # workspace=self.get_workspace()) todo check!
+            result['benchmarks'] = [benchmark.to_dict(links=False) for benchmark in benchmarks]
+        return result
 
     # 9. Special methods
     def add_directory(self, dir_name: str, parents: list[str] = None) -> TBoolExc:

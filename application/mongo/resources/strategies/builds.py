@@ -26,6 +26,9 @@ class NaiveBuildConfig(MongoBaseStrategyBuildConfig):
     """
     Build config for Naive strategy.
     """
+    def to_dict(self, links=True) -> TDesc:
+        return super().to_dict(links=links)
+
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         return Naive
@@ -50,6 +53,9 @@ class NaiveBuildConfig(MongoBaseStrategyBuildConfig):
 @MongoBuildConfig.register_build_config('Cumulative')
 class CumulativeBuildConfig(MongoBaseStrategyBuildConfig):
 
+    def to_dict(self, links=True) -> TDesc:
+        return super().to_dict(links=links)
+
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         return Cumulative
@@ -73,6 +79,9 @@ class CumulativeBuildConfig(MongoBaseStrategyBuildConfig):
 # Joint Training
 @MongoBuildConfig.register_build_config('JointTraining')
 class JointTrainingBuildConfig(MongoBaseStrategyBuildConfig):
+
+    def to_dict(self, links=True) -> TDesc:
+        return super().to_dict(links=links)
 
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
@@ -102,6 +111,14 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
     si_lambda = db.ListField(db.FloatField(), required=True)
     si_lambda_for_all = db.BooleanField(default=False)
     eps = db.FloatField(default=0.0000001)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'si_lambda': self.si_lambda[0] if self.si_lambda_for_all else self.si_lambda,
+            'eps': self.eps,
+        })
+        return data
 
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
@@ -168,6 +185,14 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
     alpha_for_all = db.BooleanField(default=False)
     temperature = db.FloatField(required=True)
 
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'alpha': self.alpha[0] if self.alpha_for_all else self.alpha,
+            'temperature': self.temperature,
+        })
+        return data
+
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         return LwF
@@ -232,6 +257,16 @@ class EWCBuildConfig(MongoBaseStrategyBuildConfig):
     mode = db.StringField(default="separate")
     decay_factor = db.FloatField(default=None)
     keep_importance_data = db.BooleanField(default=False)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'ewc_lambda': self.ewc_lambda,
+            'mode': self.mode,
+            'decay_factor': self.decay_factor,
+            'keep_importance_data': self.keep_importance_data,
+        })
+        return data
 
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
@@ -298,6 +333,11 @@ class ReplayBuildConfig(MongoBaseStrategyBuildConfig):
     # Fields
     memory = db.IntField(default=200)
 
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({'memory': self.memory})
+        return data
+
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         return Replay
@@ -337,6 +377,11 @@ class CWRStarBuildConfig(MongoBaseStrategyBuildConfig):
 
     # Fields
     layer_name = db.StringField(default=None)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({'layer_name': self.layer_name})
+        return data
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -378,6 +423,11 @@ class GDumbBuildConfig(MongoBaseStrategyBuildConfig):
     # Fields
     memory = db.IntField(default=200)
 
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({'memory': self.memory})
+        return data
+
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         return GDumb
@@ -418,6 +468,14 @@ class AGEMBuildConfig(MongoBaseStrategyBuildConfig):
     # Fields
     patterns_per_size = db.IntField(required=True)
     sample_size = db.IntField(default=64)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'patterns_per_size': self.patterns_per_size,
+            'sample_size': self.sample_size,
+        })
+        return data
 
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:

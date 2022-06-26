@@ -72,6 +72,25 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
     forward_transfer = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
     MAC = db.MapField(db.BooleanField(), validation=std_name_validate, default={})
 
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'accuracy': self.accuracy,
+            'loss': self.loss,
+            'forgetting': self.forgetting,
+
+            'timing': self.timing,
+            'ram_usage': self.ram_usage,
+            'cpu_usage': self.cpu_usage,
+            'disk_usage': self.disk_usage,
+            'gpu_usage': self.gpu_usage,
+
+            'bwt': self.bwt,
+            'forward_transfer': self.forward_transfer,
+            'MAC': self.MAC,
+        })
+        return data
+    
     @classmethod
     def get_required(cls) -> set[str]:
         return set()

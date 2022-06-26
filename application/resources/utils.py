@@ -15,7 +15,14 @@ def primitive_validate(tp: type) -> t.Callable[[t.Any], TBoolStr]:
 class JSONSerializable:
 
     @abstractmethod
-    def to_dict(self) -> TDesc:
+    def to_dict(self, links=True) -> TDesc:
+        """
+        Returns a dictionary representation of the given object.
+        Representation should be coherent to the one exposed to the user.
+        Optionally, it can include links to related resources as REST feature.
+        :param links: Whether to include or not links to related resources.
+        :return: Dictionary representation of the form {name: value}, with name: str.
+        """
         pass
 
 
