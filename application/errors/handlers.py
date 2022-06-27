@@ -185,6 +185,12 @@ ResourceNotFound = ServerResponseError(
     fmt_len=1,
 )
 
+MissingFile = ServerResponseError(
+    HTTPStatus.BAD_REQUEST,
+    'MissingFile',
+    "Request lacks an attached file object.",
+)
+
 # Locked (423)
 ResourceInUse = ServerResponseError(
     HTTPStatus.LOCKED,
@@ -240,7 +246,9 @@ __all__ = [
     'NotExistingUser',
     'ExistingUser',
     'ResourceNotFound',
+    'MissingFile',
     'ResourceInUse',
+
     'InternalFailure',
     'ServiceUnavailable',
 

@@ -541,7 +541,11 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
         if new_build_config is not None:
             data.pop('build')
             new_build_config.pop('name', None)    # Cannot modify build config!
-            return self.build_config.update(new_build_config, context)
+            result, msg = self.build_config.update(new_build_config, context)
+            if not result:
+                return False, f"Failed to update build config: '{msg}'"
+            self.save()
+            self.update_last_modified()
 
         return True, None
 

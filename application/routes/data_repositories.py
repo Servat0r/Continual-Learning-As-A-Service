@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from http import HTTPStatus
 from flask import Blueprint, request
 
 from application.errors import *
@@ -12,13 +11,6 @@ from application.models import Workspace
 
 from .auth import token_auth, check_current_user_ownership
 from application.data_managing import BaseDataRepository
-
-
-_MissingFile = ServerResponseError(
-    HTTPStatus.BAD_REQUEST,
-    'MissingFile',
-    "Request lacks an attached file object.",
-)
 
 
 data_repositories_bp = Blueprint('data_repositories', __name__,
@@ -335,7 +327,7 @@ def send_files(username, wname, name, path):
     data = {'success': [], 'n_success': 0}
     total = 0
     if len(filestores) < 1:
-        return _MissingFile()
+        return MissingFile()
     else:
         files = filestores.getlist('files')
         info = json.load(filestores.getlist('info')[0].stream)

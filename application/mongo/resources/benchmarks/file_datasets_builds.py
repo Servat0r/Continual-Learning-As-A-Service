@@ -243,12 +243,7 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         labels = params.get('labels', {})
         default_label = params.get('default_label', 0)
 
-        print(f"OPS: root = {root}")
-        print(f"OPS: selected = {selected}")
-
         cls.__prepare_for_create(root, selected, labels, default_label)
-
-        print(f"OPS: selected = {selected}")
 
         selected = SelectorConfig.create(selected, context, save=False)
         if selected is None:
