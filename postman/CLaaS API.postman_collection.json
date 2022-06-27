@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "40cab713-d2ff-4f19-9269-125e9c80b1e5",
-		"name": "CLaaS Server",
+		"name": "CLaaS API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "19630853"
 	},
@@ -830,7 +830,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"name\": \"{{naive_experiment}}\",\r\n    \"description\": \"description\",\r\n    \"build\": {\r\n        \"name\": \"SplitMNIST\",\r\n        \"n_experiences\": 5,\r\n        \"seed\": 0\r\n    }\r\n}",
+							"raw": "{\r\n    \"name\": \"{{naive_experiment}}\",\r\n    \"description\": \"description\",\r\n    \"build\": {\r\n        \"name\": \"ExperimentBuild\",\r\n        \"strategy\": \"{{naive_strategy}}\",\r\n        \"benchmark\": \"{{benchmark}}\"\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -858,15 +858,6 @@
 					"request": {
 						"method": "PATCH",
 						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"build\":{\r\n        \"name\": \"SplitMNIST\",\r\n        \"n_experiences\": 10,\r\n        \"seed\": 1\r\n    }\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
 						"url": {
 							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/experiments/{{naive_experiment}}/setup",
 							"host": [
@@ -1486,7 +1477,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"name\": \"{{naive_strategy}}\",\r\n    \"description\": \"description\",\r\n    \"build\": {\r\n        \"name\": \"Naive\",\r\n        \"model\": \"{{model}}\",\r\n        \"optimizer\": \"{{optimizer}}\",\r\n        \"criterion\": \"{{criterion}}\",\r\n        \"metricset\": \"{{metricset}}\",\r\n        \"train_mb_size\": 30,\r\n        \"train_epochs\": 8,\r\n        \"eval_mb_size\": 30\r\n    }\r\n}",
+							"raw": "{\r\n    \"name\": \"{{naive_strategy}}\",\r\n    \"description\": \"description\",\r\n    \"build\": {\r\n        \"name\": \"Replay\",\r\n        \"model\": \"{{model}}\",\r\n        \"optimizer\": \"{{optimizer}}\",\r\n        \"criterion\": \"{{criterion}}\",\r\n        \"metricset\": \"{{metricset}}\",\r\n        \"train_mb_size\": 30,\r\n        \"train_epochs\": 8,\r\n        \"eval_mb_size\": 30,\r\n        \"memory\": 500\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1579,6 +1570,52 @@
 								"{{workspace1}}",
 								"strategies",
 								"{{naive_strategy}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Predictions",
+			"item": [
+				{
+					"name": "GetPrediction",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "files",
+									"type": "file",
+									"src": "/C:/Users/Amministratore/BACHELOR_THESIS_REPOS/Continual Learning As A Service/tests/source_datasets/mnist/train/4/9.png"
+								},
+								{
+									"key": "info",
+									"type": "file",
+									"src": "/C:/Users/Amministratore/BACHELOR_THESIS_REPOS/Continual Learning As A Service/tests/source_datasets/mnist_stub/mnist_transform.json"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/{{username1}}/workspaces/{{workspace1}}/predictions/{{naive_experiment}}/{{exec_id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{username1}}",
+								"workspaces",
+								"{{workspace1}}",
+								"predictions",
+								"{{naive_experiment}}",
+								"{{exec_id}}"
 							]
 						}
 					},
@@ -1711,6 +1748,11 @@
 		{
 			"key": "folder_path",
 			"value": "mnist/test",
+			"type": "string"
+		},
+		{
+			"key": "exec_id",
+			"value": "1",
 			"type": "string"
 		}
 	]
