@@ -1,0 +1,13 @@
+{
+  "transform": {
+    "name": "Compose",
+    "transforms": [
+      {
+        "name": "BytesToPIL"
+      },
+      {
+        "name": "EvalMNIST"
+      }
+    ]
+  }
+}

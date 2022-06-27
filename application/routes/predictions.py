@@ -46,13 +46,8 @@ def get_transform(username, wname, info):
     return ToTensor()
 
 
-def transform_image(image_bytes, transform) -> torch.Tensor:
-    image = Image.open(io.BytesIO(image_bytes))
-    return transform(image).unsqueeze(0)
-
-
 def predict(model, image_bytes, transform):
-    tensor = transform_image(image_bytes, transform)
+    tensor = transform(image_bytes).unsqueeze(0)
     device = get_device()
     tensor = tensor.to(device)
     model.eval()

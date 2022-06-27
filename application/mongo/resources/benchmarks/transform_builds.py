@@ -1,5 +1,9 @@
 # Embedded Build Configs for dataset transforms
 from __future__ import annotations
+
+import io
+from PIL import Image
+
 from torchvision.transforms import ToTensor, CenterCrop, Normalize, Compose, \
     RandomCrop, RandomHorizontalFlip
 
@@ -61,6 +65,44 @@ class TransformConfig(MongoEmbeddedBuildConfig):
     @abstractmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
         return super(TransformConfig, cls).create(data, context, save)
+
+
+# Special transform for converting bytes to PIL Image
+class BytesToPIL:
+
+    def __call__(self, image_bytes):
+        img = Image.open(io.BytesIO(image_bytes))
+        return img
+
+
+@TransformConfig.register_transform_config('BytesToPIL')
+class BytesToPILConfig(TransformConfig):
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return set()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return set()
+
+    @classmethod
+    def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
+        result, msg = super(BytesToPILConfig, cls).validate_input(data, context)
+        context.pop()
+        return result, msg
+
+    @classmethod
+    def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
+        return super(BytesToPILConfig, cls).create(data, context, save)
+
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'ToTensor',
+        }
+
+    def get_transform(self):
+        return BytesToPIL()
 
 
 # Common transforms
@@ -718,8 +760,13 @@ class DefaultTinyImageNetEvalTransformConfig(TransformConfig):
 
 
 __all__ = [
+    # extra transform(s)
+    'BytesToPIL',
+
+    # Transform Configs
     'TransformConfig',
 
+    'BytesToPILConfig',
     'ToTensorConfig',
     'CenterCropConfig',
     'RandomCropConfig',
