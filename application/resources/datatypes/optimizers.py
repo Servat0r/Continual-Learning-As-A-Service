@@ -7,7 +7,7 @@ from application.resources.base import WrapperReferrableDataType
 
 class CLOptimizer(WrapperReferrableDataType, ABC):
     """
-    A loss criterion.
+    An optimizer.
     """
     def __init__(self, optimizer: Optimizer):
         super().__init__(optimizer)

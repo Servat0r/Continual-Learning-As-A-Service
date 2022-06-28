@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 from avalanche.models.simple_mlp import SimpleMLP
 from avalanche.models.simple_cnn import SimpleCNN
 from avalanche.models.pnn import PNN
 
-from application.utils import TBoolStr, t, TDesc
+from application.utils import TBoolStr, t, TDesc, abstractmethod
 from application.database import db
 from application.avalanche_ext import *
 
