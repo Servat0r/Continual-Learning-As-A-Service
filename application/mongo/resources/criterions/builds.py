@@ -1,7 +1,8 @@
 from __future__ import annotations
-from torch.nn.modules import CrossEntropyLoss
+from torch.nn.modules import CrossEntropyLoss, MSELoss
 
 from application.utils import TBoolStr, t, TDesc
+from application.database import *
 
 from application.resources.contexts import ResourceContext
 from application.resources.base import DataType
@@ -46,4 +47,61 @@ class CrossEntropyLossBuildConfig(MongoBuildConfig):
         return self.target_type()(criterion)
 
 
-__all__ = ['CrossEntropyLossBuildConfig']
+# MeanSquareLoss
+@MongoBuildConfig.register_build_config('MSELoss')
+class MSELossBuildConfig(MongoBuildConfig):
+
+    @staticmethod
+    def choices() -> list[str]:
+        return ['none', 'mean', 'sum']
+
+    @staticmethod
+    def default_val() -> str:
+        return 'mean'
+
+    # Fields
+    reduction = db.StringField(choices=choices(), default=default_val())
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({'reduction': self.reduction})
+        return data
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return super(MSELossBuildConfig, cls).get_required()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return super(MSELossBuildConfig, cls).get_optionals().union({'reduction'})
+
+    @staticmethod
+    def target_type() -> t.Type[DataType]:
+        return DataType.get_type("CLCriterion")
+
+    @classmethod
+    def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
+        result, msg = super(MSELossBuildConfig, cls).validate_input(data, dtype, context)
+        if not result:
+            return result, msg
+        _, values = context.pop()
+        params = values['params']
+        reduction = params.get('reduction', 'mean')
+        if not isinstance(reduction, str):
+            return False, "Parameter 'reduction' must be a string!"
+        return True, None
+
+    @classmethod
+    def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
+        return super().create(data, tp, context, save)
+
+    def build(self, context: ResourceContext, locked=False, parents_locked=False):
+        criterion = MSELoss(reduction=self.reduction)
+        # noinspection PyArgumentList
+        return self.target_type()(criterion)
+
+
+__all__ = [
+    'CrossEntropyLossBuildConfig',
+    'MSELossBuildConfig',
+]

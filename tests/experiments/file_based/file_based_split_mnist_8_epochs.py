@@ -133,7 +133,7 @@ class SplitMNISTFileBasedTest(BaseFileBasedBenchmarkExperimentTestCase):
     num_iterations = 3
 
     benchmark_build = {
-        'name': "CustomFileBasedClassificationDatasetBenchmark",
+        'name': "FileBasedClassificationBenchmark",
         'data_repository': data_repository_name,
         'img_type': 'greyscale',
         'train_stream': [generate_experience_benchmark_data(exp, 2, 'mnist', 'train',

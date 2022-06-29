@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 import traceback
-from flask import Blueprint, request, Response, send_file
+from flask import Blueprint, request, Response, send_file, current_app
 from http import HTTPStatus
 
 from application.errors import *
@@ -34,6 +34,7 @@ def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
     context.stack = []
     response = None
     app = db.app
+    print('Inia')
     with app.app_context():
         try:
             with experiment_config.resource_write():
@@ -138,6 +139,7 @@ def set_experiment_status(username, wname, name):
         status = data['status']
         if status == _EXPERIMENT_START:
             context = UserWorkspaceResourceContext(username, wname)
+            context.push('app', current_app)
             executor.submit(_experiment_run_task, experiment_config, context)
             return make_success_dict(msg="Experiment successfully submitted!")
         else:

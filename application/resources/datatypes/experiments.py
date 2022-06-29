@@ -12,7 +12,7 @@ from .metricsets import BaseMetricSet
 
 class BaseCLExperimentRunConfig:
 
-    DFL_RUN_CONFIG_NAME = 'StdCurriculumLearning'
+    DFL_RUN_CONFIG_NAME = 'Standard'
 
     __CONFIGS__: TDesc = {}
 

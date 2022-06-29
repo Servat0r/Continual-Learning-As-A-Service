@@ -1,5 +1,4 @@
 from __future__ import annotations
-from torchvision.transforms import ToTensor
 
 from application.utils import TBoolStr, t, TDesc, normalize_map_field_path, denormalize_map_field_path
 from application.database import db
@@ -387,15 +386,15 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
         return [config.to_tuple() for config in self.configs]
 
 
-@MongoBuildConfig.register_build_config('CustomFileBasedClassificationDatasetBenchmark')
-class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
+@MongoBuildConfig.register_build_config('FileBasedClassificationBenchmark')
+class FileBasedClassificationBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig):
     """
     This build config models a benchmark built starting from
     a set of data in a data repository, similarly to what
     happens for paths_benchmark.
     The configuration has the following syntax:
     {
-        "name": "CustomFileBasedClassificationDatasetBenchmark",
+        "name": "FileBasedClassificationBenchmark",
         "data_repository": <data_repository_name>,
         "img_type": "greyscale"/"RGB",       # image type (determines which image loader to use)
         "complete_test_set_only": true/false,
@@ -522,25 +521,27 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
     def get_loader(self):
         img_type = self.img_type
 
-        if img_type == DataManagerBuildConfig.L:
+        if img_type == FileBasedClassificationBenchmarkBuildConfig.L:
             return greyscale_image_loader
-        elif img_type == DataManagerBuildConfig.RGB:
+        elif img_type == FileBasedClassificationBenchmarkBuildConfig.RGB:
             return default_image_loader
         else:
             raise ValueError("Unknown image type")
 
+    """
     @staticmethod
     def get_transform(transform_name: str):
-        if transform_name == DataManagerBuildConfig.TO_TENSOR:
+        if transform_name == FileBasedClassificationBenchmarkBuildConfig.TO_TENSOR:
             return ToTensor()
+    """
 
     @classmethod
     def get_required(cls) -> set[str]:
-        return super(DataManagerBuildConfig, cls).get_required().union({'train_stream', 'test_stream'})
+        return super(FileBasedClassificationBenchmarkBuildConfig, cls).get_required().union({'train_stream', 'test_stream'})
 
     @classmethod
     def get_optionals(cls) -> set[str]:
-        return super(DataManagerBuildConfig, cls).get_optionals().union({
+        return super(FileBasedClassificationBenchmarkBuildConfig, cls).get_optionals().union({
             'data_repository', 'complete_test_set_only', 'other_streams',
             'task_labels', 'img_type', 'train_transform',
             'train_target_transform', 'eval_transform',
@@ -580,7 +581,7 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super(DataManagerBuildConfig, cls).validate_input(data, dtype, context)
+        result, msg = super(FileBasedClassificationBenchmarkBuildConfig, cls).validate_input(data, dtype, context)
         if not result:
             return result, msg
         iname, values = context.pop()
@@ -591,7 +592,7 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
         other_streams_dict = params.get('other_streams', {})  # dict[str, # list[list[dict]]]
 
         task_labels = params.get('task_labels', None)
-        img_type = params.get('img_type', DataManagerBuildConfig.RGB)  # string
+        img_type = params.get('img_type', FileBasedClassificationBenchmarkBuildConfig.RGB)  # string
         complete_test_set_only = params.get('complete_test_set_only', False)  # boolean
 
         train_transform_data = params.get('train_transform', None)
@@ -806,5 +807,5 @@ class DataManagerBuildConfig(MongoBaseBenchmarkBuildConfig):
 __all__ = [
     'DataStreamFolderConfig',
     'DataStreamExperienceConfig',
-    'DataManagerBuildConfig',
+    'FileBasedClassificationBenchmarkBuildConfig',
 ]

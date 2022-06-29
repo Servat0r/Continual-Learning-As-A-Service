@@ -24,7 +24,7 @@ _NAME = get_env('SERVER_NAME', 'SERVER')
 BaseDataManager.create()
 
 
-def create_app(config_class=MongoConfig):
+def create_app(config_class=MongoConfig, use_logger=True):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
@@ -47,11 +47,14 @@ def create_app(config_class=MongoConfig):
         os.makedirs('logs', exist_ok=True)
         os.makedirs(app.config["DATASET_ROOT_DIR"], exist_ok=True)
 
-        file_handler = RotatingFileHandler(os.path.join('logs', 'auth_server.log'), maxBytes=10240,
-                                           backupCount=10)
-        file_handler.setFormatter(logging.Formatter(
-            '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
-        file_handler.setLevel(logging.INFO)
+        if use_logger:
+            file_handler = RotatingFileHandler(os.path.join('logs', 'auth_server.log'), maxBytes=10240,
+                                               backupCount=10)
+            file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+            file_handler.setLevel(logging.INFO)
+        else:
+            file_handler = None
 
         if app.config['MAIL_SERVER']:
             auth = None
@@ -75,14 +78,15 @@ def create_app(config_class=MongoConfig):
             name, value = item
             conf_attr_str += f"\n\t{name} = {value}"
 
-        app.logger.addHandler(file_handler)
-        app.logger.setLevel(logging.INFO)
-        app.logger.info("Changes made!")
-        app.logger.info(f"{_NAME} startup")
-        app.logger.info(f"Using '{get_device()}' device for training and evaluation")
-        app.logger.info(f"Using '{app.config.get('EXECUTOR_TYPE')}' pool executor for experiments")
-        app.logger.info(f"Using '{app.config.get('DATASET_ROOT_DIR')}' directory for common datasets")
-        app.logger.info(f"Using class '{config_class.__name__}' as configuration class")
-        app.logger.info(f"Configuration attributes: {conf_attr_str}")
+        if use_logger:
+            app.logger.addHandler(file_handler)
+            app.logger.setLevel(logging.INFO)
+            app.logger.info("Changes made!")
+            app.logger.info(f"{_NAME} startup")
+            app.logger.info(f"Using '{get_device()}' device for training and evaluation")
+            app.logger.info(f"Using '{app.config.get('EXECUTOR_TYPE')}' pool executor for experiments")
+            app.logger.info(f"Using '{app.config.get('DATASET_ROOT_DIR')}' directory for common datasets")
+            app.logger.info(f"Using class '{config_class.__name__}' as configuration class")
+            app.logger.info(f"Configuration attributes: {conf_attr_str}")
 
     return app

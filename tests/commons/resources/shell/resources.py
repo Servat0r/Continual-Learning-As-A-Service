@@ -44,7 +44,7 @@ replay_experiment_name = 'replay_experiment'
 
 # benchmarks builds
 file_benchmark_build = {
-    'name': "CustomFileBasedClassificationDatasetBenchmark",
+    'name': "FileBasedClassificationBenchmark",
     'data_repository': repository_name,
     'img_type': 'greyscale',
     'train_stream': [
