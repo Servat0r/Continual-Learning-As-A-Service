@@ -17,6 +17,10 @@ class Workspace(JSONSerializable, URIBasedResource):
     def experiments_base_dir() -> str:
         return f"Experiments"
 
+    @staticmethod
+    def models_base_dir() -> str:
+        return f"Models"
+
     OPEN = 'OPEN'
     CLOSED = 'CLOSED'
 

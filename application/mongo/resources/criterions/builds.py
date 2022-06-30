@@ -51,6 +51,9 @@ class CrossEntropyLossBuildConfig(MongoBuildConfig):
 @MongoBuildConfig.register_build_config('MSELoss')
 class MSELossBuildConfig(MongoBuildConfig):
 
+    __choices = ['none', 'mean', 'sum']
+    __default = 'mean'
+
     @staticmethod
     def choices() -> list[str]:
         return ['none', 'mean', 'sum']
@@ -60,7 +63,7 @@ class MSELossBuildConfig(MongoBuildConfig):
         return 'mean'
 
     # Fields
-    reduction = db.StringField(choices=choices(), default=default_val())
+    reduction = db.StringField(choices=__choices, default=__default)
 
     def to_dict(self, links=True) -> TDesc:
         data = super().to_dict(links=links)

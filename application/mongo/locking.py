@@ -35,6 +35,12 @@ class _SubResourceCtxManager:
                     self.resource.write_lock()
         return self
 
+    def update_resource(self, new_resource):
+        # noinspection PyProtectedMember
+        acquired = self.resource._acquired
+        self.resource = new_resource
+        self.resource._acquired = acquired
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         if not self.locked:
             if self.lock_type == self.READ:

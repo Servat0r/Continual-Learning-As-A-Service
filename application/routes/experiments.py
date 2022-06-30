@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 import traceback
-from flask import Blueprint, request, Response, send_file, current_app
+from flask import Flask, Blueprint, request, Response, send_file, current_app
 from http import HTTPStatus
 
 from application.errors import *
@@ -29,8 +29,27 @@ experiments_bp = Blueprint('experiments', __name__,
                            url_prefix='/users/<user:username>/workspaces/<workspace:wname>/experiments')
 
 
-def _experiment_run_task(experiment_config: MongoCLExperimentConfig,
+def _experiment_run_task(experiment_config_name: str,
                          context: UserWorkspaceResourceContext) -> Response:
+    """
+    # app = create_app(use_logger=False)
+    db = MongoEngine()
+    try:
+        app = Flask(__name__)
+        app.config['DEFAULT_CONNECTION_NAME'] = 'another'
+        db.DEFAULT_CONNECTION_NAME = 'another'
+        db.init_app(app)
+        username = context.get_username()
+        wname = context.get_workspace()
+    except Exception as ex:
+        print(ex, ex.args, sep='\n *** \n')
+        return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to connect to database!")
+    """
+    username = context.get_username()
+    wname = context.get_workspace()
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, experiment_config_name)
+    if err_response:
+        return err_response
     context.stack = []
     response = None
     app = db.app
@@ -132,6 +151,15 @@ def set_experiment_status(username, wname, name):
         else:
             return error()
     else:
+        status = data.get('status')
+        if status == _EXPERIMENT_START:
+            context = UserWorkspaceResourceContext(username, wname)
+            executor.submit(_experiment_run_task, name, context)
+            return make_success_dict(msg="Experiment successfully submitted!")
+        else:
+            return ForbiddenOperation(msg="You can only start an experiment!")
+
+        """
         experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
         if err_response:
             return err_response
@@ -144,6 +172,7 @@ def set_experiment_status(username, wname, name):
             return make_success_dict(msg="Experiment successfully submitted!")
         else:
             return ForbiddenOperation(msg="You can only start an experiment!")
+        """
 
 
 @experiments_bp.get('/<experiment:name>/status/')
@@ -234,6 +263,13 @@ def get_experiment_execution_model(username, wname, name, exec_id):
                 return InternalFailure(msg=f"Error when sending model file: '{ex.args[0]}'.")
         else:
             return ResourceInUse(msg="Experiment is still running and results are not available.")
+
+
+@experiments_bp.patch('/<experiment:exp_name>/model/<int:exec_id>/export/mname/')
+@experiments_bp.patch('/<experiment:exp_name>/model/<int:exec_id>/export/mname')
+@token_auth.login_required
+def export_execution_model(username, wname, name, exec_id, mname):
+    pass
 
 
 @experiments_bp.get('/<experiment:name>/results/csv/')

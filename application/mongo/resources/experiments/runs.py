@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 import traceback
-from torch import Module
+from torch.nn import Module
 
 from avalanche.benchmarks import GenericCLScenario
 from avalanche.training.templates import SupervisedTemplate

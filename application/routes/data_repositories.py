@@ -64,25 +64,29 @@ def create_data_repository(username, wname):
 @token_auth.login_required
 def delete_repo(username, wname, name):
 
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot delete another user ('{username}') data repository.",
-    )
-    if not result:
-        return error
+    try:
+        result, error = check_current_user_ownership(
+            username,
+            f"You cannot delete another user ('{username}') data repository.",
+        )
+        if not result:
+            return error
 
-    current_user = token_auth.current_user()
-    workspace = Workspace.canonicalize((current_user, wname))
-    data_repository = BaseDataRepository.get_one(workspace, name)
+        current_user = token_auth.current_user()
+        workspace = Workspace.canonicalize((current_user, wname))
+        data_repository = BaseDataRepository.get_one(workspace, name)
 
-    if data_repository:
-        result, exc = data_repository.delete()
-        if result:
-            return make_success_dict(msg=f"Data repository '{name}' successfully deleted.")
+        if data_repository:
+            result, exc = data_repository.delete()
+            if result:
+                return make_success_dict(msg=f"Data repository '{name}' successfully deleted.")
+            else:
+                return InternalFailure(msg=exc.args[0], exception=str(exc))
         else:
-            return InternalFailure(msg=exc.args[0], exception=str(exc))
-    else:
-        return ResourceNotFound(resource=name)
+            return ResourceNotFound(resource=name)
+    except Exception as ex:
+        print(ex, ex.args)
+        return InternalFailure(exception=str(ex))
 
 
 @data_repositories_bp.get('/<resource:name>/')
@@ -378,3 +382,6 @@ __all__ = [
     'delete_sub_folder',
     'send_files',
 ]
+
+# todo update data_repository
+# todo modify / delete files

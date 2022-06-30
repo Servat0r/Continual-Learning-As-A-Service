@@ -1,6 +1,7 @@
 import os
 from http import HTTPStatus
 from application import *
+from torchvision.models import alexnet
 
 
 #   Useful routines
@@ -78,7 +79,8 @@ def make_shell_context():
         'Strategy': MongoStrategy, 'Experiment': MongoCLExperiment,
 
         # helpers
-        'user_n': user_n, 'wspace_n': wspace_n,
+        'user_n': user_n, 'wspace_n': wspace_n, 'model': alexnet(pretrained=True),
+        # 'user': user_n(1)(), 'wspace': wspace_n(1)(),
 
     }
 

@@ -125,9 +125,11 @@ class MongoDataRepository(MongoBaseDataRepository):
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
             try:
                 BenchmarkClass = t.cast(ReferrableDataType, DataType.get_type('Benchmark')).config_type()
-                benchmarks = BenchmarkClass.get(data_repository=self)  # workspace=self.get_workspace()) todo check!
+                benchmarks = BenchmarkClass.get(workspace=self.get_workspace())  # workspace=self.get_workspace()) todo check!
                 for benchmark in benchmarks:
-                    benchmark.delete(context, parents_locked=True)
+                    build_config = benchmark.build_config
+                    if build_config.data_repository is not None:
+                        benchmark.delete(context, parents_locked=True)
 
                 db.Document.delete(self)
                 manager = BaseDataManager.get()
@@ -195,8 +197,8 @@ class MongoDataRepository(MongoBaseDataRepository):
         }
         if links:
             BenchmarkClass = t.cast(ReferrableDataType, DataType.get_type('Benchmark')).config_type()
-            benchmarks = list(BenchmarkClass.get(data_repository=self))  # workspace=self.get_workspace()) todo check!
-            result['benchmarks'] = [benchmark.to_dict(links=False) for benchmark in benchmarks]
+            #benchmarks = list(BenchmarkClass.get(data_repository=self))  # workspace=self.get_workspace()) todo check!
+            #result['benchmarks'] = [benchmark.to_dict(links=False) for benchmark in benchmarks]
         return result
 
     # 9. Special methods
