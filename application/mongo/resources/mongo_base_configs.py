@@ -286,7 +286,7 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
             return False, f"When updating build config: an error occurred: '{type(ex).__name__}': {ex.args[0]}."
 
 
-class MongoResourceConfig(RWLockableDocument, ResourceConfig):
+class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
 
     meta = {
         'abstract': True,
@@ -297,7 +297,6 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
     workspace = db.ReferenceField(Workspace.get_class())
     name = db.StringField(required=True)
     description = db.StringField(required=False)
-    build_config = db.EmbeddedDocumentField(MongoBuildConfig)
     metadata = db.EmbeddedDocumentField(MongoBaseMetadata)
 
     def __repr__(self):
@@ -308,7 +307,19 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
 
     @property
     def parents(self) -> set[RWLockableDocument]:
+        """
+        Objects from which the resource is dependent.
+        :return:
+        """
         return {self.workspace}
+
+    @property
+    def dependencies(self) -> dict[t.Type[MongoResourceConfig], str]:
+        """
+        Classes (collections) whose elements may depend on this resource.
+        :return:
+        """
+        return {}
 
     def extra_linked_dict_repr(self) -> TDesc:
         """
@@ -324,22 +335,11 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
             'name': self.name,
             'description': self.description,
             'metadata': self.metadata.to_dict(),
-            'build': self.build_config.to_dict(links=False),
             'owner': self.owner.to_dict(links=False) if links else self.owner.get_name(),
             'workspace': self.workspace.to_dict(links=False) if links else self.workspace.get_name(),
         }
         extra = self.extra_linked_dict_repr()
         data.update(extra)
-        """
-        if links:
-            data['owner'] = self.owner.to_dict(links=False)
-            data['workspace'] = self.workspace.to_dict(links=False)
-            extra = self.extra_linked_dict_repr()
-            data.update(extra)
-        else:
-            data['owner'] = self.owner.get_name()
-            data['workspace'] = self.workspace.get_name()
-        """
         return data
 
     # .................... #
@@ -406,6 +406,12 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
     def meta_type() -> t.Type[BaseMetadata]:
         pass
 
+    # noinspection PyUnusedLocal
+    @classmethod
+    def extra_create_params(cls, data, context: UserWorkspaceResourceContext, save=True,
+                            parents_locked=False, metadata: dict = None) -> TDesc:
+        return {}
+
     @classmethod
     def create(cls, data, context: UserWorkspaceResourceContext, save: bool = True,
                parents_locked=False, **metadata):
@@ -415,11 +421,6 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
         else:
             name = data['name']
             description = data.get('description') or ''
-            config = MongoBuildConfig.get_by_name(data['build'])
-            if config is None:
-                raise ValueError(f"Unknown build config: '{data['build']}'")
-
-            build_config = t.cast(MongoBuildConfig, config).create(data['build'], cls.target_type(), context, save)
             owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
             workspace = t.cast(MongoBaseWorkspace, Workspace.canonicalize(context))
             now = datetime.utcnow()
@@ -429,21 +430,173 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
             metadata['created'] = now
             metadata['last_modified'] = now
 
+            extra = cls.extra_create_params(data, context, parents_locked=parents_locked, metadata=metadata, save=save)
+
             with workspace.sub_resource_create(parents_locked=parents_locked):
                 # noinspection PyArgumentList
                 obj = cls(
                     name=name,
                     description=description,
-                    build_config=build_config,
                     owner=owner,
                     workspace=workspace,
                     metadata=cls.meta_type()(**metadata),
+                    **extra,
                 )
                 if obj is not None:
                     with obj.resource_create(parents_locked=True):
                         if save:
                             obj.save(create=True)
                 return obj
+
+    @classmethod
+    def validate_input(cls, data, context: ResourceContext) -> TBoolStr:
+        try:
+            if 'name' not in data:
+                return False, "Missing parameter 'name'."
+            else:
+                name = data['name']
+                result, msg = validate_workspace_resource_experiment(name)
+                return result, None if result else f"Invalid resource name: '{msg}'."
+        except Exception as ex:
+            traceback.print_exception(*sys.exc_info())
+            return False, str(ex)
+
+    @abstractmethod
+    def build(self, context: ResourceContext,
+              locked=False, parents_locked=False):
+        pass
+
+    def get_name(self):
+        return self.name
+
+    def get_owner(self):
+        return self.owner
+
+    def get_workspace(self):
+        return self.workspace
+
+    def get_description(self):
+        return self.description if self.description is not None else ''
+
+    def update_last_modified(self, time: datetime = None, save: bool = True):
+        self.metadata.update_last_modified(time)
+        if save:
+            self.save()
+
+    def rename(self, old_name: str, new_name: str, save=False) -> TBoolStr:
+        """
+        Renames object.
+        :param old_name:
+        :param new_name:
+        :param save:
+        :return:
+        """
+        if not self.name == old_name:
+            return False, "When updating name: old name and given one are not equal!"
+        else:
+            self.name = new_name
+            try:
+                self.update_last_modified(save=save)
+                return True, None
+            except Exception as ex:
+                return False, ex.args[0]
+
+    def update(self, data, context, save=True) -> TBoolStr:
+        """
+        Base method for updating
+        :param data:
+        :param context:
+        :param save:
+        :return:
+        """
+        new_name = data.get('name')
+        new_desc = data.get('description')
+        result, msg = validate_workspace_resource_experiment(new_name)
+        if not result:
+            return False, f"Invalid resource (new) name: '{new_name}'."
+
+        if new_name is not None:
+            data.pop('name')
+            result, msg = self.rename(self.name, new_name, save=save)
+            if not result:
+                return result, f"When updating name: {msg}."
+
+        if new_desc is not None:
+            data.pop('description')
+            if not isinstance(new_desc, str):
+                return False, f"When updating description: must provide a string!"
+            else:
+                self.description = new_desc
+                try:
+                    self.update_last_modified(save=save)
+                except Exception as ex:
+                    print(ex)
+                    return False, \
+                           f"When updating description: an exception occurred: '{type(ex).__name__}': '{ex.args[0]}'."
+        return True, None
+
+    def save(self, create=False) -> bool:
+        # noinspection PyUnusedLocal, PyBroadException
+        try:
+            if create:
+                db.Document.save(self, force_insert=create)
+            else:
+                self.update_last_modified(save=False)
+                db.Document.save(self, save_condition={'id': self.id})
+            return True
+        except Exception as ex:
+            return False
+
+    def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
+        with self.resource_delete(locked=locked, parents_locked=parents_locked):
+            try:
+                db.Document.delete(self)
+                return True, None
+            except Exception as ex:
+                return False, ex
+
+
+
+class MongoResourceConfig(MongoBaseResourceConfig):
+
+    @staticmethod
+    @abstractmethod
+    def target_type() -> t.Type[DataType]:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def meta_type() -> t.Type[BaseMetadata]:
+        pass
+
+    meta = {
+        'abstract': True,
+        'allow_inheritance': True,
+    }
+
+    build_config = db.EmbeddedDocumentField(MongoBuildConfig)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data['build'] = self.build_config.to_dict(links=False)
+        extra = self.extra_linked_dict_repr()
+        data.update(extra)
+        return data
+
+    @classmethod
+    def extra_create_params(cls, data, context: UserWorkspaceResourceContext, save=True,
+                            parents_locked=False, metadata: dict = None) -> TDesc:
+        config = MongoBuildConfig.get_by_name(data['build'])
+        if config is None:
+            raise ValueError(f"Unknown build config: '{data['build']}'")
+        build_config = t.cast(MongoBuildConfig, config).create(data['build'], cls.target_type(), context, save)
+        return {'build_config': build_config}
+
+    @classmethod
+    def create(cls, data, context: UserWorkspaceResourceContext, save: bool = True,
+               parents_locked=False, **metadata):
+        return super(MongoResourceConfig, cls).create(data, context, save=save,
+                                                      parents_locked=parents_locked, **metadata)
 
     @classmethod
     def validate_input(cls, data, context: ResourceContext) -> TBoolStr:
@@ -474,104 +627,24 @@ class MongoResourceConfig(RWLockableDocument, ResourceConfig):
             )
             return obj
 
-    def get_name(self):
-        return self.name
-
-    def get_owner(self):
-        return self.owner
-
-    def get_workspace(self):
-        return self.workspace
-
-    def get_description(self):
-        return self.description if self.description is not None else ''
-
-    def update_last_modified(self, time: datetime = None, save: bool = True):
-        self.metadata.update_last_modified(time)
-        if save:
-            self.save()
-
-    def rename(self, old_name: str, new_name: str) -> TBoolStr:
-        """
-        Renames object.
-        :param old_name:
-        :param new_name:
-        :return:
-        """
-        if not self.name == old_name:
-            return False, "When updating name: old name and given one are not equal!"
-        else:
-            self.name = new_name
-            try:
-                self.save()
-                self.update_last_modified()
-                return True, None
-            except Exception as ex:
-                return False, ex.args[0]
-
-    def update(self, data, context) -> TBoolStr:
-        new_name = data.get('name')
-        new_desc = data.get('description')
-        new_build_config = data.get('build')
-
-        result, msg = validate_workspace_resource_experiment(new_name)
+    def update(self, data, context, save=True) -> TBoolStr:
+        result, msg = super().update(data, context, save=False)
         if not result:
-            return False, f"Invalid resource (new) name: '{new_name}'."
-
-        if new_name is not None:
-            data.pop('name')
-            result, msg = self.rename(self.name, new_name)
-            if not result:
-                return result, f"When updating name: {msg}."
-
-        if new_desc is not None:
-            data.pop('description')
-            if not isinstance(new_desc, str):
-                return False, f"When updating description: must provide a string!"
-            else:
-                self.description = new_desc
-                try:
-                    self.save()
-                    self.update_last_modified()
-                except Exception as ex:
-                    print(ex)
-                    return False, \
-                           f"When updating description: an exception occurred: '{type(ex).__name__}': '{ex.args[0]}'."
-
+            return result, f"Failed to update data: '{msg}'."
+        new_build_config = data.get('build')
         if new_build_config is not None:
             data.pop('build')
             new_build_config.pop('name', None)    # Cannot modify build config!
             result, msg = self.build_config.update(new_build_config, context)
             if not result:
                 return False, f"Failed to update build config: '{msg}'"
-            self.save()
-            self.update_last_modified()
-
+        self.update_last_modified(save=save)
         return True, None
-
-    def save(self, create=False) -> bool:
-        # noinspection PyUnusedLocal, PyBroadException
-        try:
-            if create:
-                db.Document.save(self, force_insert=create)
-            else:
-                self.update_last_modified(save=False)
-                db.Document.save(self, save_condition={'id': self.id})
-            return True
-        except Exception as ex:
-            return False
-
-    def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
-        with self.resource_delete(locked=locked, parents_locked=parents_locked):
-            try:
-                db.Document.delete(self)
-                return True, None
-            except Exception as ex:
-                return False, ex
 
 
 __all__ = [
     'MongoEmbeddedBuildConfig',
     'MongoBuildConfig',
+    'MongoBaseResourceConfig',
     'MongoResourceConfig',
 ]

@@ -36,112 +36,6 @@ class OpenWorkspaceError(Exception):
         super().__init__(*args)
 
 
-class MongoDeployedModelMetadata(MongoBaseMetadata):
-    pass
-
-
-class MongoDeployedModel(db.EmbeddedDocument, JSONSerializable):
-
-    workspace = db.ReferenceField('MongoWorkspace', required=True)
-    name = db.StringField(required=True)
-    description = db.StringField(default='')
-    path = db.StringField(default=None)     # internal path (for manager)
-    metadata = db.EmbeddedDocumentField(MongoDeployedModelMetadata)
-
-    def get_owner(self):
-        return self.workspace.get_owner()
-
-    def get_workspace(self):
-        return self.workspace
-
-    def get_name(self):
-        return self.name
-
-    def get_path(self):
-        return self.path
-
-    def get_path_list(self):
-        result = self.path.split('/')
-        result = [s for s in result if len(s) > 0]
-        return result
-
-    def get_metadata(self):
-        return self.metadata.to_dict(links=False)
-
-    def base_dir(self) -> list[str]:
-        return self.workspace.models_base_dir_parents() + [self.workspace.models_base_dir()]
-
-    def to_dict(self, links=True) -> TDesc:
-        data = {
-            'name': self.name,
-            'description': self.description,
-            'metadata': self.metadata.to_dict(links=False),
-        }
-        if links:
-            data['path'] = self.get_path()
-        return data
-
-    def get_model(self) -> torch.nn.Module:
-        path_dirs = self.base_dir() + self.get_path_list()
-        manager = BaseDataManager.get()
-        model_fd = manager.get_file_pointer(self.name + '.pt', path_dirs)
-        model = torch.load(model_fd).to(get_device())
-        return model
-
-    def set_model(self, model: torch.nn.Module) -> TBoolExc:
-        path_dirs = self.base_dir() + self.get_path_list()
-        manager = BaseDataManager.get()
-        result, exc = manager.save_model(model, path_dirs, self.name + '.pt')
-        return result, exc
-
-    def get_prediction(self, input_data, transform, mode='plain') -> dict[str, int] | NotImplemented:
-        model = self.get_model()
-        if mode == 'plain':
-            input_bytes: dict[str, io.BytesIO] = {inp.filename: inp.read() for inp in input_data}
-            output_bytes: dict[str, int] = {}
-            # input_bytes = [inp.read() for inp in input_data]
-            tensors = [transform(item_bytes).unsqueeze(0) for item_bytes in input_bytes.values()]
-            device = get_device()
-            tensors = [tensor.to(device) for tensor in tensors]
-            batch_tensor = torch.stack(tensors)
-            batch_tensor = batch_tensor.to(device)
-            model.eval()
-            outputs: torch.Tensor = model(batch_tensor)
-            _, y_hat = outputs.max(1)
-            y_hat = y_hat.to('cpu').numpy().astype(int)
-            i = 0
-            for filename in input_bytes.keys():
-                output_bytes[filename] = int(y_hat[i])
-                i += 1
-            return output_bytes
-        elif mode == 'zip':
-            return NotImplemented
-        else:
-            raise ValueError(f"Unknown file transfer mode '{mode}'")
-
-    @classmethod
-    def create(cls, workspace: MongoBaseWorkspace, name: str, path: str | list[str], model: torch.nn.Module,
-               description: str = None) -> MongoDeployedModel | None:
-        if isinstance(path, list):
-            path = '/'.join(path)
-        now = datetime.utcnow()
-        # noinspection PyArgumentList
-        deployed_model = cls(
-            workspace=workspace,
-            name=name,
-            description=description,
-            path=path,
-            metadata=MongoDeployedModelMetadata(created=now, last_modified=now),
-        )
-        if deployed_model is not None:
-            result, exc = deployed_model.set_model(model)
-            if exc is not None:
-                traceback.print_exc(*sys.exc_info())
-            return deployed_model if result else None
-        else:
-            return None
-
-
 @Workspace.set_class
 class MongoWorkspace(MongoBaseWorkspace):
 
@@ -162,7 +56,7 @@ class MongoWorkspace(MongoBaseWorkspace):
     name = db.StringField(required=True)
     status = db.StringField(max_length=8, required=True)
     metadata = db.EmbeddedDocumentField(WorkspaceMetadata, required=True)
-    models = db.ListField(db.EmbeddedDocumentField(MongoDeployedModel), default=[])
+    # models = db.ListField(db.EmbeddedDocumentField(MongoDeployedModel), default=[])
 
     @property
     def parents(self) -> set[RWLockableDocument]:
@@ -228,7 +122,7 @@ class MongoWorkspace(MongoBaseWorkspace):
                 status=Workspace.OPEN if open_on_create else Workspace.CLOSED,
                 owner=owner,
                 metadata=WorkspaceMetadata(created=now, last_modified=now),
-                models=[],
+                # models=[],
             )
             if workspace is not None:
                 with workspace.resource_create(parents_locked=True):
@@ -365,7 +259,7 @@ class MongoWorkspace(MongoBaseWorkspace):
             'name': self.name,
             'status': self.status,
             'metadata': self.metadata.to_dict(),
-            'models': [model.to_dict(links=False) for model in self.models],
+            # 'models': [model.to_dict(links=False) for model in self.models],
         }
         if links:
             data['owner'] = self.owner.to_dict(links=False)
@@ -394,7 +288,7 @@ class MongoWorkspace(MongoBaseWorkspace):
         with self.resource_read(locked, parents_locked) as ctx:
             if isinstance(path, list):
                 path = '/'.join(path)
-            deployed_model = MongoDeployedModel.create(self, name, path, model, description)
+            deployed_model = None  # MongoDeployedModel.create(self, name, path, model, description)
             if deployed_model is not None:
                 self.models.append(deployed_model)
                 if save:
