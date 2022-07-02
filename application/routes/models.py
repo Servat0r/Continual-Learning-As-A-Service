@@ -30,7 +30,7 @@ def get_model(username, wname, name):
     :param name: 
     :return: 
     """
-    resource, response = get_resource(username, wname, _DFL_MODEL_NAME_, name)
+    resource, response = get_resource(username, wname, _DFL_MODEL_NAME_, name=name)
     if response is not None:    # error
         return response
     else:

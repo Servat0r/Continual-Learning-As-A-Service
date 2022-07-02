@@ -30,7 +30,7 @@ def get_optimizer(username, wname, name):
     :param name: 
     :return: 
     """
-    resource, response = get_resource(username, wname, _DFL_OPTIM_NAME_, name)
+    resource, response = get_resource(username, wname, _DFL_OPTIM_NAME_, name=name)
     if response is not None:    # error
         return response
     else:

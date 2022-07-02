@@ -420,7 +420,7 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
             raise ValueError(msg)
         else:
             name = data['name']
-            description = data.get('description') or ''
+            description = data.get('description', '')
             owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
             workspace = t.cast(MongoBaseWorkspace, Workspace.canonicalize(context))
             now = datetime.utcnow()

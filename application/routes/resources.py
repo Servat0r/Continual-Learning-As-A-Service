@@ -31,12 +31,13 @@ def _canonicalize_datatype(tp: str | t.Type[DataType]) -> \
         return None, UnknownResourceType(type=str(tp))
 
 
-def add_new_resource(username, workspace, typename: str | t.Type[DataType]) -> Response:
+def add_new_resource(username, workspace, typename: str | t.Type[DataType], required=None) -> Response:
     """
     Base method for adding a new "generic" resource.
     :param username:
     :param workspace:
     :param typename:
+    :param required:
     :return:
     """
     result, error = check_current_user_ownership(
@@ -46,7 +47,8 @@ def add_new_resource(username, workspace, typename: str | t.Type[DataType]) -> R
     if not result:
         return error
 
-    data, error, opts, extras = checked_json(request, True, {'name', 'build'}, {'description'})
+    required = {'name', 'build'} if required is None else required
+    data, error, opts, extras = checked_json(request, True, required, {'description'})
     if error:
         if data:
             return error(**data)
@@ -111,11 +113,11 @@ def build_resource(username, workspace, typename: str | t.Type[DataType], name) 
         return InternalFailure(msg=f"Failed to build resource '{name}'.")
 
 
-def get_resource(username, workspace, typename: str | t.Type[DataType], name, ownership_fail_msg: str = None,
-                 **ownership_fail_args) -> tuple[MongoResourceConfig | None, Response | None]:
+def get_resource(username, workspace, typename: str | t.Type[DataType], ownership_fail_msg: str = None,
+                 name: str = None, **args) -> tuple[MongoResourceConfig | None, Response | None]:
 
     ownership_fail_msg = ForbiddenOperation.dfl_msg if ownership_fail_msg is None else ownership_fail_msg
-    result, error = check_current_user_ownership(username, ownership_fail_msg, **ownership_fail_args)
+    result, error = check_current_user_ownership(username, ownership_fail_msg)
     if not result:
         return None, error
 
@@ -123,11 +125,25 @@ def get_resource(username, workspace, typename: str | t.Type[DataType], name, ow
     if error:
         return None, error
 
-    resource: MongoResourceConfig = t.cast(ReferrableDataType, dtype).config_type().get_one(username, workspace, name)
+    resource: MongoResourceConfig = t.cast(ReferrableDataType, dtype).config_type().get_one(username, workspace,
+                                                                                            name, **args)
     if resource is not None:
         return resource, None
     else:
         return None, ResourceNotFound(resource=name)
+    """
+    if isinstance(name, str):
+        resource: MongoResourceConfig = t.cast(ReferrableDataType, dtype).config_type().get_one(username, workspace, name)
+    elif isinstance(name, dict):
+        resource: MongoResourceConfig = t.cast(ReferrableDataType, dtype).config_type().get_one(username, workspace,
+                                                                                                **name)
+    else:
+        raise ValueError('inia')
+    if resource is not None:
+        return resource, None
+    else:
+        return None, ResourceNotFound(resource=name)
+    """
 
 
 def update_resource(username, workspace, typename: str | t.Type[DataType], name, updata) -> Response:

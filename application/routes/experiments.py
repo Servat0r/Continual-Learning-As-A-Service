@@ -47,7 +47,7 @@ def _experiment_run_task(experiment_config_name: str,
     """
     username = context.get_username()
     wname = context.get_workspace()
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, experiment_config_name)
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=experiment_config_name)
     if err_response:
         return err_response
     context.stack = []
@@ -119,7 +119,7 @@ def create_experiment(username, wname):
 @token_auth.login_required
 def setup_experiment(username, wname, name):
 
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     if err_response is not None:
         return err_response
 
@@ -160,7 +160,7 @@ def set_experiment_status(username, wname, name):
             return ForbiddenOperation(msg="You can only start an experiment!")
 
         """
-        experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+        experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
         if err_response:
             return err_response
 
@@ -179,7 +179,7 @@ def set_experiment_status(username, wname, name):
 @experiments_bp.get('/<experiment:name>/status')
 @token_auth.login_required
 def get_experiment_status(username, wname, name):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -196,7 +196,7 @@ def get_experiment_status(username, wname, name):
 @experiments_bp.get('/<experiment:name>/results/exec')
 @token_auth.login_required
 def get_experiment_results(username, wname, name):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     exec_id = experiment_config.current_exec_id
     return get_experiment_execution_results(username, wname, name, exec_id)
 
@@ -205,7 +205,7 @@ def get_experiment_results(username, wname, name):
 @experiments_bp.get('/<experiment:name>/results/exec/<int:exec_id>')
 @token_auth.login_required
 def get_experiment_execution_results(username, wname, name, exec_id):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     elif exec_id <= len(experiment_config.executions):
@@ -226,7 +226,7 @@ def get_experiment_execution_results(username, wname, name, exec_id):
 @experiments_bp.get('/<experiment:name>/settings')
 @token_auth.login_required
 def get_experiment_settings(username, wname, name):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -238,7 +238,7 @@ def get_experiment_settings(username, wname, name):
 @experiments_bp.get('/<experiment:name>/model')
 @token_auth.login_required
 def get_experiment_model(username, wname, name):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -250,7 +250,7 @@ def get_experiment_model(username, wname, name):
 @experiments_bp.get('/<experiment:name>/model/<int:exec_id>')
 @token_auth.login_required
 def get_experiment_execution_model(username, wname, name, exec_id):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -276,7 +276,7 @@ def export_execution_model(username, wname, name, exec_id, mname):
 @experiments_bp.get('/<experiment:name>/results/csv')
 @token_auth.login_required
 def get_experiment_csv_results(username, wname, name):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -288,7 +288,7 @@ def get_experiment_csv_results(username, wname, name):
 @experiments_bp.get('/<experiment:name>/results/csv/<int:exec_id>')
 @token_auth.login_required
 def get_experiment_execution_csv_results(username, wname, name, exec_id):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:

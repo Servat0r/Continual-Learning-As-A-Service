@@ -67,6 +67,9 @@ class BaseClient:
     USERS = "users"
     WORKSPACES = "workspaces"
 
+    DEPLOYMENTS = "deployments"
+    PREDICTIONS = "predictions"
+
     def __init__(
         self,
         host: str = 'localhost',
@@ -133,6 +136,14 @@ class BaseClient:
     @property
     def experiments_base(self):
         return f"{self.workspaces_base}/{self.workspace}/{self.EXPERIMENTS}"
+
+    @property
+    def deployments_base(self):
+        return f"{self.workspaces_base}/{self.workspace}/{self.DEPLOYMENTS}"
+
+    @property
+    def predictions_base(self):
+        return f"{self.workspaces_base}/{self.workspace}/{self.PREDICTIONS}"
     
     @staticmethod
     def get_url(*args):
@@ -161,7 +172,7 @@ class BaseClient:
         if not self.in_session:
             self.set_user(username)
             self.set_workspace(workspace)
-            for name, value in other_session_data:
+            for name, value in other_session_data.items():
                 self.set_session_data(name, value)
             self.in_session = True
             return True
@@ -427,12 +438,6 @@ class BaseClient:
                 translated.append(('files', (dest_path, open(src_path, 'rb'))))
                 info['labels'][dest_path] = label
                 translated.append(('info', ('info', json.dumps(info))))
-                """
-                translated: list[tuple[str, tuple[str, Any]]] = [
-                    (str(label), (dest_path.replace('\\', '/'), open(src_path, 'rb')))
-                    for src_path, dest_path, label in files_and_labels
-                ]
-                """
                 return self.patch(
                     [self.data_repositories_base, repo_name, 'folders', 'files'] + base_path,
                     files=translated, data=info,
@@ -659,6 +664,50 @@ class BaseClient:
     @check_in_session('auth_token', 'username', 'workspace')
     def delete_experiment(self, name: str):
         return self.delete([self.experiments_base, name])
+
+    # Deployments
+    @check_in_session('auth_token', 'username', 'workspace')
+    def create_deployed_model(self, name: str, path: str, deploy_data: dict, description: str = None):
+        data = {
+            'name': name,
+            'path': path,
+            'deploy': deploy_data,
+        }
+        if description is not None:
+            data['description'] = description
+        return self.post(self.deployments_base, data=data)
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def create_experiment_deployed_model(self, name: str, path: str,
+                                         experiment: str, exec_id: int, description: str = None):
+        deploy_data = {
+            'name': 'ExperimentExport',
+            'experiment': experiment,
+            'execution': exec_id,
+        }
+        return self.create_deployed_model(name, path, deploy_data, description)
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def get_deployed_model(self, name: str):
+        return self.get([self.deployments_base, name])
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def delete_deployed_model(self, name: str):
+        return self.delete([self.deployments_base, name])
+
+    # Predictions
+    @check_in_session('auth_token', 'username', 'workspace')
+    def get_deployed_model_prediction(self, path: str, info: dict, files: list[str], mode='plain'):
+        if mode == 'plain':
+            translated: list = []
+            for file_path in files:
+                translated.append(('files', (file_path, open(file_path, 'rb'))))
+            translated.append(('info', ('info', json.dumps(info))))
+            return self.get([self.predictions_base, 'deployments', path], files=translated, data=info)
+        elif mode == 'zip':
+            raise NotImplementedError
+        else:
+            raise ValueError(f"Unknown mode '{mode}'")
 
 
 __all__ = [

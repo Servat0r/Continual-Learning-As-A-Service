@@ -9,3 +9,4 @@ from .optimizers import *
 from .strategies import *
 
 from .experiments import *
+from .deployed_models import *

@@ -31,6 +31,9 @@ _DFL_EXPERIMENT_NAME = t.cast(
     DataType.get_type(BaseCLExperiment.canonical_typename()),
 )
 
+_DFL_DEPLOYED_MODEL_NAME_ = "DeployedModel"
+
+
 
 def get_transform(username, wname, info):
     transform_data = info.get('transform', None)
@@ -67,8 +70,8 @@ def predict(model: Module, input_data: list[FileStorage], transform, mode: str =
         raise ValueError(f"Unknown file transfer mode '{mode}'")
 
 
-@predictions_bp.get('/<experiment:name>/')
-@predictions_bp.get('/<experiment:name>')
+@predictions_bp.get('/experiments/<experiment:name>/')
+@predictions_bp.get('/experiments/<experiment:name>')
 @token_auth.login_required
 def get_experiment_predictions(username, wname, name):
     """
@@ -78,7 +81,7 @@ def get_experiment_predictions(username, wname, name):
     :param name:
     :return:
     """
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -86,8 +89,8 @@ def get_experiment_predictions(username, wname, name):
         return get_experiment_execution_predictions(username, wname, name, exec_id)
 
 
-@predictions_bp.get('/<experiment:name>/<int:exec_id>/')
-@predictions_bp.get('/<experiment:name>/<int:exec_id>')
+@predictions_bp.get('/experiments/<experiment:name>/<int:exec_id>/')
+@predictions_bp.get('/experiments/<experiment:name>/<int:exec_id>')
 @token_auth.login_required
 def get_experiment_execution_predictions(username, wname, name, exec_id):
     """
@@ -102,7 +105,7 @@ def get_experiment_execution_predictions(username, wname, name, exec_id):
     :param exec_id:
     :return:
     """
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     filestores = request.files
@@ -128,9 +131,36 @@ def get_experiment_execution_predictions(username, wname, name, exec_id):
         return ResourceInUse(msg="Experiment is still running and results are not available.")
 
 
+@predictions_bp.get('/deployments/<path:path>/')    # todo restricted_path
+@predictions_bp.get('/deployments/<path:path>')
+@token_auth.login_required
+def get_deployed_model_predictions(username, wname, path):
+    path_list = path.split('/')
+    path_list = [s for s in path_list if len(s) > 0]
+    path = '/'.join(path_list)
+    deployed_model_config, err_response = get_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, path=path)
+    if err_response:
+        return err_response
+    filestores = request.files
+    if len(filestores) < 1:
+        return MissingFile()
+    info = json.load(filestores.getlist('info')[0].stream)
+    transform = get_transform(username, wname, info)
+    mode = info.get('mode', 'plain')    # file transfer mode (similar to that for data repositories)
+    input_data = filestores.getlist('files')
+    context = UserWorkspaceResourceContext(username, wname)
+    deployed_model = deployed_model_config.build(context)
+    result = deployed_model.get_prediction(input_data, transform, mode)
+    if result == NotImplemented:
+        return RouteNotImplemented(HTTPStatus.NOT_IMPLEMENTED, msg=f"'{mode}' file transfer is not implemented")
+    else:
+        return make_success_dict(HTTPStatus.OK, msg="Prediction correctly executed", data={'class_ids': result})
+
+
 __all__ = [
     'predictions_bp',
 
     'get_experiment_predictions',
     'get_experiment_execution_predictions',
+    'get_deployed_model_predictions',
 ]

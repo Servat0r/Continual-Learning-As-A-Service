@@ -30,7 +30,7 @@ def get_criterion(username, wname, name):
     :param name: 
     :return: 
     """
-    resource, response = get_resource(username, wname, _DFL_CRITERION_NAME, name)
+    resource, response = get_resource(username, wname, _DFL_CRITERION_NAME, name=name)
     if response is not None:    # error
         return response
     else:

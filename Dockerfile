@@ -3,7 +3,6 @@ ENV username="CLaaS_Server"
 RUN useradd ${username}
 
 WORKDIR /home/${username}
-
 RUN python -m venv venv
 
 RUN apt-get update && apt-get install -y python3-opencv
@@ -21,6 +20,7 @@ RUN venv/bin/pip install gunicorn cryptography
 COPY application application
 COPY main.py boot.sh ./
 RUN mkdir files
+RUN mkdir logs
 
 COPY .flaskenv ./
 COPY docker.env ./.env
