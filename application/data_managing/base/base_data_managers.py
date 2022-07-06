@@ -170,6 +170,10 @@ class BaseDataManager:
                     archive_type='zip') -> tuple[int, list[str]]:
         pass
 
+    @abstractmethod
+    def rename_file(self, old_name: str, parents: list[str], new_name: str):
+        pass
+
 
 __all__ = [
     'TFRead',

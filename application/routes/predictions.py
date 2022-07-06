@@ -131,7 +131,7 @@ def get_experiment_execution_predictions(username, wname, name, exec_id):
         return ResourceInUse(msg="Experiment is still running and results are not available.")
 
 
-@predictions_bp.get('/deployments/<path:path>/')    # todo restricted_path
+@predictions_bp.get('/deployments/<path:path>/')
 @predictions_bp.get('/deployments/<path:path>')
 @token_auth.login_required
 def get_deployed_model_predictions(username, wname, path):

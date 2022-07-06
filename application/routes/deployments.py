@@ -61,7 +61,14 @@ def update_deployed_model_metadata(username, wname, name):
     :param name:
     :return:
     """
-    pass
+    data, error, opts, extras = checked_json(request, False, optionals={'name', 'description'})
+    if error:
+        if data:
+            return error(**data)
+        else:
+            return error()
+    else:
+        return update_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, name, data)
 
 
 @deployments_bp.patch('/<resource:name>/redeploy/')
@@ -76,7 +83,18 @@ def redeploy_model(username, wname, name):
     :param name:
     :return:
     """
-    pass
+    data, error, opts, extras = checked_json(
+        request, False,
+        required={'name', 'path', 'deploy'},
+        optionals={'description'},
+    )
+    if error:
+        if data:
+            return error(**data)
+        else:
+            return error()
+    else:
+        return update_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, name, data)
 
 
 @deployments_bp.delete('/<resource:name>/')
@@ -99,6 +117,6 @@ __all__ = [
     'get_deployed_model',
     'update_deployed_model_metadata',
 
-    'redeploy_model',
+    'redeploy_model',   # todo test!
     'delete_deployed_model',
 ]

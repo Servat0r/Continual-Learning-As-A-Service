@@ -154,18 +154,56 @@ class MongoDeployedModelConfig(MongoBaseResourceConfig):
             )
             return obj
 
+    def update(self, data, context, save=True) -> TBoolStr:
+        new_deployment_data = data.pop('deploy', None)
+        if new_deployment_data is None:
+            new_name = data.get('name')
+            if new_name is not None:
+                with self.resource_read(locked=False, parents_locked=False):
+                    self.__manager_rename(new_name)
+            return super().update(data, context, save=save)
+        # we need to delete previous model and then deploy new one
+        with self.resource_write(locked=False, parents_locked=False):
+            name = data.get('name')
+            path = data.get('path')
+            deployer = BaseModelDeployer.get_by_name(new_deployment_data)
+            if deployer is None:
+                return False, "Deployer name is wrong or not existing."
+            # First deploy new model, then delete old one (if necessary)
+            result, msg = deployer.deploy_model(new_deployment_data, context, name, path)
+            if not result:
+                return result, f"Failed to deploy model: '{msg}'"
+            # if another path is provided, delete previous model, otherwise retain it
+            if self.path != path:
+                self.__manager_delete()
+            self.path = path    # update path
+            return super().update(data, context, save=save)
+
+    def __manager_rename(self, new_name: str) -> TBoolStr:
+        manager = BaseDataManager.get()
+        bdir = self.base_dir()
+        path_list = self.get_path_list()
+        dirs = bdir + path_list
+        fname = self.name + '.pt'
+        parents = dirs
+        manager.rename_file(old_name=fname, parents=parents, new_name=new_name+'.pt')
+        return True, None
+
+    def __manager_delete(self) -> TBoolStr:
+        manager = BaseDataManager.get()
+        bdir = self.base_dir()
+        path_list = self.get_path_list()
+        dirs = bdir + path_list
+        fname = self.name + '.pt'
+        parents = dirs
+        manager.delete_file(fname, parents)
+        return True, None
+
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked, parents_locked):
             try:
                 db.Document.delete(self)
-                manager = BaseDataManager.get()
-                bdir = self.base_dir()
-                path_list = self.get_path_list()
-                dirs = bdir + path_list
-                fname = dirs[-1]
-                parents = dirs[:-1]
-                manager.delete_file(fname, parents)
-                return True, None
+                self.__manager_delete()
             except Exception as ex:
                 return False, ex
 

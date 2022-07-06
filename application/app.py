@@ -23,6 +23,7 @@ def create_app(config_class=MongoConfig, use_logger=True):
     app.url_map.converters['workspace'] = WorkspaceExperimentConverter
     app.url_map.converters['resource'] = WorkspaceExperimentConverter
     app.url_map.converters['experiment'] = WorkspaceExperimentConverter
+    app.url_map.converters['rpath'] = AllowedPathConverter
 
     from application.routes import blueprints
 

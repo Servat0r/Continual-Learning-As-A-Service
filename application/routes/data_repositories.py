@@ -286,6 +286,7 @@ def delete_sub_folder(username, wname, name, path):
         return InternalFailure(msg=exc.args[0])
 
 
+# Fa anche da update dei files
 @data_repositories_bp.patch('/<resource:name>/folders/files/<path:path>/')
 @data_repositories_bp.patch('/<resource:name>/folders/files/<path:path>')
 @token_auth.login_required
@@ -369,23 +370,50 @@ def send_files(username, wname, name, path):
             return InternalFailure(msg="At least one file has not correctly updated.", payload=data)
 
 
+@data_repositories_bp.patch('/<resource:name>/')
+@data_repositories_bp.patch('/<resource:name>')
+@token_auth.login_required
+def update_data_repository(username, wname, name):
+    pass
+
+
+@data_repositories_bp.get('/<resource:name>/folders/<path:path>/')
+@data_repositories_bp.get('/<resource:name>/folders/<path:path>')
+@token_auth.login_required
+def get_folder_content(username, wname, name, path):
+    pass
+
+
+@data_repositories_bp.patch('/<resource:name>/folders/rename/<path:path>/')
+@data_repositories_bp.patch('/<resource:name>/folders/rename/<path:path>')
+@token_auth.login_required
+def rename_folder(username, wname, name, path):
+    pass
+
+
+@data_repositories_bp.delete('/<resource:name>/folders/files/')
+@data_repositories_bp.delete('/<resource:name>/folders/files')
+@token_auth.login_required
+def delete_files(username, wname, name):
+    pass
+
+
 __all__ = [
     'data_repositories_bp',
 
     'create_data_repository',
-    'delete_repo',
     'get_data_repo',
     'get_data_repo_desc',
 
+    'update_data_repository',
     'create_sub_folder',
-    'move_folder',
-    'delete_sub_folder',
-    'send_files',
-]
+    'get_folder_content',
 
-# todo get_folder_content
-# todo rename_folder
-# todo update_files
-# todo delete_files
-# todo move_files
-# todo update data_repository
+    'move_folder',
+    'rename_folder',
+    'delete_sub_folder',
+
+    'send_files',
+    'delete_files',
+    'delete_repo',
+]
