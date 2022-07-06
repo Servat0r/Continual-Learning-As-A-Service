@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 import traceback
-from flask import Flask, Blueprint, request, Response, send_file, current_app
+from flask import Flask, Blueprint, request, Response, send_file
 from http import HTTPStatus
 
 from application.errors import *
@@ -130,8 +130,8 @@ def setup_experiment(username, wname, name):
         return InternalFailure(msg=f"Setup failed: {ex}: '{ex.args[0]}'.")
 
 
-@experiments_bp.patch('/<experiment:name>/')
-@experiments_bp.patch('/<experiment:name>')
+@experiments_bp.patch('/<experiment:name>/status/')  # todo modificare test files!
+@experiments_bp.patch('/<experiment:name>/status')
 @token_auth.login_required
 def set_experiment_status(username, wname, name):
     """
@@ -158,21 +158,6 @@ def set_experiment_status(username, wname, name):
             return make_success_dict(msg="Experiment successfully submitted!")
         else:
             return ForbiddenOperation(msg="You can only start an experiment!")
-
-        """
-        experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
-        if err_response:
-            return err_response
-
-        status = data['status']
-        if status == _EXPERIMENT_START:
-            context = UserWorkspaceResourceContext(username, wname)
-            context.push('app', current_app)
-            executor.submit(_experiment_run_task, experiment_config, context)
-            return make_success_dict(msg="Experiment successfully submitted!")
-        else:
-            return ForbiddenOperation(msg="You can only start an experiment!")
-        """
 
 
 @experiments_bp.get('/<experiment:name>/status/')
@@ -263,13 +248,6 @@ def get_experiment_execution_model(username, wname, name, exec_id):
                 return InternalFailure(msg=f"Error when sending model file: '{ex.args[0]}'.")
         else:
             return ResourceInUse(msg="Experiment is still running and results are not available.")
-
-
-@experiments_bp.patch('/<experiment:exp_name>/model/<int:exec_id>/export/mname/')
-@experiments_bp.patch('/<experiment:exp_name>/model/<int:exec_id>/export/mname')
-@token_auth.login_required
-def export_execution_model(username, wname, name, exec_id, mname):
-    pass
 
 
 @experiments_bp.get('/<experiment:name>/results/csv/')

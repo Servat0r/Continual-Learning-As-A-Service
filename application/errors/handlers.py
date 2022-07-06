@@ -44,6 +44,7 @@ class ServerResponseError(object):
         return make_error(self.status, msg, err_type=self.name, payload=payload)
 
 
+# todo ok
 # Authentication Errors 401
 InvalidToken = ServerResponseError(
     HTTPStatus.UNAUTHORIZED,
@@ -51,12 +52,14 @@ InvalidToken = ServerResponseError(
     "The request must contain a valid authentication token.",
 )
 
+# todo remove
 ExpiredToken = ServerResponseError(
     HTTPStatus.UNAUTHORIZED,
     'ExpiredToken',
     "Authentication token is expired.",
 )
 
+# todo ok
 MissingToken = ServerResponseError(
     HTTPStatus.UNAUTHORIZED,
     'MissingToken',
@@ -106,7 +109,9 @@ MissingParameter = ServerResponseError(
 InvalidUsername = ServerResponseError(
     HTTPStatus.BAD_REQUEST,
     'InvalidUsername',
-    "The username provided is invalid.",
+    "The username provided is invalid: \
+    username must contain only alphanumeric characters and hyphens (-) and cannot have multiple consecutive hyphens; \
+    username length must be between 1 and 64 characters.",
 )
 
 InvalidEmail = ServerResponseError(
@@ -135,12 +140,6 @@ InvalidPath = ServerResponseError(
     'InvalidPath',
     f"Allowed path must not contain any of the following characters:" +
     f" '<', '>', ':', '\"', '\\', '|', '?', '*'.",
-)
-
-InvalidParameterCombination = ServerResponseError(
-    HTTPStatus.BAD_REQUEST,
-    'InvalidParameterCombination',
-    "Parameters that must not be used together were used together.",
 )
 
 InvalidParameterValue = ServerResponseError(
@@ -215,7 +214,7 @@ ServiceUnavailable = ServerResponseError(
 RouteNotImplemented = ServerResponseError(
     HTTPStatus.NOT_IMPLEMENTED,
     'NotImplemented',
-    "Request handler is not yet implemented."
+    "Request handler is not yet implemented.",
 )
 
 __all__ = [
@@ -238,7 +237,6 @@ __all__ = [
     'InvalidResourceName',
     'InvalidPath',
 
-    'InvalidParameterCombination',
     'InvalidParameterValue',
     'InvalidParameter',
     'InvalidQueryParameter',

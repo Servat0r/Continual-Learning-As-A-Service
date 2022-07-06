@@ -18,6 +18,7 @@ class BaseClassicBenchmarkExperimentTestCase(BaseExperimentTestCase):
     # Redefine these attributes in subclasses
     username = 'base-classic-experiment-username'
     workspace = 'base_classic_experiment_workspace'
+    final_delete = True
 
     @staticmethod
     @abstractmethod
@@ -116,14 +117,15 @@ class BaseClassicBenchmarkExperimentTestCase(BaseExperimentTestCase):
                         print(f"Saved model!")
                     print(f"Ended execution #{i+1}!")
 
-            # close workspace
-            self.assertBaseHandler(self.client.close_workspace())
+            if self.final_delete:
+                # close workspace
+                self.assertBaseHandler(self.client.close_workspace())
 
-            # delete workspace
-            self.assertBaseHandler(self.client.delete_workspace())
+                # delete workspace
+                self.assertBaseHandler(self.client.delete_workspace())
 
-            # delete user
-            self.assertBaseHandler(self.client.delete_user())
+                # delete user
+                self.assertBaseHandler(self.client.delete_user())
 
 
 __all__ = [

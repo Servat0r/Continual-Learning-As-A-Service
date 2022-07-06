@@ -94,7 +94,11 @@ def delete_deployed_model(username, wname, name):
 
 __all__ = [
     'deployments_bp',
+
     'create_deployed_model',
     'get_deployed_model',
     'update_deployed_model_metadata',
+
+    'redeploy_model',
+    'delete_deployed_model',
 ]

@@ -383,5 +383,9 @@ __all__ = [
     'send_files',
 ]
 
+# todo get_folder_content
+# todo rename_folder
+# todo update_files
+# todo delete_files
+# todo move_files
 # todo update data_repository
-# todo modify / delete files
