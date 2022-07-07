@@ -211,6 +211,11 @@ class MongoLocalDataManager(BaseDataManager):
     def greyscale_image_loader(self, impath: str):
         return Image.open(impath).convert('L')
 
+    def rename_directory(self, old_name: str, parents: list[str], new_name: str):
+        old_path = self.get_dir_path(parents + [old_name])
+        new_path = self.get_dir_path(parents + [new_name])
+        os.rename(old_path, new_path)
+
     def rename_file(self, old_name: str, parents: list[str], new_name: str):
         old_path = self.get_file_path(old_name, parents)
         new_path = self.get_file_path(new_name, parents)

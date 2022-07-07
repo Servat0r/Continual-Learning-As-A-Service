@@ -117,6 +117,6 @@ __all__ = [
     'get_deployed_model',
     'update_deployed_model_metadata',
 
-    'redeploy_model',   # todo test!
+    'redeploy_model',
     'delete_deployed_model',
 ]

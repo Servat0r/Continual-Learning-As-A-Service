@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from application.utils import TBoolExc, t, abstractmethod, normalize_map_field_path, denormalize_map_field_path
+from application.utils import TBoolExc, t, abstractmethod, TDesc, TBoolStr, \
+    normalize_map_field_path, denormalize_map_field_path
 from application.models import User, Workspace
 from .base_data_managers import TFContent
 
@@ -127,7 +128,7 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
         pass
 
     @abstractmethod
-    def add_file(self, file_name: str, file_content, label: int, parents: list[str] = None) -> TBoolExc:
+    def add_file(self, file_name: str, file_content, label: int, parents: list[str] = None, save=False) -> TBoolExc:
         pass
 
     @abstractmethod
@@ -145,11 +146,27 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
         pass
 
     @abstractmethod
+    def rename_directory(self, path: str, new_name: str) -> TBoolExc:
+        pass
+
+    @abstractmethod
     def delete_directory(self, dir_name: str, dir_parents: list[str] = None) -> TBoolExc:
         pass
 
     @abstractmethod
     def get_all_files(self, root_path: str) -> list[str]:
+        pass
+
+    @abstractmethod
+    def delete_file(self, file_name: str, parents: list[str], locked=False, parents_locked=False, save=False) -> TBoolExc:
+        pass
+
+    @abstractmethod
+    def delete_files(self, files: t.Iterable[tuple[str, list[str]]], locked=False, parents_locked=False) -> list[str]:
+        pass
+
+    @abstractmethod
+    def update(self, updata: TDesc) -> TBoolStr:
         pass
 
 

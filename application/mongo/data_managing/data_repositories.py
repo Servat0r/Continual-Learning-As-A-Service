@@ -4,7 +4,7 @@ import time
 import sys
 from datetime import datetime
 
-from application.utils import TBoolExc, TDesc, t
+from application.utils import TBoolExc, TDesc, t, TBoolStr
 from application.database import *
 from application.models import Workspace
 
@@ -198,9 +198,27 @@ class MongoDataRepository(MongoBaseDataRepository):
         }
         if links:
             BenchmarkClass = t.cast(ReferrableDataType, DataType.get_type('Benchmark')).config_type()
-            benchmarks = list(BenchmarkClass.get(build_config__data_repository=self))  # workspace=self.get_workspace()) todo check!
+            benchmarks = list(BenchmarkClass.get(build_config__data_repository=self))
             result['benchmarks'] = [benchmark.to_dict(links=False) for benchmark in benchmarks]
         return result
+
+    def update_last_modified(self, time: datetime = None, save: bool = True):
+        self.metadata.update_last_modified(time)
+        if save:
+            self.save()
+
+    def update(self, updata: TDesc) -> TBoolStr:
+        # Could update name and description
+        name = updata.get('name')
+        description = updata.get('description')
+        to_update = (name is not None and self.name != name) or (description is not None and self.description != description)
+        if to_update:
+            self.name = name if name is not None else self.name
+            self.description = description if description is not None else self.description
+            self.update_last_modified(save=True)
+            return True, None
+        else:
+            return True, None
 
     # 9. Special methods
     def add_directory(self, dir_name: str, parents: list[str] = None) -> TBoolExc:
@@ -229,6 +247,29 @@ class MongoDataRepository(MongoBaseDataRepository):
                     self.save()
                 return result, exc
 
+    def rename_directory(self, path: str, new_name: str):
+        old_path = path.split('/')
+        old_path = [s for s in old_path if len(s) > 0]
+        name = old_path[-1]
+        old_path = old_path[:-1]
+        old_path = self._complete_parents(old_path)
+        new_path = '/'.join(old_path + [new_name])
+        manager = BaseDataManager.get()
+        new_files = []
+        modified = False
+        for i in range(len(self.files)):
+            file = self.files[i]
+            if file.startswith(path):
+                remaining = file.split(path, 1)[1].lstrip('/')
+                file = new_path + '/' + remaining
+                modified = True
+            new_files.append(file)
+        manager.rename_directory(name, old_path, new_name)
+        if modified:
+            self.files = new_files
+            self.update_last_modified(save=True)
+        return True, None
+
     def delete_directory(self, dir_name: str, dir_parents: list[str] = None) -> TBoolExc:
         manager = BaseDataManager.get()
         dir_parents = self._complete_parents(dir_parents)
@@ -245,7 +286,7 @@ class MongoDataRepository(MongoBaseDataRepository):
             return result, exc
 
     def add_file(self, file_name: str, file_content,
-                 parents: list[str] = None, locked=False, parents_locked=False) -> TBoolExc:
+                 parents: list[str] = None, locked=False, parents_locked=False, save=False) -> TBoolExc:
         with self.resource_write(locked, parents_locked):
             manager = BaseDataManager.get()
             complete_parents = self._complete_parents(parents)
@@ -254,13 +295,13 @@ class MongoDataRepository(MongoBaseDataRepository):
             if result:
                 file_path = self.normalize('/'.join(parents + [file_name]))
                 self.files.append(file_path)
-                self.save()
+                if save:
+                    self.update_last_modified(save=True)
             return result, exc
 
     def add_files(self, files: t.Iterable[TFContent], locked=False, parents_locked=False) -> list[str]:
         with self.resource_write(locked, parents_locked):
             created: list[str] = []
-
             for file in iter(files):
                 result, exc = self.add_file(
                     file_name=file[0], file_content=file[2],
@@ -269,11 +310,11 @@ class MongoDataRepository(MongoBaseDataRepository):
                 if result:
                     path = '/'.join(file[1] + [file[0]])
                     created.append(path)
-                    self.files.append(self.normalize(path))
+                    # self.files.append(self.normalize(path))   # already added by add_file(...)
                 else:
                     print(exc)
-
-            self.save()
+            if len(created) > 0:
+                self.update_last_modified(save=True)
             return created
 
     def add_archive(self, stream, base_path_list: list[str], archive_type='zip', locked=False,
@@ -296,12 +337,40 @@ class MongoDataRepository(MongoBaseDataRepository):
     def get_all_files(self, root_path: str, locked=False, parents_locked=False) -> list[str]:
         result = []
         root_path = self.normalize(root_path)
-
         with self.resource_read(locked, parents_locked):
             for file in self.files:
                 if file.startswith(root_path):
                     result.append(self.denormalize(file))
         return result
+
+    def delete_file(self, file_name: str, parents: list[str], locked=False, parents_locked=False, save=False) -> TBoolExc:
+        with self.resource_write(locked, parents_locked):
+            manager = BaseDataManager.get()
+            complete_parents = self._complete_parents(parents)
+            result = manager.delete_file(file_name, complete_parents)
+            if result is not None:
+                file_path = self.normalize('/'.join(parents + [file_name]))
+                self.files.remove(file_path)
+                if save:
+                    self.update_last_modified(save=True)
+            return True, None
+
+    def delete_files(self, files: t.Iterable[tuple[str, list[str]]], locked=False, parents_locked=False) -> list[str]:
+        with self.resource_write(locked=locked, parents_locked=parents_locked):
+            deleted: list[str] = []
+            for file in iter(files):
+                result, exc = self.delete_file(
+                    file_name=file[0], parents=file[1],
+                    locked=True, parents_locked=True,
+                )
+                if result:
+                    path = '/'.join(file[1] + [file[0]])
+                    deleted.append(path)
+                else:
+                    print(exc)
+            if len(deleted) > 0:
+                self.update_last_modified(save=True)
+            return deleted
 
     def __repr__(self):
         return f"{type(self).__name__} <id = {self.id}> [urn = {self.claas_urn}]"

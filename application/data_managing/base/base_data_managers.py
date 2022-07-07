@@ -108,6 +108,10 @@ class BaseDataManager:
         pass
 
     @abstractmethod
+    def rename_directory(self, old_name: str, parents: list[str], new_name: str):
+        pass
+
+    @abstractmethod
     def get_dir_path(self, dir_names: list[str] = None) -> str:
         pass
 

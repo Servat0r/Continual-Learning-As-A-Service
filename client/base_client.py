@@ -207,8 +207,9 @@ class BaseClient:
 
     # "Customized" client HTTP requests
     def request(
-            self, method: str, url_items: str | list[str], data=None,
-            auth=True, headers=None, params=None, files=None,
+            self, method: str, url_items: str | list[str],
+            data=None, json_data_files=None, files=None,
+            auth=True, headers=None, params=None,
     ):
         if isinstance(url_items, str):
             url = url_items

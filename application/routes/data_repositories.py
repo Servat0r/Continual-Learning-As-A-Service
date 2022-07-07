@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from http import HTTPStatus
 from flask import Blueprint, request
 
 from application.errors import *
@@ -53,7 +54,7 @@ def create_data_repository(username, wname):
         return InvalidResourceName(msg)
 
     data_repository = BaseDataRepository.create(name, workspace, desc=description)
-    if data_repository:
+    if data_repository is not None:
         return make_success_dict(data=data_repository.to_dict())
     else:
         return InternalFailure(msg=f"Failed to create data repository '{name}'.")
@@ -76,7 +77,7 @@ def delete_repo(username, wname, name):
         workspace = Workspace.canonicalize((current_user, wname))
         data_repository = BaseDataRepository.get_one(workspace, name)
 
-        if data_repository:
+        if data_repository is not None:
             result, exc = data_repository.delete()
             if result:
                 return make_success_dict(msg=f"Data repository '{name}' successfully deleted.")
@@ -104,7 +105,7 @@ def get_data_repo(username, wname, name):
     workspace = Workspace.canonicalize((current_user, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
 
-    if data_repository:
+    if data_repository is not None:
         return make_success_dict(data=data_repository.to_dict())
     else:
         return ResourceNotFound(resource=name)
@@ -125,7 +126,7 @@ def get_data_repo_desc(username, wname, name):
     workspace = Workspace.canonicalize((current_user, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
 
-    if data_repository:
+    if data_repository is not None:
         desc = data_repository.get_description()
         return make_success_dict(data={'description': desc})
     else:
@@ -147,8 +148,10 @@ def create_sub_folder(username, wname, name):
     :param name:
     :return:
     """
-    result, error = check_current_user_ownership(username,
-                                                 f"You cannot create a folder in another user ({username}) repository.")
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot create a folder in another user ({username}) repository.",
+    )
     if not result:
         return error
 
@@ -176,7 +179,7 @@ def create_sub_folder(username, wname, name):
 
     workspace = Workspace.canonicalize((username, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
-    if data_repository:
+    if data_repository is not None:
         result, exc = data_repository.add_directory(folder_name, folders)
         if result:
             return make_success_dict()
@@ -244,14 +247,14 @@ def move_folder(username, wname, name):
 
     workspace = Workspace.canonicalize((username, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
-    if data_repository is None:
-        return ResourceNotFound(resource=name)
-    else:
+    if data_repository is not None:
         result, exc = data_repository.move_directory(src_name, dest_name, src_parents, dest_parents)
         if result:
             return make_success_dict(data={'old_path': data['src_path'], 'new_path': data['dest_path']})
         else:
             return InternalFailure(msg=exc.args[0])
+    else:
+        return ResourceNotFound(resource=name)
 
 
 @data_repositories_bp.delete('/<resource:name>/folders/<path:path>/')
@@ -367,35 +370,155 @@ def send_files(username, wname, name, path):
         if data['n_success'] >= total:
             return make_success_dict(data=data)
         else:
-            return InternalFailure(msg="At least one file has not correctly updated.", payload=data)
+            return InternalFailure(msg="At least one file has not correctly been updated.", payload=data)
 
 
 @data_repositories_bp.patch('/<resource:name>/')
 @data_repositories_bp.patch('/<resource:name>')
 @token_auth.login_required
 def update_data_repository(username, wname, name):
-    pass
+    """
+    Updates data repository (name or description).
+    :param username:
+    :param wname:
+    :param name:
+    :return:
+    """
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot create a data repository for another user ({username}).",
+    )
+    if not result:
+        return error
+
+    data, error, opts, extras = checked_json(request, False, optionals={'name', 'description'})
+    if error:
+        if data:
+            return error(**data)
+        else:
+            return error()
+
+    current_user = token_auth.current_user()
+    workspace = Workspace.canonicalize((current_user, wname))
+    data_repository = BaseDataRepository.get_one(workspace, name)
+
+    if data_repository is not None:
+        result, msg = data_repository.update(data)
+        return make_success_dict() if result else InternalFailure(payload={'error': msg})
+    else:
+        return ResourceNotFound(resource=name)
 
 
 @data_repositories_bp.get('/<resource:name>/folders/<path:path>/')
 @data_repositories_bp.get('/<resource:name>/folders/<path:path>')
 @token_auth.login_required
 def get_folder_content(username, wname, name, path):
-    pass
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot create a data repository for another user ({username}).",
+    )
+    if not result:
+        return error
+
+    current_user = token_auth.current_user()
+    workspace = Workspace.canonicalize((current_user, wname))
+    data_repository = BaseDataRepository.get_one(workspace, name)
+
+    if data_repository is not None:
+        files = data_repository.get_all_files(path)
+        num_files = len(files) if files is not None else 0
+        return make_success_dict(data={'num_files': num_files, 'files': files})
+    else:
+        return ResourceNotFound(resource=name)
 
 
 @data_repositories_bp.patch('/<resource:name>/folders/rename/<path:path>/')
 @data_repositories_bp.patch('/<resource:name>/folders/rename/<path:path>')
 @token_auth.login_required
 def rename_folder(username, wname, name, path):
-    pass
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot create a data repository for another user ({username}).",
+    )
+    if not result:
+        return error
+
+    data, error, opts, extras = checked_json(request, False, optionals={'new_name'})
+    if error:
+        if data:
+            return error(**data)
+        else:
+            return error()
+    new_name = data.get('new_name')
+    if new_name is None:
+        return make_success_dict(status=HTTPStatus.NOT_MODIFIED)
+
+    current_user = token_auth.current_user()
+    workspace = Workspace.canonicalize((current_user, wname))
+    data_repository = BaseDataRepository.get_one(workspace, name)
+
+    if data_repository is not None:
+        result, exc = data_repository.rename_directory(path, new_name)
+        return make_success_dict() if result else InternalFailure(
+            payload={'error': str(exc), 'error_msg': str(exc.args)}
+        )
+    else:
+        return ResourceNotFound(resource=name)
 
 
 @data_repositories_bp.delete('/<resource:name>/folders/files/')
 @data_repositories_bp.delete('/<resource:name>/folders/files')
 @token_auth.login_required
 def delete_files(username, wname, name):
-    pass
+    """
+    Request Syntax:
+    {
+        "files": [
+            <first_file_path>,
+            <second_file_path>,
+            ...
+        ]
+    }
+    :param username:
+    :param wname:
+    :param name:
+    :return:
+    """
+    result, error = check_current_user_ownership(
+        username,
+        f"You cannot create a data repository for another user ({username}).",
+    )
+    if not result:
+        return error
+
+    data, error, opts, extras = checked_json(request, False, required={'files'})
+    if error:
+        if data:
+            return error(**data)
+        else:
+            return error()
+
+    files = data.get('files')
+    if files is None:
+        return InternalFailure()
+    f_name_dirs = []
+    for file in files:
+        file = file.split('/')
+        file = [s for s in file if len(s) > 0]
+        f_name_dirs += [(file[-1], file[:-1])]
+    current_user = token_auth.current_user()
+    workspace = Workspace.canonicalize((current_user, wname))
+    data_repository = BaseDataRepository.get_one(workspace, name)
+    if data_repository is not None:
+        deleted = data_repository.delete_files(f_name_dirs, locked=False, parents_locked=False)
+        n_deleted = len(deleted)
+        payload = {'n_deleted': n_deleted, 'deleted': deleted}
+        if n_deleted >= len(files):
+            return make_success_dict(data=payload)
+        else:
+            return InternalFailure(msg="At least one file has not correctly been deleted.", payload=payload)
+    else:
+        return ResourceNotFound(resource=name)
 
 
 __all__ = [
@@ -404,16 +527,17 @@ __all__ = [
     'create_data_repository',
     'get_data_repo',
     'get_data_repo_desc',
-
     'update_data_repository',
+    'delete_repo',
+
     'create_sub_folder',
     'get_folder_content',
-
     'move_folder',
     'rename_folder',
     'delete_sub_folder',
 
     'send_files',
-    'delete_files',
-    'delete_repo',
+    # 'move_files' # ?
+    # 'rename_files' # ?
+    'delete_files',             # todo test!
 ]
