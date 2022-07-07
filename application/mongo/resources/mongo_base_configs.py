@@ -9,16 +9,15 @@ from application.utils import TBoolStr, TBoolExc, TDesc, abstractmethod, t
 from application.validation import *
 from application.models import User, Workspace
 
-from application.resources.utils import JSONSerializable
 from application.resources.contexts import ResourceContext, UserWorkspaceResourceContext
-from application.resources.base import BuildConfig, ResourceConfig, BaseMetadata, DataType
+from application.resources.base import EmbeddedBuildConfig, BuildConfig, ResourceConfig, BaseMetadata, DataType
 
 from application.mongo.locking import RWLockableDocument
 from application.mongo.mongo_base_metadata import MongoBaseMetadata
 from application.mongo.base import MongoBaseUser, MongoBaseWorkspace
 
 
-class MongoEmbeddedBuildConfig(db.EmbeddedDocument, JSONSerializable):
+class MongoEmbeddedBuildConfig(db.EmbeddedDocument, EmbeddedBuildConfig):
 
     meta = {
         'abstract': True,
@@ -321,6 +320,7 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
         """
         return {}
 
+    # noinspection PyMethodMayBeStatic
     def extra_linked_dict_repr(self) -> TDesc:
         """
         Method used to add resource-specific fields to resource dict.

@@ -67,12 +67,24 @@ class TransformConfig(MongoEmbeddedBuildConfig):
         return super(TransformConfig, cls).create(data, context, save)
 
 
-# Special transform for converting bytes to PIL Image
+# Special transforms for converting bytes to PIL Image(s)
 class BytesToPIL:
 
     def __call__(self, image_bytes):
         img = Image.open(io.BytesIO(image_bytes))
         return img
+
+
+class BytesToRGB:
+
+    def __call__(self, image_bytes):
+        return Image.open(io.BytesIO(image_bytes)).convert('RGB')
+
+
+class BytesToGrayscale:
+
+    def __call__(self, image_bytes):
+        return Image.open(io.BytesIO(image_bytes)).convert('L')
 
 
 @TransformConfig.register_transform_config('BytesToPIL')
@@ -98,11 +110,71 @@ class BytesToPILConfig(TransformConfig):
 
     def to_dict(self, links=True) -> TDesc:
         return {
-            'name': 'ToTensor',
+            'name': 'BytesToPIL',
         }
 
     def get_transform(self):
         return BytesToPIL()
+
+
+@TransformConfig.register_transform_config('BytesToRGB')
+class BytesToRGBConfig(TransformConfig):
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return set()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return set()
+
+    @classmethod
+    def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
+        result, msg = super(BytesToRGBConfig, cls).validate_input(data, context)
+        context.pop()
+        return result, msg
+
+    @classmethod
+    def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
+        return super(BytesToRGBConfig, cls).create(data, context, save)
+
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'BytesToRGB',
+        }
+
+    def get_transform(self):
+        return BytesToRGB()
+
+
+@TransformConfig.register_transform_config('BytesToGrayscale')
+class BytesToGrayscaleConfig(TransformConfig):
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return set()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return set()
+
+    @classmethod
+    def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
+        result, msg = super(BytesToGrayscaleConfig, cls).validate_input(data, context)
+        context.pop()
+        return result, msg
+
+    @classmethod
+    def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
+        return super(BytesToGrayscaleConfig, cls).create(data, context, save)
+
+    def to_dict(self, links=True) -> TDesc:
+        return {
+            'name': 'BytesToGrayscale',
+        }
+
+    def get_transform(self):
+        return BytesToGrayscale()
 
 
 # Common transforms
@@ -762,11 +834,16 @@ class DefaultTinyImageNetEvalTransformConfig(TransformConfig):
 __all__ = [
     # extra transform(s)
     'BytesToPIL',
+    'BytesToRGB',
+    'BytesToGrayscale',
 
     # Transform Configs
     'TransformConfig',
 
     'BytesToPILConfig',
+    'BytesToRGBConfig',
+    'BytesToGrayscaleConfig',
+
     'ToTensorConfig',
     'CenterCropConfig',
     'RandomCropConfig',

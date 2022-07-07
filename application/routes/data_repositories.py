@@ -55,7 +55,7 @@ def create_data_repository(username, wname):
 
     data_repository = BaseDataRepository.create(name, workspace, desc=description)
     if data_repository is not None:
-        return make_success_dict(data=data_repository.to_dict())
+        return make_success_dict(HTTPStatus.CREATED, data=data_repository.to_dict())
     else:
         return InternalFailure(msg=f"Failed to create data repository '{name}'.")
 

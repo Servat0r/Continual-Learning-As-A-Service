@@ -28,6 +28,19 @@ class BaseMetadata(JSONSerializable):
         pass
 
 
+class EmbeddedBuildConfig(JSONSerializable):
+
+    @classmethod
+    @abstractmethod
+    def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
+        pass
+
+
 class BuildConfig(JSONSerializable, NameBasedResource):
 
     __CONFIGS__: TDesc = {}
@@ -155,6 +168,7 @@ class ResourceConfig(JSONSerializable, URIBasedResource):
 
 __all__ = [
     'BaseMetadata',
+    'EmbeddedBuildConfig',
     'BuildConfig',
     'ResourceConfig',
 ]

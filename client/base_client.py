@@ -208,7 +208,7 @@ class BaseClient:
     # "Customized" client HTTP requests
     def request(
             self, method: str, url_items: str | list[str],
-            data=None, json_data_files=None, files=None,
+            data=None, json_data_fp=None, files=None,
             auth=True, headers=None, params=None,
     ):
         if isinstance(url_items, str):
@@ -217,6 +217,8 @@ class BaseClient:
             url = self.get_url(*url_items)
         else:
             raise TypeError()
+        if data is None and json_data_fp is not None:
+            data = json.load(json_data_fp)
         if self.verbose:
             print(f"Sending request ({method} @ {url}) ...")
         return requests.request(
@@ -225,47 +227,60 @@ class BaseClient:
             auth=(self.auth if auth else None),
         )
 
-    def get(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
-        return self.request('get', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
+    def get(self, url_items: str | list[str], data=None, json_data_fp=None, auth=True, headers=None, params=None, files=None):
+        return self.request(
+            'get', url_items, data=data, json_data_fp=json_data_fp,
+            auth=auth, headers=headers, params=params, files=files,
+        )
 
-    def post(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
-        return self.request('post', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
+    def post(self, url_items: str | list[str], data=None, json_data_fp=None, auth=True, headers=None, params=None, files=None):
+        return self.request(
+            'post', url_items, data=data, json_data_fp=json_data_fp,
+            auth=auth, headers=headers, params=params, files=files,
+        )
 
-    def put(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
-        return self.request('put', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
+    def put(self, url_items: str | list[str], data=None, json_data_fp=None, auth=True, headers=None, params=None, files=None):
+        return self.request(
+            'put', url_items, data=data, json_data_fp=json_data_fp,
+            auth=auth, headers=headers, params=params, files=files,
+        )
 
-    def patch(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
-        return self.request('patch', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
+    def patch(self, url_items: str | list[str], data=None, json_data_fp=None, auth=True, headers=None, params=None, files=None):
+        return self.request(
+            'patch', url_items, data=data, json_data_fp=json_data_fp,
+            auth=auth, headers=headers, params=params, files=files,
+        )
 
-    def delete(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
-        return self.request('delete', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
+    def delete(self, url_items: str | list[str], data=None, json_data_fp=None, auth=True, headers=None, params=None, files=None):
+        return self.request(
+            'delete', url_items, data=data, json_data_fp=json_data_fp,
+            auth=auth, headers=headers, params=params, files=files,
+        )
 
-    def head(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
-        return self.request('head', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
+    def head(self, url_items: str | list[str], data=None, json_data_fp=None, auth=True, headers=None, params=None, files=None):
+        return self.request(
+            'head', url_items, data=data, json_data_fp=json_data_fp,
+            auth=auth, headers=headers, params=params, files=files,
+        )
 
-    def options(self, url_items: str | list[str], data=None, auth=True, headers=None, params=None, files=None):
-        return self.request('options', url_items, data=data, auth=auth, headers=headers, params=params, files=files)
+    def options(self, url_items: str | list[str], data=None, json_data_fp=None, auth=True, headers=None, params=None, files=None):
+        return self.request(
+            'options', url_items, data=data, json_data_fp=json_data_fp,
+            auth=auth, headers=headers, params=params, files=files,
+        )
 
     # API Requests
-    def register(self, username: str, email: str, password: str):
-        data = {
-            'username': username,
-            'email': email,
-            'password': password,
-        }
-        url = self.get_url(self.users_base)
-        resp = self.post(url, data, auth=False)
-        return resp  # resp.status_code, resp.headers, resp.json()
 
+    # Auth
     @check_in_session()
-    def login(self, username: str, password: str):
+    def login(self, username: str, password: str, json_data_fp=None):
         url = self.get_url(self.auth_base, 'login')
         data = {
             'username': username,
             'password': password,
         }
 
-        response = self.post(url, data, auth=False)
+        response = self.post(url, data=data, json_data_fp=json_data_fp, auth=False)
         data = response.json()
 
         if response.status_code == HTTPStatus.OK:
@@ -281,6 +296,17 @@ class BaseClient:
             self.end_session()
         return response
 
+    # Users
+    def register(self, username: str, email: str, password: str, json_data_fp=None):
+        data = {
+            'username': username,
+            'email': email,
+            'password': password,
+        }
+        url = self.get_url(self.users_base)
+        resp = self.post(url, data=data, json_data_fp=json_data_fp, auth=False)
+        return resp  # resp.status_code, resp.headers, resp.json()
+
     @check_in_session('auth_token')
     def get_user(self, username: str = None):
         if username is None:
@@ -288,7 +314,11 @@ class BaseClient:
         return self.get([self.users_base, username])
 
     @check_in_session('auth_token', 'username')
-    def edit_user(self, new_username, new_email):
+    def get_all_users(self):
+        return self.get(self.users_base)
+
+    @check_in_session('auth_token', 'username')
+    def edit_user(self, new_username, new_email, json_data_fp=None):
         if (new_username is None) or (new_email is None):
             raise TypeError('New username and email cannot be None!')
         else:
@@ -297,10 +327,10 @@ class BaseClient:
                 'email': new_email,
             }
             url = self.get_url(self.users_base, self.username)
-            return self.patch(url, data)
+            return self.patch(url, data, json_data_fp=json_data_fp)
 
     @check_in_session('auth_token', 'username')
-    def edit_password(self, old_password, new_password):
+    def edit_password(self, old_password, new_password, json_data_fp=None):
         if (old_password is None) or (new_password is None):
             raise TypeError('Old and new passwords cannot be None!')
         else:
@@ -308,14 +338,15 @@ class BaseClient:
                 'old_password': old_password,
                 'new_password': new_password,
             }
-            return self.patch([self.users_base, self.username, 'password'], data)
+            return self.patch([self.users_base, self.username, 'password'], data, json_data_fp=json_data_fp)
 
     @check_in_session('auth_token', 'username')
     def delete_user(self):
         return self.delete([self.users_base, self.username])
 
+    # Workspaces
     @check_in_session('auth_token', 'username')
-    def create_workspace(self, workspace_name: str):
+    def create_workspace(self, workspace_name: str):    # todo handle set_workspace !
         data = {
             "name": workspace_name,
         }
@@ -332,6 +363,10 @@ class BaseClient:
             else:
                 workspace_name = self.workspace
         return self.get([self.workspaces_base, workspace_name])
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def get_workspaces(self):
+        return self.get(self.workspaces_base)
 
     @check_in_session('auth_token', 'username', 'workspace')
     def open_workspace(self, workspace_name: str = None):
@@ -352,6 +387,17 @@ class BaseClient:
         return self.patch([self.workspaces_base, workspace_name, 'status'], data={'status': 'CLOSED'})
 
     @check_in_session('auth_token', 'username', 'workspace')
+    def set_workspace_status(self, status: str = 'OPEN'):
+        check = isinstance(status, str) and status in ('OPEN', 'CLOSED')
+        if not check:
+            raise ValueError(f"Unknown workspace status '{status}'.")
+        return self.patch([self.workspaces_base, self.workspace, 'status'], data={'status': status})
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def rename_workspace(self, new_name: str):
+        return self.patch([self.workspaces_base, self.workspace, 'name'], data={'new_name': new_name})
+
+    @check_in_session('auth_token', 'username', 'workspace')
     def delete_workspace(self, workspace_name: str = None):
         if workspace_name is None:
             if self.workspace is None:
@@ -359,107 +405,6 @@ class BaseClient:
             else:
                 workspace_name = self.workspace
         return self.delete([self.workspaces_base, workspace_name])
-
-    # Data Repositories
-    @check_in_session('auth_token', 'username', 'workspace')
-    def create_data_repository(self, repo_name: str, repo_desc: str = None):
-        if repo_name is None:
-            raise ValueError("Repository name cannot be None.")
-        else:
-            return self.post([self.data_repositories_base], data={'name': repo_name, 'description': repo_desc})
-
-    @check_in_session('auth_token', 'username', 'workspace')
-    def get_data_repository(self, repo_name: str):
-        if repo_name is None:
-            raise ValueError("Repository name cannot be None.")
-        else:
-            return self.get([self.data_repositories_base, repo_name])
-
-    @check_in_session('auth_token', 'username', 'workspace')
-    def get_data_repository_desc(self, repo_name: str):
-        if repo_name is None:
-            raise ValueError("Repository name cannot be None.")
-        else:
-            return self.get([self.data_repositories_base, repo_name, 'desc'])
-
-    @check_in_session('auth_token', 'username', 'workspace')
-    def delete_data_repository(self, repo_name: str):
-        if repo_name is None:
-            raise ValueError("Repository name cannot be None.")
-        else:
-            return self.delete([self.data_repositories_base, repo_name])
-
-    @check_in_session('auth_token', 'username', 'workspace')
-    def create_subdir(self, repo_name: str, folder_name: str, folder_path: list[str] = None):
-        if repo_name is None:
-            raise ValueError("Repository name cannot be None.")
-        folder_path = [] if folder_path is None else folder_path
-        data = {
-            'name': folder_name,
-            'path': '/'.join(folder_path),
-        }
-        return self.post([self.data_repositories_base, repo_name, 'folders'], data=data)
-
-    @check_in_session('auth_token', 'username', 'workspace')
-    def move_subdir(self, repo_name: str, src_path: str, dest_path: str):
-        if repo_name is None:
-            raise ValueError("Repository name cannot be None.")
-        data = {
-            'src_path': src_path,
-            'dest_path': dest_path,
-        }
-        return self.patch([self.data_repositories_base, repo_name, 'folders'], data=data)
-
-    @check_in_session('auth_token', 'username', 'workspace')
-    def delete_subdir(self, repo_name: str, path: str):
-        if repo_name is None:
-            raise ValueError("Repository name cannot be None.")
-        return self.delete([self.data_repositories_base, repo_name, 'folders', path])
-
-    @check_in_session('auth_token', 'username', 'workspace')
-    def send_files(
-            self,
-            repo_name: str,
-            files_and_labels: list[tuple[str, str, int]],   # source_path, dest_path, label
-            base_path: list[str],
-            files_mode='plain',  # file transfer mode: either 'plain' (plain files) or 'zip' (a zip file to extract)
-            zip_file_name='files.zip',
-    ):
-        translated: list = []     # files, labels, (mode)
-        info: dict = {
-            'labels': {},
-            'modes': {
-                'files': files_mode,
-            }
-        }
-        if files_mode == 'plain':
-            for src_path, dest_path, label in files_and_labels:
-                dest_path = dest_path.replace('\\', '/')    # for uniforming unix and windows paths
-                label = str(label)
-                translated.append(('files', (dest_path, open(src_path, 'rb'))))
-                info['labels'][dest_path] = label
-                translated.append(('info', ('info', json.dumps(info))))
-                return self.patch(
-                    [self.data_repositories_base, repo_name, 'folders', 'files'] + base_path,
-                    files=translated, data=info,
-                )
-        elif files_mode == 'zip':
-            with zipfile.ZipFile(zip_file_name, 'w') as zipf:
-                for src_path, dest_path, label in files_and_labels:
-                    dest_path = dest_path.replace('\\', '/')  # for uniforming unix and windows paths
-                    label = str(label)
-                    zipf.write(filename=src_path, arcname=dest_path)
-                    info['labels'][dest_path] = label
-
-            with open(zip_file_name, 'rb') as zipf:
-                translated.append(('files', ('files', zipf)))
-                translated.append(('info', ('info', json.dumps(info))))
-                return self.patch(
-                    [self.data_repositories_base, repo_name, 'folders', 'files'] + base_path,
-                    files=translated, data=info,
-                )
-        else:
-            raise ValueError(f"Files transfer mode '{files_mode}' is unknown or not implemented.")
 
     # Benchmarks
     @check_in_session('auth_token', 'username', 'workspace')
@@ -623,6 +568,134 @@ class BaseClient:
     def delete_strategy(self, name: str):
         return self.delete([self.strategies_base, name])
 
+    # Data Repositories
+    @check_in_session('auth_token', 'username', 'workspace')
+    def create_data_repository(self, repo_name: str, repo_desc: str = None):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        else:
+            return self.post([self.data_repositories_base], data={'name': repo_name, 'description': repo_desc})
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def get_data_repository(self, repo_name: str):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        else:
+            return self.get([self.data_repositories_base, repo_name])
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def get_data_repository_desc(self, repo_name: str):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        else:
+            return self.get([self.data_repositories_base, repo_name, 'desc'])
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def update_data_repository(self, repo_name: str, new_name: str = None, new_description: str = None):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        else:
+            return self.patch(
+                [self.data_repositories_base, repo_name],
+                data={'name': new_name, 'description': new_description},
+            )
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def delete_data_repository(self, repo_name: str):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        else:
+            return self.delete([self.data_repositories_base, repo_name])
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def create_subdir(self, repo_name: str, folder_name: str, folder_path: list[str] = None):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        folder_path = [] if folder_path is None else folder_path
+        data = {
+            'name': folder_name,
+            'path': '/'.join(folder_path),
+        }
+        return self.post([self.data_repositories_base, repo_name, 'folders'], data=data)
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def get_subdir_content(self, repo_name: str, folder_path: str):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        return self.get([self.data_repositories_base, repo_name, 'folders', folder_path])
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def move_subdir(self, repo_name: str, src_path: str, dest_path: str):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        data = {
+            'src_path': src_path,
+            'dest_path': dest_path,
+        }
+        return self.patch([self.data_repositories_base, repo_name, 'folders'], data=data)
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def rename_subdir(self, repo_name: str, folder_path: str, new_name: str):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        data = {'new_name': new_name}
+        return self.patch([self.data_repositories_base, 'folders', 'rename', folder_path], data=data)
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def delete_subdir(self, repo_name: str, path: str):
+        if repo_name is None:
+            raise ValueError("Repository name cannot be None.")
+        return self.delete([self.data_repositories_base, repo_name, 'folders', path])
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def send_files(
+            self,
+            repo_name: str,
+            files_and_labels: list[tuple[str, str, int]],   # source_path, dest_path, label
+            base_path: list[str],
+            files_mode='plain',  # file transfer mode: either 'plain' (plain files) or 'zip' (a zip file to extract)
+            zip_file_name='files.zip',
+    ):
+        translated: list = []     # files, labels, (mode)
+        info: dict = {
+            'labels': {},
+            'modes': {
+                'files': files_mode,
+            }
+        }
+        if files_mode == 'plain':
+            for src_path, dest_path, label in files_and_labels:
+                dest_path = dest_path.replace('\\', '/')    # for uniforming unix and windows paths
+                label = str(label)
+                translated.append(('files', (dest_path, open(src_path, 'rb'))))
+                info['labels'][dest_path] = label
+                translated.append(('info', ('info', json.dumps(info))))
+                return self.patch(
+                    [self.data_repositories_base, repo_name, 'folders', 'files'] + base_path,
+                    files=translated, data=info,
+                )
+        elif files_mode == 'zip':
+            with zipfile.ZipFile(zip_file_name, 'w') as zipf:
+                for src_path, dest_path, label in files_and_labels:
+                    dest_path = dest_path.replace('\\', '/')  # for uniforming unix and windows paths
+                    label = str(label)
+                    zipf.write(filename=src_path, arcname=dest_path)
+                    info['labels'][dest_path] = label
+
+            with open(zip_file_name, 'rb') as zipf:
+                translated.append(('files', ('files', zipf)))
+                translated.append(('info', ('info', json.dumps(info))))
+                return self.patch(
+                    [self.data_repositories_base, repo_name, 'folders', 'files'] + base_path,
+                    files=translated, data=info,
+                )
+        else:
+            raise ValueError(f"Files transfer mode '{files_mode}' is unknown or not implemented.")
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def delete_files(self, repo_name: str, files: list[str]):
+        return self.delete([self.data_repositories_base, repo_name, 'folders', 'files'], data={'files': files})
+
     # Experiments
     @check_in_session('auth_token', 'username', 'workspace')
     def create_experiment(self, name: str, build_config_data: dict, description: str = None):
@@ -647,20 +720,32 @@ class BaseClient:
         return self.get([self.experiments_base, name, 'status'])
 
     @check_in_session('auth_token', 'username', 'workspace')
+    def get_experiment_settings(self, name: str):
+        return self.get([self.experiments_base, name, 'settings'])
+
+    @check_in_session('auth_token', 'username', 'workspace')
     def get_experiment_results(self, name: str):
         return self.get([self.experiments_base, name, 'results', 'exec'])
 
     @check_in_session('auth_token', 'username', 'workspace')
-    def get_experiment_settings(self, name: str):
-        return self.get([self.experiments_base, name, 'settings'])
+    def get_experiment_execution_results(self, name: str, exec_id: int):
+        return self.get([self.experiments_base, name, 'results', 'exec', str(exec_id)])
 
     @check_in_session('auth_token', 'username', 'workspace')
     def get_experiment_model(self, name: str):
         return self.get([self.experiments_base, name, 'model'])
 
     @check_in_session('auth_token', 'username', 'workspace')
+    def get_experiment_execution_model(self, name: str, exec_id: int):
+        return self.get([self.experiments_base, name, 'model', str(exec_id)])
+
+    @check_in_session('auth_token', 'username', 'workspace')
     def get_experiment_csv_results(self, name: str):
         return self.get([self.experiments_base, name, 'results', 'csv'])
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def get_experiment_execution_csv_results(self, name: str, exec_id: int):
+        return self.get([self.experiments_base, name, 'results', 'csv', str(exec_id)])
 
     @check_in_session('auth_token', 'username', 'workspace')
     def delete_experiment(self, name: str):
@@ -693,22 +778,67 @@ class BaseClient:
         return self.get([self.deployments_base, name])
 
     @check_in_session('auth_token', 'username', 'workspace')
+    def update_deployed_model_metadata(self, name: str, new_name: str, new_description: str = None):
+        data = {'name': new_name}
+        if new_description is not None:
+            data['description'] = new_description
+        return self.patch([self.deployments_base, name, 'metadata'], data=data)
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def redeploy_model(self, name: str, new_name: str, path: str, deploy_data: dict, description: str = None):
+        data = {
+            'name': new_name,
+            'path': path,
+            'deploy': deploy_data,
+        }
+        if description is not None:
+            data['description'] = description
+        return self.post([self.deployments_base, name, 'redeploy'], data=data)
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def redeploy_experiment_model(self, name: str, new_name: str, path: str, experiment: str,
+                                  exec_id: int, description: str = None):
+        data = {
+            'name': new_name,
+            'path': path,
+            'deploy': {
+                'name': 'ExperimentExport',
+                'experiment': experiment,
+                'execution': exec_id,
+            },
+        }
+        if description is not None:
+            data['description'] = description
+        return self.post([self.deployments_base, name, 'redeploy'], data=data)
+
+    @check_in_session('auth_token', 'username', 'workspace')
     def delete_deployed_model(self, name: str):
         return self.delete([self.deployments_base, name])
 
     # Predictions
     @check_in_session('auth_token', 'username', 'workspace')
-    def get_deployed_model_prediction(self, path: str, info: dict, files: list[str], mode='plain'):
-        if mode == 'plain':
-            translated: list = []
-            for file_path in files:
-                translated.append(('files', (file_path, open(file_path, 'rb'))))
-            translated.append(('info', ('info', json.dumps(info))))
-            return self.get([self.predictions_base, 'deployments', path], files=translated, data=info)
-        elif mode == 'zip':
-            raise NotImplementedError
-        else:
-            raise ValueError(f"Unknown mode '{mode}'")
+    def get_experiment_predictionns(self, info: dict, files: list[str], experiment_name: str):
+        translated: list = []
+        for file_path in files:
+            translated.append(('files', (file_path, open(file_path, 'rb'))))
+        translated.append(('info', ('info', json.dumps(info))))
+        return self.get([self.predictions_base, 'experiments', experiment_name], files=translated, data=info)
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def get_experiment_execution_predictions(self, info: dict, files: list[str], experiment_name: str, exec_id: str):
+        translated: list = []
+        for file_path in files:
+            translated.append(('files', (file_path, open(file_path, 'rb'))))
+        translated.append(('info', ('info', json.dumps(info))))
+        return self.get([self.predictions_base, 'experiments', experiment_name, str(exec_id)], files=translated, data=info)
+
+    @check_in_session('auth_token', 'username', 'workspace')
+    def get_deployed_model_prediction(self, path: str, info: dict, files: list[str]):
+        translated: list = []
+        for file_path in files:
+            translated.append(('files', (file_path, open(file_path, 'rb'))))
+        translated.append(('info', ('info', json.dumps(info))))
+        return self.get([self.predictions_base, 'deployments', path], files=translated, data=info)
 
 
 __all__ = [

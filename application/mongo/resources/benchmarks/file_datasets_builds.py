@@ -528,13 +528,6 @@ class FileBasedClassificationBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig)
         else:
             raise ValueError("Unknown image type")
 
-    """
-    @staticmethod
-    def get_transform(transform_name: str):
-        if transform_name == FileBasedClassificationBenchmarkBuildConfig.TO_TENSOR:
-            return ToTensor()
-    """
-
     @classmethod
     def get_required(cls) -> set[str]:
         return super(FileBasedClassificationBenchmarkBuildConfig, cls).get_required().union({'train_stream', 'test_stream'})
