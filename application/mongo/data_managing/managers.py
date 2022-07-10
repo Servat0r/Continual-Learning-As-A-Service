@@ -10,7 +10,7 @@ from zipfile import ZipFile
 from PIL import Image
 
 from application import TFRead, TFContent
-from application.utils import t, TBoolExc, os, Module
+from application.utils import t, TBoolExc, os, Module, auto_tboolexc
 
 from application.data_managing import BaseDataManager
 
@@ -52,6 +52,7 @@ class MongoLocalDataManager(BaseDataManager):
     def get_root(self):
         return self.root_dir
 
+    @auto_tboolexc
     def create_subdir(self, dir_name: str, parents: list[str] = None) -> TBoolExc:
         if parents is None:
             parents = []
@@ -64,6 +65,7 @@ class MongoLocalDataManager(BaseDataManager):
         except Exception as ex:
             return False, ex
 
+    @auto_tboolexc
     def move_subdir(self, src_name: str, dest_name: str,
                     src_parents: list[str] = None, dest_parents: list[str] = None) -> TBoolExc:
         src_path = os.path.join(self.root_dir, *src_parents, src_name)
@@ -74,6 +76,7 @@ class MongoLocalDataManager(BaseDataManager):
         except Exception as ex:
             return False, ex
 
+    @auto_tboolexc
     def remove_subdir(self, dir_name: str, parents: list[str] = None) -> TBoolExc:
         if parents is None:
             parents = []
@@ -99,6 +102,7 @@ class MongoLocalDataManager(BaseDataManager):
         dir_path = self.get_dir_path(dir_names)
         return os.path.join(dir_path, file_name)
 
+    @auto_tboolexc
     def create_file(self, data: TFContent) -> TBoolExc:
         dir_list = self.get_dir_list(data[1])
         result, exc = self.create_subdir(dir_list[-1], dir_list[:-1])
@@ -134,6 +138,7 @@ class MongoLocalDataManager(BaseDataManager):
         mode = 'rb' if binary else 'r'
         return open(fpath, mode)
 
+    @auto_tboolexc
     def print_to_file(self, file_name: str, dir_names: list[str], *values: t.Any,
                       sep=' ', newline=True, append=True, flush=True) -> TBoolExc:
         try:
@@ -145,6 +150,7 @@ class MongoLocalDataManager(BaseDataManager):
         except Exception as ex:
             return False, ex
 
+    @auto_tboolexc
     def write_to_file(self, data: TFContent, append=True, binary=True) -> TBoolExc:
         try:
             fpath = os.path.join(self.get_root(), *data[1], data[0])
@@ -169,6 +175,7 @@ class MongoLocalDataManager(BaseDataManager):
             warnings.warn(f"The file {fpath} does not exist.")
         return content
 
+    @auto_tboolexc
     def save_model(self, model: Module, dir_names: list[str], model_name='model.pt') -> TBoolExc:
         try:
             fpath = os.path.join(self.get_root(), *dir_names, model_name)
@@ -211,11 +218,13 @@ class MongoLocalDataManager(BaseDataManager):
     def greyscale_image_loader(self, impath: str):
         return Image.open(impath).convert('L')
 
+    @auto_tboolexc
     def rename_directory(self, old_name: str, parents: list[str], new_name: str):
         old_path = self.get_dir_path(parents + [old_name])
         new_path = self.get_dir_path(parents + [new_name])
         os.rename(old_path, new_path)
 
+    @auto_tboolexc
     def rename_file(self, old_name: str, parents: list[str], new_name: str):
         old_path = self.get_file_path(old_name, parents)
         new_path = self.get_file_path(new_name, parents)

@@ -4,7 +4,7 @@ import torch
 from datetime import datetime
 
 from application.database import *
-from application.utils import t, TBoolExc, TDesc, get_device, TBoolStr
+from application.utils import t, TBoolExc, TDesc, get_device, TBoolStr, auto_tboolexc
 from application.data_managing import BaseDataManager, BaseModelDeployer
 from application.models import User, Workspace
 
@@ -199,6 +199,7 @@ class MongoDeployedModelConfig(MongoBaseResourceConfig):
         manager.delete_file(fname, parents)
         return True, None
 
+    @auto_tboolexc
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked, parents_locked):
             try:

@@ -155,6 +155,31 @@ def catcher(exc_type: t.Type[Exception] = Exception, dfl_return: t.Any = None):
     return wrapper
 
 
+# Decorators for general TBoolExc behaviour
+def auto_tboolexc(f: t.Callable):
+    @wraps(f)
+    def new_f(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as ex:
+            return False, ex
+    return new_f
+
+
+# Decorators for general TBoolStr behaviour
+def auto_tboolstr(ex_str_callback: t.Callable):
+    def wrapper(f: t.Callable):
+        @wraps(f)
+        def new_f(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except Exception as ex:
+                msg = ex_str_callback(ex)
+                return False, msg
+        return new_f
+    return wrapper
+
+
 def normalize_map_field_path(s: str):
     return s.replace('.', '\\')
 
@@ -195,6 +220,9 @@ __all__ = [
 
     'GET', 'PUT', 'POST', 'PATCH',
     'OPTIONS', 'HEAD', 'DELETE',
+
+    'auto_tboolstr',
+    'auto_tboolexc',
 
     'make_success_kwargs',
     'make_success_dict',

@@ -5,7 +5,7 @@ import traceback
 from datetime import datetime
 
 from application.database import db
-from application.utils import TBoolStr, TBoolExc, TDesc, abstractmethod, t
+from application.utils import TBoolStr, TBoolExc, TDesc, abstractmethod, t, auto_tboolexc
 from application.validation import *
 from application.models import User, Workspace
 
@@ -547,6 +547,7 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
         except Exception as ex:
             return False
 
+    @auto_tboolexc
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
             try:

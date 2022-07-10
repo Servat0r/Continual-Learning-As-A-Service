@@ -5,7 +5,7 @@ from hashlib import md5
 from werkzeug.security import check_password_hash
 from mongoengine import NotUniqueError
 
-from application.utils import TDesc, TBoolExc, os
+from application.utils import TDesc, TBoolExc, os, auto_tboolexc
 from application.validation import USERNAME_MAX_CHARS
 from application.database import db
 from application.models import User, Workspace
@@ -90,10 +90,10 @@ class MongoUser(MongoBaseUser):
                     print(f"Created user '{username}' with id '{user.id}'")
                     manager = BaseDataManager.get()
                     manager.create_subdir(user.user_base_dir())
-
         return user
 
     # 5. Delete + callbacks
+    @auto_tboolexc
     def delete(self, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
             try:

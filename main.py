@@ -1,7 +1,8 @@
 import os
 from http import HTTPStatus
-from application import *
 from torchvision.models import alexnet
+from flask import url_for
+from application import *
 
 
 #   Useful routines
@@ -80,6 +81,7 @@ def make_shell_context():
 
         # helpers
         'user_n': user_n, 'wspace_n': wspace_n, 'model': alexnet(pretrained=True),
+        'url_for': url_for,
         # 'user': user_n(1)(), 'wspace': wspace_n(1)(),
 
     }

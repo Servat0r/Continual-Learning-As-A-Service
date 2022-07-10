@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from application.utils import t, TBoolExc
+from application.utils import t, TBoolExc, auto_tboolexc
 from application.resources.base import DataType, ReferrableDataType, BaseMetadata
 from application.resources.contexts import UserWorkspaceResourceContext
 
@@ -34,6 +34,7 @@ class MongoModelConfig(MongoResourceConfig):
     def __init__(self, *args, **values):
         super().__init__(*args, **values)
 
+    @auto_tboolexc
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked, parents_locked):
             try:

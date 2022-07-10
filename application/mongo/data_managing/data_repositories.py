@@ -4,7 +4,7 @@ import time
 import sys
 from datetime import datetime
 
-from application.utils import TBoolExc, TDesc, t, TBoolStr
+from application.utils import TBoolExc, TDesc, t, TBoolStr, auto_tboolexc
 from application.database import *
 from application.models import Workspace
 
@@ -117,10 +117,9 @@ class MongoDataRepository(MongoBaseDataRepository):
             return repository
 
     # 5. Delete + callbacks
+    @auto_tboolexc
     def delete(self, locked=False, parents_locked=False) -> TBoolExc:
-
         workspace = self.get_workspace()
-
         context = UserWorkspaceResourceContext(workspace.get_owner().get_name(), workspace.get_name())
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
             try:
@@ -221,12 +220,14 @@ class MongoDataRepository(MongoBaseDataRepository):
             return True, None
 
     # 9. Special methods
+    @auto_tboolexc
     def add_directory(self, dir_name: str, parents: list[str] = None) -> TBoolExc:
         with self.resource_read():
             manager = BaseDataManager.get()
             parents = self._complete_parents(parents)
             return manager.create_subdir(dir_name, parents)
 
+    @auto_tboolexc
     def move_directory(self, src_name: str, dest_name: str,
                        src_parents: list[str] = None, dest_parents: list[str] = None) -> TBoolExc:
         manager = BaseDataManager.get()
@@ -247,6 +248,7 @@ class MongoDataRepository(MongoBaseDataRepository):
                     self.save()
                 return result, exc
 
+    @auto_tboolexc
     def rename_directory(self, path: str, new_name: str):
         old_path = path.split('/')
         old_path = [s for s in old_path if len(s) > 0]
@@ -270,6 +272,7 @@ class MongoDataRepository(MongoBaseDataRepository):
             self.update_last_modified(save=True)
         return True, None
 
+    @auto_tboolexc
     def delete_directory(self, dir_name: str, dir_parents: list[str] = None) -> TBoolExc:
         manager = BaseDataManager.get()
         dir_parents = self._complete_parents(dir_parents)
@@ -285,6 +288,7 @@ class MongoDataRepository(MongoBaseDataRepository):
                 self.save()
             return result, exc
 
+    @auto_tboolexc
     def add_file(self, file_name: str, file_content,
                  parents: list[str] = None, locked=False, parents_locked=False, save=False) -> TBoolExc:
         with self.resource_write(locked, parents_locked):
@@ -343,6 +347,7 @@ class MongoDataRepository(MongoBaseDataRepository):
                     result.append(self.denormalize(file))
         return result
 
+    @auto_tboolexc
     def delete_file(self, file_name: str, parents: list[str], locked=False, parents_locked=False, save=False) -> TBoolExc:
         with self.resource_write(locked, parents_locked):
             manager = BaseDataManager.get()

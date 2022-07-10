@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Response
 
 from application.database import db
-from application.utils import t, TBoolExc
+from application.utils import t, TBoolExc, auto_tboolexc
 from application.models import User, Workspace
 from application.data_managing import BaseDataManager
 
@@ -111,6 +111,7 @@ class MongoCLExperimentConfig(MongoResourceConfig):
             base_result['executions'] = [execution.to_dict() for execution in self.executions]
         return base_result
     
+    @auto_tboolexc
     def setup(self, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_read(locked=locked, parents_locked=parents_locked):
             try:
@@ -147,6 +148,7 @@ class MongoCLExperimentConfig(MongoResourceConfig):
                 result = self.save()
                 return exec_id if result else None
 
+    @auto_tboolexc
     def set_finished(self, response: Response, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_read(locked=locked, parents_locked=parents_locked):
             try:
@@ -218,6 +220,7 @@ class MongoCLExperimentConfig(MongoResourceConfig):
         context.push('log_folder', log_folder)
         return super().build(context, locked, parents_locked)
 
+    @auto_tboolexc
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
             try:

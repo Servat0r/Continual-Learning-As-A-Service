@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from application.utils import t, datetime, TBoolExc
+from application.utils import t, datetime, TBoolExc, auto_tboolexc
 from application.models import User, Workspace
 
 from application.resources.contexts import UserWorkspaceResourceContext
@@ -97,6 +97,7 @@ class MongoStrategyConfig(MongoResourceConfig):
                                         obj.save(create=True)
                             return obj
 
+    @auto_tboolexc
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
             try:

@@ -277,8 +277,9 @@ class MongoWorkspace(MongoBaseWorkspace):
         self.update_last_modified(save=save)
 
     def close(self, save: bool = True):
-        self.status = Workspace.CLOSED
-        self.update_last_modified(save=save)
+        with self.resource_write(locked=False, parents_locked=False):
+            self.status = Workspace.CLOSED
+            self.update_last_modified(save=save)
 
     def is_open(self):
         return self.status == Workspace.OPEN

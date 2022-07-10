@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from application.utils import t, datetime, TBoolExc, TBoolStr
+from application.utils import t, datetime, TBoolExc, TBoolStr, auto_tboolexc
 from application.models import User, Workspace
 from application.data_managing import BaseDataRepository
 
@@ -110,6 +110,7 @@ class MongoBenchmarkConfig(MongoResourceConfig):
                 with workspace.sub_resource_create(parents_locked=parents_locked):
                     return __create(cls=cls)
 
+    @auto_tboolexc
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
             try:
