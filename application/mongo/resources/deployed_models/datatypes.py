@@ -5,7 +5,6 @@ import io
 
 from application.utils import t, get_device
 
-from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType
 from application.resources.datatypes import DeployedModel
 
@@ -19,14 +18,6 @@ class MongoDeployedModel(DeployedModel):
     @staticmethod
     def config_type() -> t.Type[MongoResourceConfig]:
         return MongoDeployedModelConfig
-
-    @classmethod
-    def get_by_claas_urn(cls, urn: str):
-        return cls.config_type().get_by_claas_urn(urn)
-
-    @classmethod
-    def dfl_claas_urn_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
-        return cls.config_type().dfl_claas_urn_builder(context, name)
 
     @classmethod
     def canonical_typename(cls) -> str:

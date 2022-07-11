@@ -39,15 +39,28 @@ class Workspace(JSONSerializable, URIBasedResource):
 
     # 2. Uri methods
     @classmethod
-    @abstractmethod
     def get_by_claas_urn(cls, urn: str):
-        return Workspace.get_class().get_by_claas_urn(urn)
+        """
+        urn is of the form "claas:Workspace:<username>:<wname>"
+        :param urn:
+        :return:
+        """
+        s = urn.split(cls.claas_urn_separator())
+        user = User.canonicalize(s[2])
+        workspace = s[3]
+        ls = cls.get(owner=user, name=workspace)
+        return ls[0] if len(ls) > 0 else None
 
     @classmethod
     def dfl_claas_urn_builder(cls, context: UserWorkspaceResourceContext) -> str:
         username = context.get_username()
         workspace = context.get_workspace()
-        return cls.claas_urn_separator().join(['workspace', username, workspace])
+        return cls.claas_urn_separator().join(['claas', 'Workspace', username, workspace])
+
+    @property
+    def claas_urn(self):
+        context = UserWorkspaceResourceContext(self.get_owner().get_name(), self.get_name())
+        return self.dfl_claas_urn_builder(context)
 
     # 3. General classmethods
     @classmethod

@@ -336,6 +336,7 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
             'description': self.description,
             'metadata': self.metadata.to_dict(),
         }
+        data['metadata']['claas_urn'] = self.claas_urn
         if links:
             data['links'] = {
                 'owner': ('User', self.owner),
@@ -375,10 +376,15 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
 
     @classmethod
     def get_by_claas_urn(cls, urn: str):
+        """
+        urn is of the form "claas:<typename>:<username>:<workspace>:<resource_name>"
+        :param urn:
+        :return:
+        """
         s = urn.split(cls.claas_urn_separator())
-        owner = t.cast(MongoBaseUser, User.canonicalize(s[1]))
-        workspace = Workspace.canonicalize((s[1], s[2]))
-        name = s[3]
+        owner = t.cast(MongoBaseUser, User.canonicalize(s[2]))
+        workspace = Workspace.canonicalize((s[2], s[3]))
+        name = s[4]
         ls = cls.get(owner=owner, workspace=workspace, name=name)
         return ls[0] if len(ls) > 0 else None
 
@@ -398,7 +404,7 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
         username = context.get_username()
         workspace = context.get_workspace()
         typename = cls.target_type().canonical_typename()
-        return cls.claas_urn_separator().join([typename, username, workspace, name])
+        return cls.claas_urn_separator().join(['claas', typename, username, workspace, name])
 
     # .................... #
 

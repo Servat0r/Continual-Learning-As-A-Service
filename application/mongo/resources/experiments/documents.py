@@ -99,6 +99,7 @@ class MongoCLExperimentConfig(MongoResourceConfig):
         base_result = {
             'name': self.name,
             'description': self.description,
+            'metadata': self.metadata.to_dict(),
             'benchmark': self.benchmark.name,
             'strategy': self.strategy.name,
             'status': self.status,
@@ -107,10 +108,9 @@ class MongoCLExperimentConfig(MongoResourceConfig):
             'links': {
                 'owner': ('User', self.owner),
                 'workspace': ('Workspace', self.workspace),
-                # 'benchmark': ('Benchmark', self.benchmark),
-                # 'strategy': ('Strategy', self.strategy),
             },
         }
+        base_result['metadata']['claas_urn'] = self.claas_urn
         if not settings:
             base_result['executions'] = [execution.to_dict() for execution in self.executions]
         return base_result

@@ -103,6 +103,14 @@ class ReferrableDataType(DataType, URIBasedResource):
     def claas_urn(self):
         return self.config_type().claas_urn
 
+    @classmethod
+    def get_by_claas_urn(cls, urn: str):
+        return cls.config_type().get_by_claas_urn(urn)
+
+    @classmethod
+    def dfl_claas_urn_builder(cls, context: ResourceContext, name: str) -> str:
+        return cls.config_type().dfl_claas_urn_builder(context, name)
+
     @staticmethod
     @abstractmethod
     def config_type():

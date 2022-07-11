@@ -1,13 +1,8 @@
 from __future__ import annotations
 
-import sys
-import traceback
 from datetime import datetime
 
-import io
-import torch
-
-from application.utils import t, TBoolStr, TDesc, TBoolAny, get_device, TBoolExc
+from application.utils import t, TBoolStr, TDesc
 from application.validation import *
 from application.database import db
 from application.models import User, Workspace
@@ -56,30 +51,10 @@ class MongoWorkspace(MongoBaseWorkspace):
     name = db.StringField(required=True)
     status = db.StringField(max_length=8, required=True)
     metadata = db.EmbeddedDocumentField(WorkspaceMetadata, required=True)
-    # models = db.ListField(db.EmbeddedDocumentField(MongoDeployedModel), default=[])
 
     @property
     def parents(self) -> set[RWLockableDocument]:
         return {self.owner}
-
-    # 2. Uri methods
-    @classmethod
-    def get_by_claas_urn(cls, urn: str):
-        """
-        urn is of the form "workspace:<username>:<wname>"
-        :param urn:
-        :return:
-        """
-        s = urn.split(cls.claas_urn_separator())
-        user = t.cast(MongoBaseUser, User.canonicalize(s[1]))
-        workspace = s[2]
-        ls = cls.get(owner=user, name=workspace)
-        return ls[0] if len(ls) > 0 else None
-
-    @property
-    def claas_urn(self):
-        context = UserWorkspaceResourceContext(self.owner.get_name(), self.name)
-        return self.dfl_claas_urn_builder(context)
 
     # 3. General classmethods
     @classmethod
@@ -122,7 +97,6 @@ class MongoWorkspace(MongoBaseWorkspace):
                 status=Workspace.OPEN if open_on_create else Workspace.CLOSED,
                 owner=owner,
                 metadata=WorkspaceMetadata(created=now, last_modified=now),
-                # models=[],
             )
             if workspace is not None:
                 with workspace.resource_create(parents_locked=True):
@@ -259,18 +233,14 @@ class MongoWorkspace(MongoBaseWorkspace):
             'name': self.name,
             'status': self.status,
             'metadata': self.metadata.to_dict(),
-            # 'models': [model.to_dict(links=False) for model in self.models],
         }
+        data['metadata']['claas_urn'] = self.claas_urn
         if links:
             data['links'] = {
                 'owner': ('User', self.owner)
             }
-        """
-        if links:
-            data['owner'] = self.owner.to_dict(links=False)
         else:
             data['owner'] = self.owner.get_name()
-        """
         return data
 
     # 7. Query-like methods
@@ -289,39 +259,6 @@ class MongoWorkspace(MongoBaseWorkspace):
 
     def is_open(self):
         return self.status == Workspace.OPEN
-
-    def deploy_model(self, name: str, path: str | list[str], model: torch.nn.Module,
-                     description: str = None, locked=False, parents_locked=False, save=True) -> TBoolStr:
-        with self.resource_read(locked, parents_locked) as ctx:
-            if isinstance(path, list):
-                path = '/'.join(path)
-            deployed_model = None  # MongoDeployedModel.create(self, name, path, model, description)
-            if deployed_model is not None:
-                self.models.append(deployed_model)
-                if save:
-                    self.save()
-                # ctx.update_resource(new_resource=self)
-                return True, None
-            else:
-                return False, "Could not deploy given model"
-
-    def get_deployed_model(self, model_path: str | list[str]) -> torch.nn.Module | None:
-        if isinstance(model_path, list):
-            model_path = '/'.join(model_path)
-        for deployed_model in self.models:
-            if deployed_model.get_path() == model_path:
-                return deployed_model
-        return None
-
-    def get_prediction(self, model_path: str, input_data, transform, mode: str = 'plain',
-                       locked=False, parents_locked=False) -> TBoolAny:
-        with self.resource_read(locked, parents_locked):
-            deployed_model = self.models.get(model_path)
-            if deployed_model is None:
-                return False, f"Path '{model_path}' does not match any existing deployed model!"
-            else:
-                result = deployed_model.get_prediction(input_data, transform, mode)
-                return result != NotImplemented, result
 
 
 __all__ = [

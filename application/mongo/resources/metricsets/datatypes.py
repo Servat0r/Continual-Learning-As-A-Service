@@ -18,14 +18,6 @@ class MongoStandardMetricSet(StandardMetricSet):
         return MongoStandardMetricSetConfig
 
     @classmethod
-    def get_by_claas_urn(cls, urn: str):
-        return cls.config_type().get_by_claas_urn(urn)
-
-    @classmethod
-    def dfl_claas_urn_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
-        return cls.config_type().dfl_claas_urn_builder(context, name)
-
-    @classmethod
     def canonical_typename(cls) -> str:
         return StandardMetricSet.canonical_typename()
 

@@ -34,15 +34,25 @@ class BaseDataRepository(JSONSerializable, URIBasedResource):
 
     # 2. Uri methods
     @classmethod
-    @abstractmethod
     def get_by_claas_urn(cls, urn: str):
-        return BaseDataRepository.get_class().get_by_claas_urn(urn)
+        s = urn.split(cls.claas_urn_separator())
+        username = s[2]
+        wname = s[3]
+        name = s[4]
+        workspace = Workspace.canonicalize((username, wname))
+        ls = cls.get(workspace=workspace, name=name)
+        return ls[0] if len(ls) > 0 else None
 
     @classmethod
     def dfl_claas_urn_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
         username = context.get_username()
         workspace = context.get_workspace()
-        return cls.claas_urn_separator().join(['DataRepository', username, workspace, name])
+        return cls.claas_urn_separator().join(['claas', 'DataRepository', username, workspace, name])
+
+    @property
+    def claas_urn(self):
+        context = UserWorkspaceResourceContext(self.get_owner().get_name(), self.get_workspace().get_name())
+        return self.dfl_claas_urn_builder(context, self.get_name())
 
     # 3. General classmethods
     @classmethod

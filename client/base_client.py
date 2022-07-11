@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import zipfile
-from typing import Any, Callable
+from typing import Callable
 
 import requests
 from http import HTTPStatus
@@ -273,14 +273,14 @@ class BaseClient:
 
     # Auth
     @check_in_session()
-    def login(self, username: str, password: str, json_data_fp=None):
+    def login(self, username: str, password: str):
         url = self.get_url(self.auth_base, 'login')
         data = {
             'username': username,
             'password': password,
         }
 
-        response = self.post(url, data=data, json_data_fp=json_data_fp, auth=False)
+        response = self.post(url, data=data, auth=False)
         data = response.json()
 
         if response.status_code == HTTPStatus.OK:
@@ -297,15 +297,15 @@ class BaseClient:
         return response
 
     # Users
-    def register(self, username: str, email: str, password: str, json_data_fp=None):
+    def register(self, username: str, email: str, password: str):
         data = {
             'username': username,
             'email': email,
             'password': password,
         }
         url = self.get_url(self.users_base)
-        resp = self.post(url, data=data, json_data_fp=json_data_fp, auth=False)
-        return resp  # resp.status_code, resp.headers, resp.json()
+        resp = self.post(url, data=data, auth=False)
+        return resp
 
     @check_in_session('auth_token')
     def get_user(self, username: str = None):
@@ -318,7 +318,7 @@ class BaseClient:
         return self.get(self.users_base)
 
     @check_in_session('auth_token', 'username')
-    def edit_user(self, new_username, new_email, json_data_fp=None):
+    def edit_user(self, new_username, new_email):
         if (new_username is None) or (new_email is None):
             raise TypeError('New username and email cannot be None!')
         else:
@@ -327,10 +327,10 @@ class BaseClient:
                 'email': new_email,
             }
             url = self.get_url(self.users_base, self.username)
-            return self.patch(url, data, json_data_fp=json_data_fp)
+            return self.patch(url, data)
 
     @check_in_session('auth_token', 'username')
-    def edit_password(self, old_password, new_password, json_data_fp=None):
+    def edit_password(self, old_password, new_password):
         if (old_password is None) or (new_password is None):
             raise TypeError('Old and new passwords cannot be None!')
         else:
@@ -338,7 +338,7 @@ class BaseClient:
                 'old_password': old_password,
                 'new_password': new_password,
             }
-            return self.patch([self.users_base, self.username, 'password'], data, json_data_fp=json_data_fp)
+            return self.patch([self.users_base, self.username, 'password'], data)
 
     @check_in_session('auth_token', 'username')
     def delete_user(self):
@@ -346,7 +346,7 @@ class BaseClient:
 
     # Workspaces
     @check_in_session('auth_token', 'username')
-    def create_workspace(self, workspace_name: str):    # todo handle set_workspace !
+    def create_workspace(self, workspace_name: str):
         data = {
             "name": workspace_name,
         }

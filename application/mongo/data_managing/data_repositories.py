@@ -6,7 +6,6 @@ from datetime import datetime
 
 from application.utils import TBoolExc, TDesc, t, TBoolStr, auto_tboolexc
 from application.database import *
-from application.models import Workspace
 
 from application.data_managing.base import BaseDataRepository, BaseDataManager, TFContent
 from application.resources.contexts import UserWorkspaceResourceContext
@@ -55,22 +54,6 @@ class MongoDataRepository(MongoBaseDataRepository):
     @property
     def parents(self) -> set[RWLockableDocument]:
         return {self.workspace}
-
-    # 2. Uri methods
-    @classmethod
-    def get_by_claas_urn(cls, urn: str):
-        s = urn.split(cls.claas_urn_separator())
-        username = s[1]
-        wname = s[2]
-        name = s[3]
-        workspace = Workspace.canonicalize((username, wname))
-        ls = cls.get(workspace=workspace, name=name)
-        return ls[0] if len(ls) > 0 else None
-
-    @property
-    def claas_urn(self):
-        context = UserWorkspaceResourceContext(self.get_owner().get_name(), self.get_workspace().get_name())
-        return self.dfl_claas_urn_builder(context, self.get_name())
 
     # 3. General classmethods
     @classmethod
@@ -125,7 +108,6 @@ class MongoDataRepository(MongoBaseDataRepository):
             try:
                 BenchmarkClass = t.cast(ReferrableDataType, DataType.get_type('Benchmark')).config_type()
                 benchmarks = BenchmarkClass.get(build_config__data_repository=self)
-                # benchmarks = BenchmarkClass.get(workspace=self.get_workspace())  # workspace=self.get_workspace()) todo check!
                 for benchmark in benchmarks:
                     build_config = benchmark.build_config
                     if build_config.data_repository is not None:
@@ -194,6 +176,7 @@ class MongoDataRepository(MongoBaseDataRepository):
             'metadata': self.metadata.to_dict(),
             'files': files,
         }
+        result['metadata']['claas_urn'] = self.claas_urn
         BenchmarkClass = t.cast(ReferrableDataType, DataType.get_type('Benchmark')).config_type()
         benchmarks = list(BenchmarkClass.get(build_config__data_repository=self))
         result['benchmarks'] = [benchmark.to_dict(links=False) for benchmark in benchmarks]
@@ -204,6 +187,7 @@ class MongoDataRepository(MongoBaseDataRepository):
             }
         return result
 
+    # noinspection PyShadowingNames
     def update_last_modified(self, time: datetime = None, save: bool = True):
         self.metadata.update_last_modified(time)
         if save:

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from application.utils import t
 
-from application.resources.contexts import UserWorkspaceResourceContext
 from application.resources.base import DataType
 from application.resources.datatypes import Benchmark
 
@@ -16,14 +15,6 @@ class MongoBenchmark(Benchmark):
     @staticmethod
     def config_type() -> t.Type[MongoResourceConfig]:
         return MongoBenchmarkConfig
-
-    @classmethod
-    def get_by_claas_urn(cls, urn: str):
-        return cls.config_type().get_by_claas_urn(urn)
-
-    @classmethod
-    def dfl_claas_urn_builder(cls, context: UserWorkspaceResourceContext, name: str) -> str:
-        return cls.config_type().dfl_claas_urn_builder(context, name)
 
     @classmethod
     def canonical_typename(cls) -> str:

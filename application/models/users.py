@@ -4,6 +4,8 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash
 
 from application.utils import t, abstractmethod, TBoolExc, TDesc
+from application.resources.utils import *
+from application.resources.contexts import *
 
 
 def check_token(token):
@@ -20,7 +22,7 @@ def check_token(token):
         return None
 
 
-class User(UserMixin):
+class User(UserMixin, URIBasedResource):
 
     # 0.0. Actual class
     __user_class__: t.Type[User] = None
@@ -34,6 +36,22 @@ class User(UserMixin):
     @staticmethod
     def user_class() -> t.Type[User] | None:
         return User.__user_class__
+
+    @classmethod
+    def get_by_claas_urn(cls, urn: str):
+        s = urn.split(cls.claas_urn_separator())
+        user = User.canonicalize(s[2])
+        return user
+
+    @property
+    def claas_urn(self):
+        context = UserResourceContext(self.get_name())
+        return type(self).dfl_claas_urn_builder(context)
+
+    @classmethod
+    def dfl_claas_urn_builder(cls, context: UserResourceContext) -> str:
+        username = context.get_username()
+        return cls.claas_urn_separator().join(['claas', 'User', username])
 
     # 3. General classmethods
     @classmethod
