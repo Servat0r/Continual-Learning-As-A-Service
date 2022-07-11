@@ -18,6 +18,11 @@ _CHECK_DNS = bool(os.environ.get('EMAIL_VALIDATION_CHECK_DNS', False))
 users_bp = Blueprint('users', __name__, url_prefix='/users')
 
 
+@linker.args_rule('User')
+def user_args(user: User):
+    return {'username': user.get_name()}
+
+
 @users_bp.app_errorhandler(HTTPStatus.INTERNAL_SERVER_ERROR)
 def internal_server_error(error):
     return InternalFailure(msg=str(error))
@@ -114,13 +119,14 @@ def get_all_users():
     else:
         data = {}
         for user in all_users:
-            data[user.username] = user.to_dict()
+            data[user.username] = linker.make_links(user.to_dict())
         return make_success_kwargs(HTTPStatus.OK, **data)
 
 
 @users_bp.get('/<user:username>/')
 @users_bp.get('/<user:username>')
 @token_auth.login_required
+@linker.link_rule('User', blueprint=users_bp)
 def get_user(username):
     """
     Retrieves a user.
@@ -143,7 +149,8 @@ def get_user(username):
         return NotExistingUser(user=username)
     else:
         include_email = (current_user.username == username)
-        return make_success_dict(HTTPStatus.OK, user.to_dict(include_email=include_email))
+        data = linker.make_links(user.to_dict(include_email=include_email))
+        return make_success_dict(HTTPStatus.OK, data=data)
 
 
 @users_bp.patch('/<user:username>/')
@@ -309,6 +316,7 @@ __all__ = [
     'users_bp',
     'internal_server_error',
     'service_unavailable',
+    'user_args',
 
     'register',
     'get_all_users',

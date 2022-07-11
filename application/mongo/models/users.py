@@ -192,9 +192,18 @@ class MongoUser(MongoBaseUser):
             'username': self.username,
             'metadata': self.metadata.to_dict(),
         }
+        # workspaces = self.workspaces()
+        if links:
+            data['links'] = {'workspaces': ('Workspaces', self)}  # {w.get_name(): ('Workspace', w) for w in workspaces}
+        """
+        if links:
+            data['links'] = {
+                'workspaces': ('Workspace', [self.workspaces()]),
+            }
         if links:
             workspaces = Workspace.get(self)
             data['workspaces'] = [workspace.to_dict(links=False) for workspace in workspaces]
+        """
         if include_email:
             data['email'] = self.email
         return data

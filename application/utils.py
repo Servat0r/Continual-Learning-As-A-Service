@@ -14,7 +14,7 @@ from functools import wraps
 import torch
 from torch.nn.modules import Module
 from http import HTTPStatus
-from flask import Request, jsonify, Response
+from flask import Flask, Blueprint, url_for, Request, jsonify, Response
 from werkzeug.exceptions import BadRequest
 from flask_executor import Executor
 
@@ -124,6 +124,136 @@ def checked_json(request: Request, keyargs: bool = False, required: set[str] = N
         return None, BadJSONSyntax, [], []
 
 
+# Linker
+class Linker:
+    @staticmethod
+    def default_link_keyword():
+        return 'links'
+
+    def __init__(self, app: Flask = None, links_keyword: str = None):
+        self.link_rules: dict[str, tuple[t.Callable, t.Optional[Blueprint]]] = {}            # resource_name -> view function .__name__
+        self.args_rules: dict[str, t.Callable] = {}     # resource_name -> args for url_for view function
+        self.links_keyword = links_keyword
+        if app is not None:
+            self.init_app(app)
+
+    def init_app(self, app: Flask):
+        if app is None:
+            raise ValueError("'app' must be not None")
+        if not isinstance(app, Flask):
+            raise TypeError("'app' must be an instance of 'Flask'")
+        if self.links_keyword is None or len(self.links_keyword) == 0:
+            self.links_keyword = app.config.get('LINKS_KEYWORD', self.default_link_keyword())
+
+    def add_link_rule(self, resource_name: str, view_function: t.Callable, blueprint: Blueprint = None, replace=True):
+        # resource_name = f"{blueprint.name}.{resource_name}" if resource_name is not None else resource_name
+        if not replace:
+            old_view = self.link_rules.get(resource_name, None)
+            if old_view is not None:
+                raise AttributeError(f"A view function was already registered for '{resource_name}'")
+        self.link_rules[resource_name] = (view_function, blueprint)
+
+    def add_args_rule(self, resource_name: str, args_function: t.Callable, replace=True):
+        # resource_name = f"{blueprint.name}.{resource_name}" if resource_name is not None else resource_name
+        if not replace:
+            old_args = self.args_rules.get(resource_name, None)
+            if old_args is not None:
+                raise AttributeError(f"An args function was already registered for '{resource_name}'")
+        self.args_rules[resource_name] = args_function
+
+    def get_link_rule(self, name: str) -> tuple[t.Callable, t.Optional[Blueprint]]:
+        return self.link_rules.get(name, None)
+
+    def get_args_rule(self, name: str) -> t.Callable:
+        return self.args_rules.get(name, None)
+
+    def link_rule(self, resource_name, blueprint: Blueprint = None, replace=True):
+        def wrapper(view_function: t.Callable):
+            self.add_link_rule(resource_name, view_function, blueprint=blueprint, replace=replace)
+
+            @wraps(view_function)
+            def new_view_function(*args, **kwargs):
+                return view_function(*args, **kwargs)
+
+            return new_view_function
+        return wrapper
+
+    def args_rule(self, resource_name, replace=True):
+        def wrapper(view_function: t.Callable):
+            self.add_args_rule(resource_name, view_function, replace=replace)
+
+            @wraps(view_function)
+            def new_view_function(*args, **kwargs):
+                return view_function(*args, **kwargs)
+
+            return new_view_function
+        return wrapper
+
+    def make_links(self, json_data: TDesc) -> TDesc:
+        preprocess_links = json_data.pop(self.links_keyword, None)
+        if preprocess_links is not None:
+            if not isinstance(preprocess_links, dict):
+                raise TypeError("Malformed server response for resource linking")
+            else:
+                links_dict: TDesc = {}
+                for field_name, field_data in preprocess_links.items():
+                    resource_name, resource_val = field_data
+                    link_view_func, link_bp = self.get_link_rule(resource_name)
+                    args_rule = self.get_args_rule(resource_name)
+                    if link_view_func is None:
+                        raise TypeError(f"There is no link rule function registered for '{resource_name}'")
+                    extra_args: TDesc = {}
+                    if args_rule is not None:
+                        extra_args.update(args_rule(resource_val))
+                    url = (f"{link_bp.name}." if link_bp is not None else '') + link_view_func.__name__
+                    resource_url = url_for(url, **extra_args)
+                    links_dict[field_name] = resource_url
+                json_metadata = json_data.get('metadata', None)
+                if json_metadata is None:
+                    json_metadata = {}
+                    json_data['metadata'] = json_metadata
+                json_metadata['links'] = links_dict
+        return json_data
+
+    def make_decor_links(self, view_function: t.Callable):
+        @wraps(view_function)
+        def new_view_function(*args, **kwargs):
+            response: Response = view_function(*args, **kwargs)
+            json_data = response.get_json()
+            preprocess_links = json_data.pop(self.links_keyword, None)
+            if preprocess_links is None:
+                return response
+            elif not isinstance(preprocess_links, dict):
+                raise TypeError("Malformed server response for resource linking")
+            else:
+                links_dict: TDesc = {}
+                for field_name, field_data in preprocess_links.items():
+                    resource_name, resource_val = field_data
+                    link_view_func, link_bp = self.get_link_rule(resource_name)
+                    args_rule = self.get_args_rule(resource_name)
+                    if link_view_func is None:
+                        raise TypeError(f"There is no link rule function registered for '{resource_name}'")
+                    extra_args: TDesc = {}
+                    if args_rule is not None:
+                        extra_args.update(args_rule(resource_val))
+                    url = (f"{link_bp.name}." if link_bp is not None else '') + link_view_func.__name__
+                    resource_url = url_for(url, **extra_args)
+                    links_dict[field_name] = resource_url
+                json_data['links'] = links_dict
+                return make_success_dict(response.status_code, data=json_data)
+        return new_view_function
+
+    def __repr__(self):
+        func_dict = {k: (self.get_link_rule(k), self.get_args_rule(k)) for k in self.link_rules}
+        return f"Linker <{func_dict}>"
+
+    def __str__(self):
+        return self.__repr__()
+
+
+linker = Linker()
+
+
 # utility for PyTorch device selection
 def get_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -227,6 +357,9 @@ __all__ = [
     'make_success_kwargs',
     'make_success_dict',
     'checked_json',
+
+    'Linker',
+    'linker',
 
     'get_device',
     'Module',

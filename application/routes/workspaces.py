@@ -16,6 +16,19 @@ from .auth import token_auth, check_current_user_ownership
 workspaces_bp = Blueprint('workspaces', __name__, url_prefix='/users/<user:username>/workspaces')
 
 
+@linker.args_rule('Workspace')
+def workspace_args(workspace: Workspace):
+    return {
+        'username': workspace.get_owner().get_name(),
+        'wname': workspace.get_name(),
+    }
+
+
+@linker.args_rule('Workspaces')
+def workspaces_args(user: User):
+    return {'username': user.get_name()}
+
+
 @workspaces_bp.post('/')
 @workspaces_bp.post('')
 @token_auth.login_required
@@ -55,7 +68,8 @@ def create_workspace(username):
 
     workspace = Workspace.create(data['name'], current_user)
     if workspace:
-        return make_success_dict(HTTPStatus.CREATED, data=workspace.to_dict())
+        data = linker.make_links(workspace.to_dict())
+        return make_success_dict(HTTPStatus.CREATED, data=data)
     else:
         return InternalFailure(msg=f"Failed to create workspace '{data['name']}'.")
 
@@ -63,6 +77,7 @@ def create_workspace(username):
 @workspaces_bp.get('/<workspace:wname>/')
 @workspaces_bp.get('/<workspace:wname>')
 @token_auth.login_required
+@linker.link_rule('Workspace', blueprint=workspaces_bp)
 def get_workspace(username, wname):
     user = User.get_by_name(username)
     if not user:
@@ -71,7 +86,7 @@ def get_workspace(username, wname):
     urn = Workspace.dfl_claas_urn_builder(context)
     workspace = Workspace.get_by_claas_urn(urn)
     if workspace is not None:
-        data = workspace.to_dict()
+        data = linker.make_links(workspace.to_dict())
         return make_success_dict(HTTPStatus.OK, data=data)
     else:
         return ResourceNotFound(resource=wname)
@@ -80,13 +95,14 @@ def get_workspace(username, wname):
 @workspaces_bp.get('/')
 @workspaces_bp.get('')
 @token_auth.login_required
+@linker.link_rule('Workspaces', blueprint=workspaces_bp)
 def get_workspaces(username):
     user = User.get_by_name(username)
     if not user:
         return NotExistingUser(user=username)
     data = {}
     for workspace in Workspace.get_by_owner(t.cast(User, user)):
-        data[workspace.name] = workspace.to_dict()
+        data[workspace.name] = linker.make_links(workspace.to_dict())
     return make_success_dict(HTTPStatus.OK, data=data)
 
 
@@ -225,6 +241,7 @@ def set_workspace_status(username, wname):
 
 __all__ = [
     'workspaces_bp',
+    'workspace_args',
 
     'create_workspace',
     'get_workspace',

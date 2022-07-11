@@ -5,7 +5,7 @@ from http import HTTPStatus
 from flask import Blueprint, request
 
 from application.errors import *
-from application.utils import checked_json, make_success_dict
+from application.utils import checked_json, make_success_dict, linker
 from application.validation import *
 from application.data_managing import TFContent
 from application.models import Workspace
@@ -16,6 +16,18 @@ from application.data_managing import BaseDataRepository
 
 data_repositories_bp = Blueprint('data_repositories', __name__,
                                  url_prefix='/users/<user:username>/workspaces/<workspace:wname>/data')
+
+
+@linker.args_rule('DataRepository')
+def data_repository_args(repository: BaseDataRepository):
+    username = repository.get_owner().get_name()
+    wname = repository.get_workspace().get_name()
+    name = repository.get_name()
+    return {
+        'username': username,
+        'wname': wname,
+        'name': name,
+    }
 
 
 @data_repositories_bp.post('/')
@@ -55,7 +67,8 @@ def create_data_repository(username, wname):
 
     data_repository = BaseDataRepository.create(name, workspace, desc=description)
     if data_repository is not None:
-        return make_success_dict(HTTPStatus.CREATED, data=data_repository.to_dict())
+        data = linker.make_links(data_repository.to_dict())
+        return make_success_dict(HTTPStatus.CREATED, data=data)
     else:
         return InternalFailure(msg=f"Failed to create data repository '{name}'.")
 
@@ -93,6 +106,7 @@ def delete_repo(username, wname, name):
 @data_repositories_bp.get('/<resource:name>/')
 @data_repositories_bp.get('/<resource:name>')
 @token_auth.login_required
+@linker.link_rule('DataRepository', blueprint=data_repositories_bp)
 def get_data_repo(username, wname, name):
     result, error = check_current_user_ownership(
         username,
@@ -106,7 +120,8 @@ def get_data_repo(username, wname, name):
     data_repository = BaseDataRepository.get_one(workspace, name)
 
     if data_repository is not None:
-        return make_success_dict(data=data_repository.to_dict())
+        data = linker.make_links(data_repository.to_dict())
+        return make_success_dict(data=data)
     else:
         return ResourceNotFound(resource=name)
 

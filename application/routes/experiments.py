@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 import traceback
-from flask import Flask, Blueprint, request, Response, send_file
+from flask import Blueprint, request, Response, send_file
 from http import HTTPStatus
 
 from application.errors import *
@@ -10,23 +10,30 @@ from application.utils import *
 from application.database import *
 
 from application.resources.contexts import UserWorkspaceResourceContext
-from application.resources.base import DataType, ReferrableDataType
+from application.resources.base import DataType
 from application.resources.datatypes import BaseCLExperiment
-
-from application.mongo.resources.experiments import MongoCLExperimentConfig
 
 from .auth import token_auth
 from .resources import *
 
-_DFL_EXPERIMENT_NAME = t.cast(
-    t.Type[ReferrableDataType],
-    DataType.get_type(BaseCLExperiment.canonical_typename()),
-)
+_DFL_EXPERIMENT_NAME = DataType.get_type(BaseCLExperiment.canonical_typename()).__name__
 
 _EXPERIMENT_START = "START"
 
 experiments_bp = Blueprint('experiments', __name__,
                            url_prefix='/users/<user:username>/workspaces/<workspace:wname>/experiments')
+
+
+@linker.args_rule(_DFL_EXPERIMENT_NAME)
+def experiment_args(experiment):
+    username = experiment.get_owner()
+    wname = experiment.get_workspace()
+    name = experiment.get_name()
+    return {
+        'username': username,
+        'wname': wname,
+        'name': name,
+    }
 
 
 def _experiment_run_task(experiment_config_name: str,
@@ -198,7 +205,7 @@ def get_experiment_execution_results(username, wname, name, exec_id):
             if experiment_config.status != BaseCLExperiment.ENDED:
                 return ResourceInUse(msg="Experiment is still running and results are not available.")
         execution = experiment_config.get_execution(exec_id)
-        data = execution.to_dict()
+        data = linker.make_links(execution.to_dict())
         return make_success_dict(
             msg="Results successfully retrieved.",
             data=data,
@@ -210,12 +217,13 @@ def get_experiment_execution_results(username, wname, name, exec_id):
 @experiments_bp.get('/<experiment:name>/settings/')
 @experiments_bp.get('/<experiment:name>/settings')
 @token_auth.login_required
+@linker.link_rule(_DFL_EXPERIMENT_NAME, blueprint=experiments_bp)
 def get_experiment_settings(username, wname, name):
     experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
-        data = experiment_config.to_dict()
+        data = linker.make_links(experiment_config.to_dict())
         return make_success_dict(data=data)
 
 

@@ -191,14 +191,17 @@ class MongoDataRepository(MongoBaseDataRepository):
         result = {
             'name': self.name,
             'root': self.root,
-            'workspace': self.workspace.to_dict(links=False),
             'metadata': self.metadata.to_dict(),
             'files': files,
         }
+        BenchmarkClass = t.cast(ReferrableDataType, DataType.get_type('Benchmark')).config_type()
+        benchmarks = list(BenchmarkClass.get(build_config__data_repository=self))
+        result['benchmarks'] = [benchmark.to_dict(links=False) for benchmark in benchmarks]
         if links:
-            BenchmarkClass = t.cast(ReferrableDataType, DataType.get_type('Benchmark')).config_type()
-            benchmarks = list(BenchmarkClass.get(build_config__data_repository=self))
-            result['benchmarks'] = [benchmark.to_dict(links=False) for benchmark in benchmarks]
+            result['links'] = {
+                'owner': ('User', self.get_owner()),
+                'workspace': ('Workspace', self.get_workspace()),
+            }
         return result
 
     def update_last_modified(self, time: datetime = None, save: bool = True):

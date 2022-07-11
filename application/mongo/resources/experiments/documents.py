@@ -99,13 +99,17 @@ class MongoCLExperimentConfig(MongoResourceConfig):
         base_result = {
             'name': self.name,
             'description': self.description,
-            'owner': self.owner.to_dict(),
-            'workspace': self.workspace.to_dict(),
             'benchmark': self.benchmark.name,
             'strategy': self.strategy.name,
             'status': self.status,
             'run_config': self.run_config,
             'current_exec_id': self.current_exec_id,
+            'links': {
+                'owner': ('User', self.owner),
+                'workspace': ('Workspace', self.workspace),
+                # 'benchmark': ('Benchmark', self.benchmark),
+                # 'strategy': ('Strategy', self.strategy),
+            },
         }
         if not settings:
             base_result['executions'] = [execution.to_dict() for execution in self.executions]

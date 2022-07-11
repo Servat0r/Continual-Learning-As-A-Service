@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from http import HTTPStatus
 
-from application.utils import checked_json, make_success_dict
+from application.utils import checked_json, make_success_dict, linker
 from .auth import token_auth
 from .resources import *
 
@@ -11,6 +11,18 @@ _DFL_STRATEGY_NAME_ = "Strategy"
 
 strategies_bp = Blueprint('strategies', __name__,
                           url_prefix='/users/<user:username>/workspaces/<workspace:wname>/strategies')
+
+
+@linker.args_rule(_DFL_STRATEGY_NAME_)
+def strategy_args(strategy):
+    username = strategy.get_owner().get_name()
+    wname = strategy.get_workspace()
+    name = strategy.get_name()
+    return {
+        'username': username,
+        'wname': wname,
+        'name': name,
+    }
 
 
 @strategies_bp.post('/')
@@ -23,6 +35,7 @@ def create_strategy(username, wname):
 @strategies_bp.get('/<resource:name>/')
 @strategies_bp.get('/<resource:name>')
 @token_auth.login_required
+@linker.link_rule(_DFL_STRATEGY_NAME_, blueprint=strategies_bp)
 def get_strategy(username, wname, name):
     """
     :param username:
@@ -34,7 +47,8 @@ def get_strategy(username, wname, name):
     if response is not None:    # error
         return response
     else:
-        return make_success_dict(HTTPStatus.OK, resource.to_dict())
+        data = linker.make_links(resource.to_dict())
+        return make_success_dict(HTTPStatus.OK, data=data)
 
 
 @strategies_bp.patch('/<resource:name>/')

@@ -262,9 +262,15 @@ class MongoWorkspace(MongoBaseWorkspace):
             # 'models': [model.to_dict(links=False) for model in self.models],
         }
         if links:
+            data['links'] = {
+                'owner': ('User', self.owner)
+            }
+        """
+        if links:
             data['owner'] = self.owner.to_dict(links=False)
         else:
             data['owner'] = self.owner.get_name()
+        """
         return data
 
     # 7. Query-like methods

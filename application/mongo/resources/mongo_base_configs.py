@@ -335,9 +335,15 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
             'name': self.name,
             'description': self.description,
             'metadata': self.metadata.to_dict(),
-            'owner': self.owner.to_dict(links=False) if links else self.owner.get_name(),
-            'workspace': self.workspace.to_dict(links=False) if links else self.workspace.get_name(),
         }
+        if links:
+            data['links'] = {
+                'owner': ('User', self.owner),
+                'workspace': ('Workspace', self.workspace)
+            }
+        else:
+            data['owner'] = self.owner.get_name()
+            data['workspace'] = self.workspace.get_name()
         extra = self.extra_linked_dict_repr()
         data.update(extra)
         return data

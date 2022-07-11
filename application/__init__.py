@@ -18,5 +18,7 @@ from .mongo import *
 
 BaseDataManager.create()
 
+print(linker)
+
 
 from .app import *

@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from http import HTTPStatus
 
-from application.utils import checked_json, make_success_dict
+from application.utils import checked_json, make_success_dict, linker
 from .auth import token_auth
 from .resources import *
 
@@ -11,6 +11,18 @@ _DFL_DEPLOYED_MODEL_NAME_ = "DeployedModel"
 
 deployments_bp = Blueprint('deployments', __name__,
                            url_prefix='/users/<user:username>/workspaces/<workspace:wname>/deployments')
+
+
+@linker.args_rule(_DFL_DEPLOYED_MODEL_NAME_)
+def deployed_model_args(model):
+    username = model.get_owner().get_name()
+    wname = model.get_workspace().get_name()
+    name = model.get_name()
+    return {
+        'username': username,
+        'wname': wname,
+        'name': name,
+    }
 
 
 @deployments_bp.post('/')
@@ -36,6 +48,7 @@ def create_deployed_model(username, wname):
 @deployments_bp.get('/<resource:name>/')
 @deployments_bp.get('/<resource:name>')
 @token_auth.login_required
+@linker.link_rule(_DFL_DEPLOYED_MODEL_NAME_, blueprint=deployments_bp)
 def get_deployed_model(username, wname, name):
     """
     Returns description and metadata of a deployed model.
@@ -48,7 +61,8 @@ def get_deployed_model(username, wname, name):
     if response is not None:    # error
         return response
     else:
-        return make_success_dict(HTTPStatus.OK, resource.to_dict())
+        data = linker.make_links(resource.to_dict())
+        return make_success_dict(HTTPStatus.OK, data=data)
 
 
 @deployments_bp.patch('/<resource:name>/metadata/')
