@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import schema as sch
+
 from application.utils import TBoolStr, t, TDesc, normalize_map_field_path, denormalize_map_field_path
 from application.database import db
 from application.data_managing import BaseDataManager
@@ -27,6 +29,16 @@ class SelectorConfig(MongoEmbeddedBuildConfig):
         }
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(SelectorConfig, cls).schema_dict()
+        result.update({
+            sch.Optional('root', default=None): str,
+            sch.Optional('all', default=None): bool,
+            sch.Optional('files', default=None): [str],
+        })
+        return result
+    
+    @classmethod
     def get_required(cls) -> set[str]:
         return super(SelectorConfig, cls).get_required()
 
@@ -36,28 +48,7 @@ class SelectorConfig(MongoEmbeddedBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        ok = all(name in ('root', 'all', 'files') for name in data.keys())
-        if not ok:
-            return False, "At least one unknown field."
-
-        root = data.get('root', None)
-        all_files = data.get('all', True)
-        files = data.get('files', None)
-
-        if root is not None and not isinstance(root, str):
-            return False, "'root' parameter must be a string!"
-
-        if not isinstance(all_files, bool):
-            return False, "'all' parameter must be a boolean!"
-
-        if files is not None:
-            if not isinstance(files, list):
-                return False, "'files' parameter must be a list!"
-
-            all_str = all(isinstance(item, str) for item in files)
-            if not all_str:
-                return False, "'files' parameter must contain only strings!"
-        return True, None
+        return super(SelectorConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -137,6 +128,17 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
         }
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(DataStreamFolderConfig, cls).schema_dict()
+        result.update({
+            'root': str,
+            'selected': {str: object},
+            sch.Optional('labels', default=None): {str: {str: object}},
+            sch.Optional('default_label', default=0): int,
+        })
+        return result
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return super(DataStreamFolderConfig, cls).get_required().union({'root', 'selected'})
 
@@ -171,6 +173,10 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
+        result, msg = super(DataStreamFolderConfig, cls).validate_input(data, context)
+        if not result:
+            return result, msg
+        """
         params: TDesc = {}
         extras = data.copy()
 
@@ -220,17 +226,17 @@ class DataStreamFolderConfig(MongoEmbeddedBuildConfig):
 
         if not isinstance(default_label, int):
             return False, "'default_label' must be either an integer or a string representing an integer!"
-
+        """
+        selected = data.get('selected', None)
+        labels = data.get('labels', None)
         result, msg = SelectorConfig.validate_input(selected, context)
         if not result:
             return False, f"Failed to validate 'selected' parameter: '{msg}'."
-
         if labels is not None:
             for label, label_data in labels.items():
                 result, msg = SelectorConfig.validate_input(label_data, context)
                 if not result:
                     return False, f"Failed to validate label data corresponding to label '{label}': '{msg}'."
-
         return True, None
 
     @classmethod
@@ -313,6 +319,14 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
         }
     
     @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(DataStreamExperienceConfig, cls).schema_dict()
+        result.update({
+            sch.Optional('configs', default=[]): [{str: object}],
+        })
+        return result
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return super(DataStreamExperienceConfig, cls).get_required()
 
@@ -322,6 +336,10 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc | list, context: ResourceContext) -> TBoolStr:
+        result, msg = super(DataStreamExperienceConfig, cls).validate_input(data, context)
+        if not result:
+            return result, msg
+        """
         if isinstance(data, list):
             data = {'configs': data}
         params: TDesc = {}
@@ -345,16 +363,14 @@ class DataStreamExperienceConfig(MongoEmbeddedBuildConfig):
         # result: required & optional; data_copy: extras
         if len(extras) > 0 and not cls.has_extras():
             return False, "Unexpected extra arguments."
-
-        configs = params.get('configs', [])
+        """
+        configs = data.get('configs', [])
         if not isinstance(configs, list):
             raise TypeError("'configs' must be a list!")
-
         for i in range(len(configs)):
             result, msg = DataStreamFolderConfig.validate_input(configs[i], context)
             if not result:
                 return False, f"Failed to validate {i + 1}-th config: '{msg}'."
-
         return True, None
 
     @classmethod
@@ -491,9 +507,30 @@ class FileBasedClassificationBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig)
     eval_target_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
     other_transform_groups = db.MapField(
         db.ListField(db.EmbeddedDocumentField(TransformConfig)),
-        default=None
+        default=None,
     )
     
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(FileBasedClassificationBenchmarkBuildConfig, cls).schema_dict()
+        result.update({
+            'train_stream': [{str: object}],
+            'test_stream': [{str: object}],
+            sch.Optional('other_streams', default={}): {str: [{str: object}]},
+            sch.Optional('task_labels'): [int],
+            sch.Optional('img_type', default=cls.RGB): str,
+            sch.Optional('complete_test_set_only', default=False): bool,
+
+            sch.Optional('train_transform'): {str: object},
+            sch.Optional('train_target_transform'): {str: object},
+
+            sch.Optional('eval_transform'): {str: object},
+            sch.Optional('eval_target_transform'): {str: object},
+
+            sch.Optional('other_transform_groups'): {str: [{str: object}]},
+        })
+        return result
+
     def to_dict(self, links=True) -> TDesc:
         data = {
             'train_stream': [train_config.to_dict(links=False) for train_config in self.train_stream],
@@ -577,8 +614,9 @@ class FileBasedClassificationBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig)
         result, msg = super(FileBasedClassificationBenchmarkBuildConfig, cls).validate_input(data, dtype, context)
         if not result:
             return result, msg
-        iname, values = context.pop()
-        params = values['params']
+        # iname, values = context.pop()
+        # params = values['params']
+        params = data
 
         train_stream_list = params['train_stream']  # list[list[dict]]
         test_stream_list = params['test_stream']  # list[list[dict]]

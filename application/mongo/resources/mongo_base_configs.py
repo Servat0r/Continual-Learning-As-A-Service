@@ -3,9 +3,10 @@ from __future__ import annotations
 import sys
 import traceback
 from datetime import datetime
+import schema as sch
 
 from application.database import db
-from application.utils import TBoolStr, TBoolExc, TDesc, abstractmethod, t, auto_tboolexc
+from application.utils import TBoolStr, TBoolExc, TDesc, abstractmethod, t, auto_tboolexc, auto_tboolstr
 from application.validation import *
 from application.models import User, Workspace
 
@@ -23,6 +24,13 @@ class MongoEmbeddedBuildConfig(db.EmbeddedDocument, EmbeddedBuildConfig):
         'abstract': True,
         'allow_inheritance': True,
     }
+
+    # Let's try to use schema
+    @classmethod
+    def schema_dict(cls) -> dict:
+        return {
+            'name': sch.And(str, validate_workspace_resource_experiment)
+        }
 
     @abstractmethod
     def to_dict(self, links=True) -> TDesc:
@@ -96,13 +104,17 @@ class MongoEmbeddedBuildConfig(db.EmbeddedDocument, EmbeddedBuildConfig):
 
     # noinspection PyUnusedLocal
     @classmethod
-    @abstractmethod
+    @auto_tboolstr()
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
         """
         Base implementation of input validation where each parameter is accepted.
         :param data:
         :param context:
         :return:
+        """
+        schema = sch.Schema(cls.schema_dict())
+        schema.validate(data)
+        return True, None
         """
         ok, bc_name, params, extras = cls._filter_data(data)
         result, msg = validate_workspace_resource_experiment(bc_name)
@@ -116,6 +128,7 @@ class MongoEmbeddedBuildConfig(db.EmbeddedDocument, EmbeddedBuildConfig):
 
         context.push('args', {'name': bc_name, 'params': params, 'extras': extras})
         return True, None
+        """
 
     # noinspection PyUnusedLocal
     @classmethod
@@ -147,6 +160,13 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
 
     def __init__(self, *args, **values):
         db.EmbeddedDocument.__init__(self, *args, **values)
+
+    # Let's try to use schema
+    @classmethod
+    def schema_dict(cls) -> dict:
+        return {
+            'name': sch.And(str, validate_workspace_resource_experiment)
+        }
 
     @abstractmethod
     def to_dict(self, links=True) -> TDesc:
@@ -229,6 +249,10 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         :param context:
         :return:
         """
+        schema = sch.Schema(cls.schema_dict())
+        schema.validate(data)
+        return True, None
+        """
         try:
             ok, bc_name, params, extras = cls._filter_data(data)
             result, msg = validate_workspace_resource_experiment(bc_name)
@@ -244,6 +268,7 @@ class MongoBuildConfig(db.EmbeddedDocument, BuildConfig):
         except Exception as ex:
             traceback.print_exception(*sys.exc_info())
             return False, str(ex)
+        """
 
     # noinspection PyUnusedLocal
     @classmethod
@@ -298,6 +323,15 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
     description = db.StringField(required=False)
     metadata = db.EmbeddedDocumentField(MongoBaseMetadata)
 
+    # Let's try to use schema
+    @classmethod
+    @abstractmethod
+    def schema_dict(cls) -> dict:
+        return {
+            'name': sch.And(str, validate_workspace_resource_experiment),
+            sch.Optional('description'): str,
+        }
+
     def __repr__(self):
         return f"{type(self).__name__} <id = {self.id}> [urn = {self.claas_urn}]"
 
@@ -349,7 +383,6 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
         data.update(extra)
         return data
 
-    # .................... #
     @classmethod
     def get(cls, owner: str | MongoBaseUser = None, workspace: str | MongoBaseWorkspace = None,
             name: str = None, **args) -> list[MongoResourceConfig]:
@@ -392,8 +425,6 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
     def all(cls):
         return list(cls.objects({}).all())
 
-    # .................... #
-
     @property
     def claas_urn(self):
         context = UserWorkspaceResourceContext(self.owner.get_name(), self.workspace.name)
@@ -405,8 +436,6 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
         workspace = context.get_workspace()
         typename = cls.target_type().canonical_typename()
         return cls.claas_urn_separator().join(['claas', typename, username, workspace, name])
-
-    # .................... #
 
     @staticmethod
     @abstractmethod
@@ -461,7 +490,12 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
                 return obj
 
     @classmethod
+    @auto_tboolstr()
     def validate_input(cls, data, context: ResourceContext) -> TBoolStr:
+        schema = sch.Schema(cls.schema_dict())
+        schema.validate(data)
+        return True, None
+        """
         try:
             if 'name' not in data:
                 return False, "Missing parameter 'name'."
@@ -472,6 +506,7 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
         except Exception as ex:
             traceback.print_exception(*sys.exc_info())
             return False, str(ex)
+        """
 
     @abstractmethod
     def build(self, context: ResourceContext,
@@ -569,8 +604,22 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
                 return False, ex
 
 
-
 class MongoResourceConfig(MongoBaseResourceConfig):
+
+    meta = {
+        'abstract': True,
+        'allow_inheritance': True,
+    }
+
+    build_config = db.EmbeddedDocumentField(MongoBuildConfig)
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(MongoResourceConfig, cls).schema_dict()
+        result.update({
+            'build': {str: object},
+        })
+        return result
 
     @staticmethod
     @abstractmethod
@@ -581,13 +630,6 @@ class MongoResourceConfig(MongoBaseResourceConfig):
     @abstractmethod
     def meta_type() -> t.Type[BaseMetadata]:
         pass
-
-    meta = {
-        'abstract': True,
-        'allow_inheritance': True,
-    }
-
-    build_config = db.EmbeddedDocumentField(MongoBuildConfig)
 
     def to_dict(self, links=True) -> TDesc:
         data = super().to_dict(links=links)
@@ -612,7 +654,13 @@ class MongoResourceConfig(MongoBaseResourceConfig):
                                                       parents_locked=parents_locked, **metadata)
 
     @classmethod
+    @auto_tboolstr()
     def validate_input(cls, data, context: ResourceContext) -> TBoolStr:
+        schema = sch.Schema(cls.schema_dict())
+        schema.validate(data)
+        config = MongoBuildConfig.get_by_name(data['build'])
+        return t.cast(MongoBuildConfig, config).validate_input(data['build'], cls.target_type(), context)
+        """
         try:
             required = ['name', 'build']
             if not all(fname in data for fname in required):
@@ -627,6 +675,7 @@ class MongoResourceConfig(MongoBaseResourceConfig):
         except Exception as ex:
             traceback.print_exception(*sys.exc_info())
             return False, str(ex)
+        """
 
     def build(self, context: ResourceContext,
               locked=False, parents_locked=False):

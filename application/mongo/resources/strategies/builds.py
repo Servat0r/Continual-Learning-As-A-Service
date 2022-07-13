@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+import schema as sch
+
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.supervised import Naive, Cumulative, JointTraining, \
     Replay, GDumb, SynapticIntelligence, LwF, EWC, CWRStar, AGEM
@@ -120,6 +123,15 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
         })
         return data
 
+    @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        data.update({
+            'si_lambda': sch.Or(float, [float]),
+            sch.Optional('eps'): float,
+        })
+        return data
+
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         return SynapticIntelligence
@@ -134,33 +146,7 @@ class SynapticIntelligenceBuildConfig(MongoBaseStrategyBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: UserWorkspaceResourceContext) -> TBoolStr:
-        result, msg = super().validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-        si_lambda = params['si_lambda']
-        eps = params.get('eps', 0.0000001)
-
-        si_checked = True
-        if isinstance(si_lambda, float):
-            si_checked = True
-        elif isinstance(si_lambda, list):
-            for si_l in si_lambda:
-                if not isinstance(si_l, float):
-                    si_checked = False
-                    break
-        else:
-            si_checked = False
-        if not si_checked:
-            return False, "Parameter 'si_lambda' is not of the correct type."
-
-        if not isinstance(eps, float):
-            return False, "Parameter 'eps' is not of the correct type."
-
-        return True, None
-
+        return super(SynapticIntelligenceBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def extra_create_params_process(cls, params: TDesc) -> TDesc:
@@ -193,6 +179,15 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
         })
         return data
 
+    @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(LwFBuildConfig, cls).schema_dict()
+        data.update({
+            'alpha': sch.Or(float, [float]),
+            'temperature': float,
+        })
+        return data
+
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         return LwF
@@ -207,32 +202,7 @@ class LwFBuildConfig(MongoBaseStrategyBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: UserWorkspaceResourceContext) -> TBoolStr:
-        result, msg = super(LwFBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-        alpha = params['alpha']
-        temperature = params['temperature']
-
-        # alpha can be either a float or a list of floats
-        alpha_checked = True
-        if isinstance(alpha, float):
-            alpha_checked = True
-        elif isinstance(alpha, list):
-            for a in alpha:
-                if not isinstance(a, float):
-                    alpha_checked = False
-                    break
-        else:
-            alpha_checked = False
-        if not alpha_checked:
-            return False, "Parameter 'alpha' is not of the correct type."
-
-        if not isinstance(temperature, float):
-            return False, "Parameter 'temperature' is not of the correct type."
-        return True, None
+        return super(LwFBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def extra_create_params_process(cls, params: TDesc) -> TDesc:
@@ -268,6 +238,17 @@ class EWCBuildConfig(MongoBaseStrategyBuildConfig):
         })
         return data
 
+    @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(EWCBuildConfig, cls).schema_dict()
+        data.update({
+            'ewc_lambda': float,
+            sch.Optional('mode'): str,
+            sch.Optional('decay_factor'): float,
+            sch.Optional('keep_importance_data', default=False): bool,
+        })
+        return data
+
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         return EWC
@@ -282,30 +263,7 @@ class EWCBuildConfig(MongoBaseStrategyBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: UserWorkspaceResourceContext) -> TBoolStr:
-        result, msg = super(EWCBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-        ewc_lambda = params['ewc_lambda']
-        mode = params.get('mode', 'separate')
-        decay_factor = params.get('decay_factor')
-        keep_importance_data = params.get('keep_importance_data', False)
-
-        if not isinstance(ewc_lambda, float):
-            return False, "Parameter 'ewc_lambda' must be a float!"
-
-        if not isinstance(mode, str):
-            return False, "Parameter 'mode' must be a string!"
-
-        if decay_factor is not None and not isinstance(decay_factor, float):
-            return False, "Parameter 'decay_factor' must be a float!"
-
-        if not isinstance(keep_importance_data, bool):
-            return False, "Parameter 'keep_importance_data' must be a boolean!"
-
-        return True, None
+        return super(EWCBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def extra_create_params_process(cls, params: TDesc) -> TDesc:
@@ -338,6 +296,14 @@ class ReplayBuildConfig(MongoBaseStrategyBuildConfig):
         data.update({'memory': self.memory})
         return data
 
+    @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(ReplayBuildConfig, cls).schema_dict()
+        data.update({
+            sch.Optional('memory'): int,
+        })
+        return data
+
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         return Replay
@@ -352,17 +318,7 @@ class ReplayBuildConfig(MongoBaseStrategyBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: UserWorkspaceResourceContext) -> TBoolStr:
-        result, msg = super(ReplayBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-        memory = params.get('memory', 200)
-
-        if not isinstance(memory, int):
-            return False, "Parameter 'memory' is not of the correct type."
-        return True, None
+        return super(ReplayBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def extra_create_params_process(cls, params: TDesc) -> TDesc:
@@ -384,6 +340,14 @@ class CWRStarBuildConfig(MongoBaseStrategyBuildConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(CWRStarBuildConfig, cls).schema_dict()
+        data.update({
+            sch.Optional('layer_name'): str,
+        })
+        return data
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return super(CWRStarBuildConfig, cls).get_required()
 
@@ -397,17 +361,7 @@ class CWRStarBuildConfig(MongoBaseStrategyBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: UserWorkspaceResourceContext) -> TBoolStr:
-        result, msg = super(CWRStarBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-        layer_name = params.get('layer_name', '')
-
-        if not isinstance(layer_name, str):
-            return False, "Parameter 'layer_name' is not of the correct type."
-        return True, None
+        return super(CWRStarBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def extra_create_params_process(cls, params: TDesc) -> TDesc:
@@ -428,6 +382,14 @@ class GDumbBuildConfig(MongoBaseStrategyBuildConfig):
         data.update({'memory': self.memory})
         return data
 
+    @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(GDumbBuildConfig, cls).schema_dict()
+        data.update({
+            sch.Optional('memory'): int,
+        })
+        return data
+
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         return GDumb
@@ -442,17 +404,7 @@ class GDumbBuildConfig(MongoBaseStrategyBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: UserWorkspaceResourceContext) -> TBoolStr:
-        result, msg = super(GDumbBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-        memory = params.get('memory', 200)
-
-        if not isinstance(memory, int):
-            return False, "Parameter 'memory' is not of the correct type."
-        return True, None
+        return super(GDumbBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def extra_create_params_process(cls, params: TDesc) -> TDesc:
@@ -477,6 +429,15 @@ class AGEMBuildConfig(MongoBaseStrategyBuildConfig):
         })
         return data
 
+    @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(AGEMBuildConfig, cls).schema_dict()
+        data.update({
+            'patterns_per_size': int,
+            sch.Optional('sample_size'): int,
+        })
+        return data
+
     @staticmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
         return AGEM
@@ -491,17 +452,7 @@ class AGEMBuildConfig(MongoBaseStrategyBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: UserWorkspaceResourceContext) -> TBoolStr:
-        result, msg = super(AGEMBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-        patterns_per_size = params['patterns_per_size']
-        sample_size = params.get('sample_size', 64)
-
-        all_int = all(isinstance(val, int) for val in [patterns_per_size, sample_size])
-        return (True, None) if all_int else (False, "Parameter 'memory' is not of the correct type.")
+        return super(AGEMBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def extra_create_params_process(cls, params: TDesc) -> TDesc:

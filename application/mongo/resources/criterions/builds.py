@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import schema as sch
 from torch.nn.modules import CrossEntropyLoss, MSELoss
 
 from application.utils import TBoolStr, t, TDesc
@@ -18,6 +20,10 @@ class CrossEntropyLossBuildConfig(MongoBuildConfig):
         return super().to_dict(links=links)
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        return super(CrossEntropyLossBuildConfig, cls).schema_dict()
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return set()
 
@@ -31,11 +37,7 @@ class CrossEntropyLossBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super().validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-        _, _ = context.pop()
-        return True, None
+        return super().validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
@@ -65,6 +67,14 @@ class MSELossBuildConfig(MongoBuildConfig):
     # Fields
     reduction = db.StringField(choices=__choices, default=__default)
 
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(MSELossBuildConfig, cls).schema_dict()
+        result.update({
+            sch.Optional('reduction', default=cls.default_val()): sch.And(str, lambda x: x in cls.choices()),
+        })
+        return result
+
     def to_dict(self, links=True) -> TDesc:
         data = super().to_dict(links=links)
         data.update({'reduction': self.reduction})
@@ -84,15 +94,7 @@ class MSELossBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super(MSELossBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        params = values['params']
-        reduction = params.get('reduction', 'mean')
-        if not isinstance(reduction, str):
-            return False, "Parameter 'reduction' must be a string!"
-        return True, None
+        return super(MSELossBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):

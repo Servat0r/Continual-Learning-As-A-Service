@@ -29,6 +29,15 @@ class MongoDeployedModelConfig(MongoBaseResourceConfig):
         data['path'] = self.get_path()
         return data
 
+    @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(MongoDeployedModelConfig, cls).schema_dict()
+        data.update({
+            'path': str,
+            'deploy': {str: object},
+        })
+        return data
+
     @staticmethod
     def target_type() -> t.Type[DataType]:
         return DataType.get_type('DeployedModel')
@@ -77,19 +86,10 @@ class MongoDeployedModelConfig(MongoBaseResourceConfig):
     # ok
     @classmethod
     def validate_input(cls, data, context: UserWorkspaceResourceContext) -> TBoolStr:
-        required = ['name', 'path', 'deploy']
-        check_required = all(field in data for field in required)
-        if not check_required:
-            return False, "Missing parameter(s)."
-        name = data.get('name')
-        path = data.get('path')
+        result, msg = super(MongoDeployedModelConfig, cls).validate_input(data, context)
+        if not result:
+            return result, msg
         deploy_data = data.get('deploy')
-        description = data.get('description', '')
-        check_str = all(isinstance(f, str) for f in [name, path, description])
-        if not check_str:
-            return False, "'name' and 'description' must be string!"
-        if not isinstance(deploy_data, dict):
-            return False, "'deploy_data' must be a dictionary!"
         deployer = BaseModelDeployer.get_by_name(deploy_data)
         if deployer is None:
             return False, "Failed to validate deployment data: unknown or missing deployer name."

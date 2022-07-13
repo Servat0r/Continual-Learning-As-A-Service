@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import schema as sch
 from torchvision.models import *
 
 from application.utils import TBoolStr, t, TDesc, abstractmethod
@@ -24,6 +25,12 @@ class BaseTorchVisionModelsBuildConfig(MongoBuildConfig):
     def to_dict(self, links=True) -> TDesc:
         data = super().to_dict(links=links)
         data.update({'pretrained': self.pretrained})
+        return data
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        data.update({sch.Optional('pretrained', default=False): bool})
         return data
 
     @staticmethod
@@ -93,6 +100,15 @@ class SingleParamTorchVisionModelsBuildConfig(BaseTorchVisionModelsBuildConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        check = lambda x: x in cls.maps().keys()
+        data.update({
+            sch.Optional('net_id', default=cls.default_val()): sch.And(cls.param_type(), check)
+        })
+        return data
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return super(SingleParamTorchVisionModelsBuildConfig, cls).get_required()
 
@@ -102,17 +118,7 @@ class SingleParamTorchVisionModelsBuildConfig(BaseTorchVisionModelsBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super(SingleParamTorchVisionModelsBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return False, f"Failed to validate input: '{msg}'"
-        _, values = context.pop()
-        params = values['params']
-        net_id = params.get('net_id', cls.default_val())
-        if not isinstance(net_id, cls.param_type()):
-            return False, "Parameter 'net_id' must be an integer!"
-        elif net_id not in cls.maps().keys():
-            return False, f"Parameter 'net_id' must be a value inside in {cls.maps().keys()}"
-        return True, None
+        return super(SingleParamTorchVisionModelsBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):

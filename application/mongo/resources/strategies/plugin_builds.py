@@ -1,13 +1,15 @@
 from __future__ import annotations
+
+import schema as sch
+
 from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins import ReplayPlugin, GDumbPlugin, SynapticIntelligencePlugin, \
-    LwFPlugin, EWCPlugin, CWRStarPlugin, AGEMPlugin
+    LwFPlugin, EWCPlugin, AGEMPlugin
 
 from application.utils import TBoolStr, TDesc
 from application.database import db
 from application.resources.contexts import UserWorkspaceResourceContext
 
-from application.mongo.resources.mongo_base_configs import *
 from .base_builds import *
 
 
@@ -28,6 +30,15 @@ class SynapticIntelligencePluginConfig(StrategyPluginConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        data.update({
+            'si_lambda': sch.Or(float, [float]),
+            sch.Optional('eps'): float,
+        })
+        return data
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return (super().get_required() or set()).union({'si_lambda'})
 
@@ -37,32 +48,7 @@ class SynapticIntelligencePluginConfig(StrategyPluginConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: UserWorkspaceResourceContext) -> TBoolStr:
-        result, msg = super().validate_input(data, context)
-        if not result:
-            return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-        si_lambda = params['si_lambda']
-        eps = params.get('eps', 0.0000001)
-
-        si_checked = True
-        if isinstance(si_lambda, float):
-            si_checked = True
-        elif isinstance(si_lambda, list):
-            for si_l in si_lambda:
-                if not isinstance(si_l, float):
-                    si_checked = False
-                    break
-        else:
-            si_checked = False
-        if not si_checked:
-            return False, "Parameter 'si_lambda' is not of the correct type."
-
-        if not isinstance(eps, float):
-            return False, "Parameter 'eps' is not of the correct type."
-
-        return True, None
+        return super().validate_input(data, context)
 
     @classmethod
     def extra_create_params_process(cls, params: TDesc) -> TDesc:
@@ -90,6 +76,14 @@ class ReplayPluginConfig(StrategyPluginConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(ReplayPluginConfig, cls).schema_dict()
+        data.update({
+            sch.Optional('memory'): int,
+        })
+        return data
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return super(ReplayPluginConfig, cls).get_required()
 
@@ -99,17 +93,7 @@ class ReplayPluginConfig(StrategyPluginConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: UserWorkspaceResourceContext) -> TBoolStr:
-        result, msg = super(ReplayPluginConfig, cls).validate_input(data, context)
-        if not result:
-            return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-        memory = params.get('memory', 200)
-
-        if not isinstance(memory, int):
-            return False, "Parameter 'memory' is not of the correct type."
-        return True, None
+        return super(ReplayPluginConfig, cls).validate_input(data, context)
 
     @classmethod
     def extra_create_params_process(cls, params: TDesc) -> TDesc:
@@ -136,33 +120,17 @@ class LwFPluginConfig(StrategyPluginConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(LwFPluginConfig, cls).schema_dict()
+        data.update({
+            'alpha': sch.Or(float, [float]),
+            'temperature': float,
+        })
+        return data
+
+    @classmethod
     def validate_input(cls, data: TDesc, context: UserWorkspaceResourceContext) -> TBoolStr:
-        result, msg = super(LwFPluginConfig, cls).validate_input(data, context)
-        if not result:
-            return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-        alpha = params['alpha']
-        temperature = params['temperature']
-
-        # alpha can be either a float or a list of floats
-        alpha_checked = True
-        if isinstance(alpha, float):
-            alpha_checked = True
-        elif isinstance(alpha, list):
-            for a in alpha:
-                if not isinstance(a, float):
-                    alpha_checked = False
-                    break
-        else:
-            alpha_checked = False
-        if not alpha_checked:
-            return False, "Parameter 'alpha' is not of the correct type."
-
-        if not isinstance(temperature, float):
-            return False, "Parameter 'temperature' is not of the correct type."
-        return True, None
+        return super(LwFPluginConfig, cls).validate_input(data, context)
 
     @classmethod
     def extra_create_params_process(cls, params: TDesc) -> TDesc:
@@ -198,27 +166,19 @@ class EWCPluginConfig(StrategyPluginConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(EWCPluginConfig, cls).schema_dict()
+        data.update({
+            'ewc_lambda': float,
+            sch.Optional('mode'): str,
+            sch.Optional('decay_factor'): float,
+            sch.Optional('keep_importance_data', default=False): bool,
+        })
+        return data
+
+    @classmethod
     def validate_input(cls, data: TDesc, context: UserWorkspaceResourceContext) -> TBoolStr:
-        result, msg = super(EWCPluginConfig, cls).validate_input(data, context)
-        if not result:
-            return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-        ewc_lambda = params['ewc_lambda']
-        mode = params.get('mode', 'separate')
-        decay_factor = params.get('decay_factor')
-        keep_importance_data = params.get('keep_importance_data', False)
-
-        if not isinstance(ewc_lambda, float):
-            return False, "Parameter 'ewc_lambda' must be a float!"
-        if not isinstance(mode, str):
-            return False, "Parameter 'mode' must be a string!"
-        if decay_factor is not None and not isinstance(decay_factor, float):
-            return False, "Parameter 'decay_factor' must be a float!"
-        if not isinstance(keep_importance_data, bool):
-            return False, "Parameter 'keep_importance_data' must be a boolean!"
-        return True, None
+        return super(EWCPluginConfig, cls).validate_input(data, context)
 
     @classmethod
     def extra_create_params_process(cls, params: TDesc) -> TDesc:
@@ -237,9 +197,97 @@ class EWCPluginConfig(StrategyPluginConfig):
         )
 
 
+@StrategyPluginConfig.register_plugin_config('GDumb')
+class GDumbPluginConfig(StrategyPluginConfig):
+
+    # Fields
+    memory = db.IntField(default=200)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({'memory': self.memory})
+        return data
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(GDumbPluginConfig, cls).schema_dict()
+        data.update({
+            sch.Optional('memory'): int,
+        })
+        return data
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return super(GDumbPluginConfig, cls).get_required()
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return super(GDumbPluginConfig, cls).get_optionals().union({'memory'})
+
+    @classmethod
+    def validate_input(cls, data: TDesc, context: UserWorkspaceResourceContext) -> TBoolStr:
+        return super(GDumbPluginConfig, cls).validate_input(data, context)
+
+    @classmethod
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
+        return params
+
+    def get_plugin(self) -> SupervisedPlugin:
+        return GDumbPlugin(mem_size=self.memory)
+
+
+@StrategyPluginConfig.register_plugin_config('AGEM')
+class AGEMPluginConfig(StrategyPluginConfig):
+
+    # Fields
+    patterns_per_size = db.IntField(required=True)
+    sample_size = db.IntField(default=64)
+
+    def to_dict(self, links=True) -> TDesc:
+        data = super().to_dict(links=links)
+        data.update({
+            'patterns_per_size': self.patterns_per_size,
+            'sample_size': self.sample_size,
+        })
+        return data
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(AGEMPluginConfig, cls).schema_dict()
+        data.update({
+            'patterns_per_size': int,
+            sch.Optional('sample_size'): int,
+        })
+        return data
+
+    @classmethod
+    def get_required(cls) -> set[str]:
+        return super(AGEMPluginConfig, cls).get_required().union({'patterns_per_size'})
+
+    @classmethod
+    def get_optionals(cls) -> set[str]:
+        return super(AGEMPluginConfig, cls).get_optionals().union({'sample_size'})
+
+    @classmethod
+    def validate_input(cls, data: TDesc, context: UserWorkspaceResourceContext) -> TBoolStr:
+        return super(AGEMPluginConfig, cls).validate_input(data, context)
+
+    @classmethod
+    def extra_create_params_process(cls, params: TDesc) -> TDesc:
+        return params
+
+    def get_plugin(self) -> SupervisedPlugin:
+        return AGEMPlugin(
+            patterns_per_experience=self.patterns_per_size,
+            sample_size=self.sample_size,
+        )
+
+
 __all__ = [
     'SynapticIntelligencePluginConfig',
     'ReplayPluginConfig',
     'LwFPluginConfig',
     'EWCPluginConfig',
+    'GDumbPluginConfig',
+    'AGEMPluginConfig',
 ]

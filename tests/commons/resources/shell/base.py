@@ -10,7 +10,7 @@ from tests.utils import *
 
 class BaseShellTest(BaseTestCase):
 
-    username = 'shell_username'
+    username = 'shell-username'
     email = EMAIL
     password = PASSWORD
     wname = 'shell_workspace'
@@ -21,10 +21,11 @@ class BaseShellTest(BaseTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.app = create_app()
-        self.app.app_context().push()
+        self.app_context = self.app.app_context()
+        self.app_context.push()
 
     def tearDown(self) -> None:
-        self.app.app_context().pop()
+        self.app_context.pop()
         super().tearDown()
 
     def create_user_workspace(self) -> bool:
@@ -38,9 +39,10 @@ class BaseShellTest(BaseTestCase):
 
     def delete_user_workspace(self) -> bool:
         try:
-            self.workspace.close()
-            self.workspace.delete()
-            self.workspace = None
+            if self.workspace is not None:
+                self.workspace.close()
+                self.workspace.delete()
+                self.workspace = None
             self.assertTrue(self.delete_user())
             return True
         except Exception as ex:
@@ -59,6 +61,3 @@ class BaseShellTest(BaseTestCase):
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
-
-
-__all__ = ['BaseShellTest']

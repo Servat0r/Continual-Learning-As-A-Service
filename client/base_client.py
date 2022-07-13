@@ -445,7 +445,7 @@ class BaseClient:
         return self.post(self.metricsets_base, data=data)
 
     @check_in_session('auth_token', 'username', 'workspace')
-    def get_metricset(self, name: str):
+    def get_metric_set(self, name: str):
         return self.get([self.metricsets_base, name])
 
     @check_in_session('auth_token', 'username', 'workspace')

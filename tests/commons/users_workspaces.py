@@ -8,7 +8,6 @@ from client import *
 from tests.utils import *
 
 
-
 class UserWorkspaceOpsTestCase(BaseTestCase):
 
     # Test parameters
@@ -19,8 +18,9 @@ class UserWorkspaceOpsTestCase(BaseTestCase):
     host = HOST
     port = PORT
     client = BaseClient(host, port)
+    deleted = False
 
-    # Exported "macros"
+    # "Macros"
     def register_login(self):
         # register
         self.assertBaseHandler(
@@ -44,35 +44,45 @@ class UserWorkspaceOpsTestCase(BaseTestCase):
     def delete_user(self):
         # delete user
         self.assertBaseHandler(self.client.delete_user())
+        self.deleted = True
 
     # Main test
-    def test_user_workspace(self):
+    def test_main(self):
+        self.deleted = False
         with self.client.session(self.username, self.workspace):
-            # register and login
-            self.register_login()
+            try:
+                # register and login
+                self.register_login()
 
-            # get_user
-            self.assertBaseHandler(self.client.get_user())
+                # get_user
+                self.assertBaseHandler(self.client.get_user())
 
-            # edit_user
-            self.assertBaseHandler(self.client.edit_user(self.username, "new_" + self.email))
+                # edit_user
+                self.assertBaseHandler(self.client.edit_user(self.username, "new_" + self.email))
 
-            # create workspace
-            self.create_workspace()
+                # create workspace
+                self.create_workspace()
 
-            # get workspace
-            self.assertBaseHandler(self.client.get_workspace())
+                # get workspace
+                self.assertBaseHandler(self.client.get_workspace())
 
-            # close and delete workspace
-            self.close_and_delete_workspace()
+                # close and delete workspace
+                self.close_and_delete_workspace()
 
-            # logout
-            self.assertBaseHandler(self.client.logout(exit_session=False))
+                # logout
+                self.assertBaseHandler(self.client.logout(exit_session=False))
 
-            # login again
-            self.assertBaseHandler(self.client.login(self.username, self.password))
+                # login again
+                self.assertBaseHandler(self.client.login(self.username, self.password))
 
-            self.delete_user()
+                self.delete_user()
+            finally:
+                if not self.deleted:
+                    # delete user data anyway
+                    self.client.close_workspace(self.workspace)
+                    self.client.delete_workspace(self.workspace)
+                    self.client.delete_user()
+                    self.deleted = True
 
 
 if __name__ == '__main__':

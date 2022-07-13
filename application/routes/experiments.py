@@ -137,7 +137,7 @@ def setup_experiment(username, wname, name):
         return InternalFailure(msg=f"Setup failed: {ex}: '{ex.args[0]}'.")
 
 
-@experiments_bp.patch('/<experiment:name>/status/')  # todo modificare test files!
+@experiments_bp.patch('/<experiment:name>/status/')
 @experiments_bp.patch('/<experiment:name>/status')
 @token_auth.login_required
 def set_experiment_status(username, wname, name):

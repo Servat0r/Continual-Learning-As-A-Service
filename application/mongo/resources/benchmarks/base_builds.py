@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import schema as sch
+
 from application.utils import TBoolStr, t, TDesc, abstractmethod, get_common_dataset_root
 from application.database import db
 
@@ -20,6 +22,14 @@ class MongoBaseBenchmarkBuildConfig(MongoBuildConfig):
     }
 
     data_repository = db.ReferenceField(MongoDataRepository, default=None)
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(MongoBaseBenchmarkBuildConfig, cls).schema_dict()
+        result.update({
+            sch.Optional('data_repository'): str,
+        })
+        return result
 
     @classmethod
     @abstractmethod
@@ -70,6 +80,20 @@ class MongoBaseClassicBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig):
     shuffle = db.BooleanField(default=True)
     train_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
     eval_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(MongoBaseClassicBenchmarkBuildConfig, cls).schema_dict()
+        result.update({
+            'n_experiences': int,
+            sch.Optional('return_task_id', default=False): bool,
+            sch.Optional('seed', default=None): int,
+            sch.Optional('fixed_class_order', default=None): [int],
+            sch.Optional('shuffle', default=True): bool,
+            sch.Optional('train_transform', default=None): {str: object},
+            sch.Optional('eval_transform', default=None): {str: object},
+        })
+        return result
 
     @staticmethod
     @abstractmethod
@@ -138,6 +162,8 @@ class MongoBaseClassicBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig):
         result, msg = super(MongoBaseClassicBenchmarkBuildConfig, cls).validate_input(data, dtype, context)
         if not result:
             return result, msg
+
+        """
         iname, values = context.pop()
         params: TDesc = values['params']
 
@@ -159,9 +185,11 @@ class MongoBaseClassicBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig):
         ok = all_int and all_bool and checked_class_order
         if not ok:
             return False, "One or more parameters are not of the correct type!"
-
         train_transform_data = params.get('train_transform')
         eval_transform_data = params.get('eval_transform')
+        """
+        train_transform_data = data.get('train_transform')
+        eval_transform_data = data.get('eval_transform')
 
         if train_transform_data is not None:
             train_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(train_transform_data)
@@ -179,7 +207,7 @@ class MongoBaseClassicBenchmarkBuildConfig(MongoBaseBenchmarkBuildConfig):
             if not result:
                 return False, f"Eval transform is incorrect: '{msg}'."
 
-        context.push(iname, values)
+        # context.push(iname, values)
         return True, None
 
     @classmethod

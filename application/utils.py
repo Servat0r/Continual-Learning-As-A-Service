@@ -297,13 +297,18 @@ def auto_tboolexc(f: t.Callable):
 
 
 # Decorators for general TBoolStr behaviour
-def auto_tboolstr(ex_str_callback: t.Callable):
+def dfl_ex_str_callback(ex: Exception) -> str:
+    return str(ex)
+
+
+def auto_tboolstr(ex_str_callback: t.Callable = dfl_ex_str_callback):
     def wrapper(f: t.Callable):
         @wraps(f)
         def new_f(*args, **kwargs):
             try:
                 return f(*args, **kwargs)
             except Exception as ex:
+                traceback.print_exception(*sys.exc_info())
                 msg = ex_str_callback(ex)
                 return False, msg
         return new_f

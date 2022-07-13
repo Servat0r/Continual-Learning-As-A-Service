@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import schema as sch
 from torch.optim import SGD, Adam
 
 from application.utils import t, TDesc, TBoolStr
@@ -37,6 +39,19 @@ class SGDBuildConfig(MongoBuildConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        data.update({
+            'learning_rate': float,
+            sch.Optional('momentum', default=0.0): float,
+            sch.Optional('dampening', default=0.0): float,
+            sch.Optional('weight_decay', default=0.0): float,
+            sch.Optional('nesterov', default=False): bool,
+            'model': str,
+        })
+        return data
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return {'model', 'learning_rate'}
 
@@ -58,27 +73,9 @@ class SGDBuildConfig(MongoBuildConfig):
         result, msg = super().validate_input(data, dtype, context)
         if not result:
             return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-
-        learning_rate = params.get('learning_rate', 0.0)
-        momentum = params.get('momentum', 0.0)
-        dampening = params.get('dampening', 0.0)
-        weight_decay = params.get('weight_decay', 0.0)
-        nesterov = params.get('nesterov', False)
-
-        float_check = all(isinstance(param, float) for param in {
-            learning_rate, momentum, dampening, weight_decay, nesterov,
-        })
-
-        if not float_check:
-            return False, "One or more parameters are not in the correct type."
-
-        model_name = params['model']
+        model_name = data['model']
         owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
         workspace = Workspace.canonicalize(context)
-
         model = MongoModelConfig.get_one(owner, workspace, model_name)
         if not model:
             return False, "One or more referred resource does not exist."
@@ -138,6 +135,17 @@ class AdamBuildConfig(MongoBuildConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        data.update({
+            'learning_rate': float,
+            sch.Optional('eps'): float,
+            sch.Optional('weight_decay'): float,
+            'model': str,
+        })
+        return data
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return {'model', 'learning_rate'}
 
@@ -154,29 +162,12 @@ class AdamBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: UserWorkspaceResourceContext) -> TBoolStr:
-
         result, msg = super().validate_input(data, dtype, context)
         if not result:
             return result, msg
-
-        iname, values = context.pop()
-        params: TDesc = values['params']
-
-        learning_rate = params.get('learning_rate', 0.0)
-        eps = params.get('eps', 1e-8)
-        weight_decay = params.get('weight_decay', 0.0)
-
-        float_check = all(isinstance(param, float) for param in {
-            learning_rate, eps, weight_decay,
-        })
-
-        if not float_check:
-            return False, "One or more parameters are not in the correct type."
-
-        model_name = params['model']
+        model_name = data['model']
         owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
         workspace = Workspace.canonicalize(context)
-
         model = MongoModelConfig.get_one(owner, workspace, model_name)
         if not model:
             return False, "One or more referred resource does not exist."

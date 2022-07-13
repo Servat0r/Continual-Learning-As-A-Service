@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import schema as sch
+
 from avalanche.models.simple_mlp import SimpleMLP
 from avalanche.models.simple_cnn import SimpleCNN
 from avalanche.models.pnn import PNN
@@ -40,6 +42,18 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(SimpleMLPBuildConfig, cls).schema_dict()
+        result.update({
+            sch.Optional('num_classes'): int,
+            sch.Optional('input_size'): int,
+            sch.Optional('hidden_size'): int,
+            sch.Optional('hidden_layers'): int,
+            sch.Optional('drop_rate'): float,
+        })
+        return result
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return set()
 
@@ -59,21 +73,7 @@ class SimpleMLPBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super(SimpleMLPBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        params: TDesc = values['params']
-        drop_rate = params.pop('drop_rate', 0.0)
-        ok = isinstance(drop_rate, float)
-        if ok:
-            for param in params.values():
-                if param != 'drop_rate' and not isinstance(param, int):
-                    ok = False
-                    break
-        if not ok:
-            return False, "One or more parameter(s) are not in the correct type."
-        return True, None
+        return super(SimpleMLPBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
@@ -104,6 +104,14 @@ class SimpleCNNBuildConfig(MongoBuildConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(SimpleCNNBuildConfig, cls).schema_dict()
+        result.update({
+            sch.Optional('num_classes'): int,
+        })
+        return result
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return set()
 
@@ -117,15 +125,7 @@ class SimpleCNNBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super().validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        params: TDesc = values['params']
-        for param in params.values():
-            if not isinstance(param, int):
-                return False, "One or more parameter(s) are not in the correct type."
-        return True, None
+        return super().validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):
@@ -159,6 +159,17 @@ class PNNBuildConfig(MongoBuildConfig):
             'adapter': self.adapter,
         })
         return data
+    
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(PNNBuildConfig, cls).schema_dict()
+        result.update({
+            sch.Optional('num_layers'): int,
+            sch.Optional('in_features'): int,
+            sch.Optional('hidden_features_per_column'): int,
+            sch.Optional('adapter'): sch.And(str, lambda x: x in (cls._MLP, cls._LINEAR)),
+        })
+        return result
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -179,21 +190,7 @@ class PNNBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super().validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        params: TDesc = values['params']
-        adapter = params.pop('adapter', cls._MLP)
-        ok = isinstance(adapter, str)
-        if ok:
-            for param in params.values():
-                if not isinstance(param, int):
-                    ok = False
-                    break
-        if not ok:
-            return False, "One or more parameter(s) are not in the correct type."
-        return True, None
+        return super().validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):
@@ -237,6 +234,19 @@ class MLPBuildConfig(MongoBuildConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        data.update({
+            sch.Optional('input_size'): int,
+            sch.Optional('hidden_size'): int,
+            sch.Optional('hidden_layers'): int,
+            sch.Optional('output_size'): int,
+            sch.Optional('drop_rate'): float,
+            sch.Optional('relu_act'): bool,
+        })
+        return data
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return set()
 
@@ -257,22 +267,7 @@ class MLPBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super().validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        params: TDesc = values['params']
-        relu_act = params.pop('relu_act', False)
-        drop_rate = params.pop('drop_rate', 0.0)
-        ok = isinstance(relu_act, bool) and isinstance(drop_rate, float)
-        if ok:
-            for param in params.values():
-                if not isinstance(param, int):
-                    ok = False
-                    break
-        if not ok:
-            return False, "One or more parameter(s) are not in the correct type."
-        return True, None
+        return super().validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):
@@ -315,6 +310,18 @@ class MultiHeadMLPBuildConfig(MongoBuildConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        data.update({
+            sch.Optional('input_size'): int,
+            sch.Optional('hidden_size'): int,
+            sch.Optional('hidden_layers'): int,
+            sch.Optional('drop_rate', default=0.0): float,
+            sch.Optional('relu_act', default=True): bool,
+        })
+        return data
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return set()
 
@@ -334,22 +341,7 @@ class MultiHeadMLPBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super().validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        params: TDesc = values['params']
-        relu_act = params.pop('relu_act', True)
-        drop_rate = params.pop('drop_rate', 0.0)
-        ok = isinstance(relu_act, bool) and isinstance(drop_rate, float)
-        if ok:
-            for param in params.values():
-                if not isinstance(param, int):
-                    ok = False
-                    break
-        if not ok:
-            return False, "One or more parameter(s) are not in the correct type."
-        return True, None
+        return super().validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):
@@ -380,6 +372,14 @@ class SynapticIntelligenceCNNBuildConfig(MongoBuildConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        data.update({
+            sch.Optional('hidden_size'): int,
+        })
+        return data
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return set()
 
@@ -393,15 +393,7 @@ class SynapticIntelligenceCNNBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super(SynapticIntelligenceCNNBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        params: TDesc = values['params']
-        for param in params.values():
-            if not isinstance(param, int):
-                return False, "One or more parameter(s) are not in the correct type."
-        return True, None
+        return super(SynapticIntelligenceCNNBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
@@ -434,11 +426,7 @@ class VGGSmallBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super(VGGSmallBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        return True, None
+        return super(VGGSmallBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):
@@ -467,6 +455,15 @@ class MultiHeadVGGClassifierBuildConfig(MongoBuildConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        data.update({
+            'in_features': int,
+            'n_classes': int,
+        })
+        return data
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return super(MultiHeadVGGClassifierBuildConfig, cls).get_required().union({'in_features', 'n_classes'})
 
@@ -480,15 +477,7 @@ class MultiHeadVGGClassifierBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super(MultiHeadVGGClassifierBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        params: TDesc = values['params']
-        for param in params.values():
-            if not isinstance(param, int):
-                return False, "One or more parameter(s) are not in the correct type."
-        return True, None
+        return super(MultiHeadVGGClassifierBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):
@@ -512,6 +501,14 @@ class MultiHeadVGGSmallBuildConfig(MongoBuildConfig):
         return data
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        data.update({
+            sch.Optional('n_classes'): int,
+        })
+        return data
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return super(MultiHeadVGGSmallBuildConfig, cls).get_required()
 
@@ -525,15 +522,7 @@ class MultiHeadVGGSmallBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super(MultiHeadVGGSmallBuildConfig, cls).validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        params: TDesc = values['params']
-        for param in params.values():
-            if not isinstance(param, int):
-                return False, "One or more parameter(s) are not in the correct type."
-        return True, None
+        return super(MultiHeadVGGSmallBuildConfig, cls).validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext, save: bool = True):

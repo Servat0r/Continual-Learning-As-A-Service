@@ -197,7 +197,7 @@ def create_sub_folder(username, wname, name):
     if data_repository is not None:
         result, exc = data_repository.add_directory(folder_name, folders)
         if result:
-            return make_success_dict()
+            return make_success_dict(HTTPStatus.CREATED)
         else:
             return InternalFailure(msg=exc.args[0])
     else:
@@ -554,5 +554,5 @@ __all__ = [
     'send_files',
     # 'move_files' # ?
     # 'rename_files' # ?
-    'delete_files',             # todo test!
+    'delete_files',
 ]

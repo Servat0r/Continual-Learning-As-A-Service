@@ -44,7 +44,6 @@ class ServerResponseError(object):
         return make_error(self.status, msg, err_type=self.name, payload=payload)
 
 
-# todo ok
 # Authentication Errors 401
 InvalidToken = ServerResponseError(
     HTTPStatus.UNAUTHORIZED,
@@ -52,14 +51,6 @@ InvalidToken = ServerResponseError(
     "The request must contain a valid authentication token.",
 )
 
-# todo remove
-ExpiredToken = ServerResponseError(
-    HTTPStatus.UNAUTHORIZED,
-    'ExpiredToken',
-    "Authentication token is expired.",
-)
-
-# todo ok
 MissingToken = ServerResponseError(
     HTTPStatus.UNAUTHORIZED,
     'MissingToken',
@@ -220,7 +211,6 @@ RouteNotImplemented = ServerResponseError(
 __all__ = [
     'ServerResponseError',
     'InvalidToken',
-    'ExpiredToken',
     'MissingToken',
 
     'PermissionDenied',

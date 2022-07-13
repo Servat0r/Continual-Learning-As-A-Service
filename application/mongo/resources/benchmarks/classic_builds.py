@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import schema as sch
 from avalanche.benchmarks.classic import SplitMNIST, SplitFMNIST, PermutedMNIST, \
     SplitCIFAR10, SplitCIFAR100, CORe50, SplitTinyImageNet
 
@@ -36,11 +38,18 @@ class SplitMNISTBuildConfig(MongoBaseClassicBenchmarkBuildConfig):
         return 'mnist'
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        return super(SplitMNISTBuildConfig, cls).schema_dict()
+
+    @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
+        return super(SplitMNISTBuildConfig, cls).validate_input(data, dtype, context)
+        """
         result, msg = super(SplitMNISTBuildConfig, cls).validate_input(data, dtype, context)
         if result:
             context.pop()
         return result, msg
+        """
 
 
 # SplitFashionMNIST builder
@@ -49,6 +58,14 @@ class SplitFashionMNISTBuildConfig(MongoBaseClassicBenchmarkBuildConfig):
 
     # Fields
     first_batch_with_half_classes = db.BooleanField(required=False, default=False)
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(SplitFashionMNISTBuildConfig, cls).schema_dict()
+        result.update({
+            sch.Optional('first_batch_with_half_classes', default=False): bool,
+        })
+        return result
 
     def extra_dict_data(self) -> TDesc:
         return {'first_batch_with_half_classes': self.first_batch_with_half_classes}
@@ -79,6 +96,8 @@ class SplitFashionMNISTBuildConfig(MongoBaseClassicBenchmarkBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
+        return super(SplitFashionMNISTBuildConfig, cls).validate_input(data, dtype, context)
+        """
         result, msg = super(SplitFashionMNISTBuildConfig, cls).validate_input(data, dtype, context)
         if not result:
             return result, msg
@@ -105,6 +124,7 @@ class SplitFashionMNISTBuildConfig(MongoBaseClassicBenchmarkBuildConfig):
         if not ok:
             return False, "One or more parameters are not of the correct type!"
         return True, None
+        """
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
@@ -125,6 +145,17 @@ class PermutedMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
     seed = db.IntField(default=None)
     train_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
     eval_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(PermutedMNISTBuildConfig, cls).schema_dict()
+        result.update({
+            'n_experiences': int,
+            sch.Optional('seed', default=None): int,
+            sch.Optional('train_transform', default=None): {str, object},
+            sch.Optional('eval_transform', default=None): {str, object},
+        })
+        return result
 
     def to_dict(self, links=True) -> TDesc:
         data = {
@@ -153,6 +184,7 @@ class PermutedMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
         result, msg = super(PermutedMNISTBuildConfig, cls).validate_input(data, dtype, context)
         if not result:
             return result, msg
+        """
         iname, values = context.pop()
         params: TDesc = values['params']
 
@@ -165,6 +197,10 @@ class PermutedMNISTBuildConfig(MongoBaseBenchmarkBuildConfig):
 
         train_transform_data = params.get('train_transform')
         eval_transform_data = params.get('eval_transform')
+        """
+
+        train_transform_data = data.get('train_transform')
+        eval_transform_data = data.get('eval_transform')
 
         if train_transform_data is not None:
             train_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(train_transform_data)
@@ -229,6 +265,14 @@ class SplitCIFAR10BuildConfig(MongoBaseClassicBenchmarkBuildConfig):
     # Fields
     first_exp_with_half_classes = db.BooleanField(default=False)
 
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(SplitCIFAR10BuildConfig, cls).schema_dict()
+        result.update({
+            sch.Optional('first_exp_with_half_classes', default=False): bool,
+        })
+        return result
+
     def extra_dict_data(self) -> TDesc:
         return {'first_exp_with_half_classes': self.first_exp_with_half_classes}
 
@@ -258,6 +302,8 @@ class SplitCIFAR10BuildConfig(MongoBaseClassicBenchmarkBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
+        return super(SplitCIFAR10BuildConfig, cls).validate_input(data, dtype, context)
+        """
         result, msg = super(SplitCIFAR10BuildConfig, cls).validate_input(data, dtype, context)
         if not result:
             return result, msg
@@ -284,6 +330,7 @@ class SplitCIFAR10BuildConfig(MongoBaseClassicBenchmarkBuildConfig):
         if not ok:
             return False, "One or more parameters are not of the correct type!"
         return True, None
+        """
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
@@ -301,6 +348,14 @@ class SplitCIFAR100BuildConfig(MongoBaseClassicBenchmarkBuildConfig):
 
     # Fields
     first_exp_with_half_classes = db.BooleanField(default=False)
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(SplitCIFAR100BuildConfig, cls).schema_dict()
+        result.update({
+            sch.Optional('first_exp_with_half_classes'): bool,
+        })
+        return result
 
     def extra_dict_data(self) -> TDesc:
         return {'first_exp_with_half_classes': self.first_exp_with_half_classes}
@@ -331,6 +386,8 @@ class SplitCIFAR100BuildConfig(MongoBaseClassicBenchmarkBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
+        return super(SplitCIFAR100BuildConfig, cls).validate_input(data, dtype, context)
+        """
         result, msg = super(SplitCIFAR100BuildConfig, cls).validate_input(data, dtype, context)
         if not result:
             return result, msg
@@ -357,6 +414,7 @@ class SplitCIFAR100BuildConfig(MongoBaseClassicBenchmarkBuildConfig):
         if not ok:
             return False, "One or more parameters are not of the correct type!"
         return True, None
+        """
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):
@@ -386,6 +444,19 @@ class CORe50BuildConfig(MongoBaseBenchmarkBuildConfig):
     mini = db.BooleanField(default=False)   # True -> 32x32 images; False -> 128x128 images
     train_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
     eval_transform = db.EmbeddedDocumentField(TransformConfig, default=None)
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(CORe50BuildConfig, cls).schema_dict()
+        result.update({
+            sch.Optional('scenario', default=cls._NICV2_391): str,
+            sch.Optional('run', default=0): int,
+            sch.Optional('object_lvl', default=True): bool,
+            sch.Optional('mini', default=False): bool,
+            sch.Optional('train_transform', default=None): {str: object},
+            sch.Optional('eval_transform', default=None): {str: object},
+        })
+        return result
 
     def to_dict(self, links=True) -> TDesc:
         data = {
@@ -423,6 +494,7 @@ class CORe50BuildConfig(MongoBaseBenchmarkBuildConfig):
         result, msg = super(CORe50BuildConfig, cls).validate_input(data, dtype, context)
         if not result:
             return result, msg
+        """
         iname, values = context.pop()
         params: TDesc = values['params']
 
@@ -440,6 +512,10 @@ class CORe50BuildConfig(MongoBaseBenchmarkBuildConfig):
         
         train_transform_data = params.get('train_transform')
         eval_transform_data = params.get('eval_transform')
+        """
+
+        train_transform_data = data.get('train_transform')
+        eval_transform_data = data.get('eval_transform')
 
         if train_transform_data is not None:
             train_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(train_transform_data)
@@ -521,10 +597,13 @@ class SplitTinyImageNetBuildConfig(MongoBaseClassicBenchmarkBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
+        return super(SplitTinyImageNetBuildConfig, cls).validate_input(data, dtype, context)
+        """
         result, msg = super(SplitTinyImageNetBuildConfig, cls).validate_input(data, dtype, context)
         if result:
             context.pop()
         return result, msg
+        """
 
 
 __all__ = [

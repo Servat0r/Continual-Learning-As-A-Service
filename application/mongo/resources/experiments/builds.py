@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import schema as sch
+
 from application.database import db
 from application.utils import TBoolStr, t, TDesc
 from application.models import User, Workspace
@@ -23,6 +25,19 @@ class StandardExperimentBuildConfig(MongoBuildConfig):
     status = db.StringField(default=BaseCLExperiment.CREATED)
     run_config = db.StringField(default=BaseCLExperimentRunConfig.DFL_RUN_CONFIG_NAME)
 
+    def to_dict(self, links=True) -> TDesc:
+        return {}
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(StandardExperimentBuildConfig, cls).schema_dict()
+        data.update({
+            'strategy': str,
+            'benchmark': str,
+            sch.Optional('run_config'): str,
+        })
+        return data
+
     @classmethod
     def get_required(cls) -> set[str]:
         return {'strategy', 'benchmark'}
@@ -40,12 +55,10 @@ class StandardExperimentBuildConfig(MongoBuildConfig):
         result, msg = super().validate_input(data, dtype, context)
         if not result:
             return result, msg
-        iname, values = context.pop()
-        params: TDesc = values['params']
 
-        strategy_name = params['strategy']
-        benchmark_name = params['benchmark']
-        run_config_name = params.get('run_config', BaseCLExperimentRunConfig.DFL_RUN_CONFIG_NAME)
+        strategy_name = data['strategy']
+        benchmark_name = data['benchmark']
+        run_config_name = data.get('run_config', BaseCLExperimentRunConfig.DFL_RUN_CONFIG_NAME)
 
         owner = t.cast(MongoUser, User.canonicalize(context.get_username()))
         workspace = t.cast(MongoWorkspace, Workspace.canonicalize(context))
@@ -56,7 +69,6 @@ class StandardExperimentBuildConfig(MongoBuildConfig):
 
         if run_config is None:
             return False, f"The specified run configuration '{run_config_name}' does not exist."
-
         if strategy is None or benchmark is None:
             return False, "One or more referred resource(s) do(es) not exist."
         return True, None
@@ -82,7 +94,6 @@ class StandardExperimentBuildConfig(MongoBuildConfig):
         return cls(**params)
 
     def build(self, context: ResourceContext, locked=False, parents_locked=False):
-
         strategy = self.strategy.build(context, locked=locked, parents_locked=parents_locked)
         benchmark = self.benchmark.build(context, locked=locked, parents_locked=parents_locked)
         # noinspection PyArgumentList

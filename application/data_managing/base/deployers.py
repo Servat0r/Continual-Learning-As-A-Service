@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from application.utils import TDesc, TBoolStr, abstractmethod
+import schema as sch
+
+from application.utils import TDesc, TBoolStr, abstractmethod, auto_tboolstr
 from application.resources.contexts import ResourceContext
 
 
@@ -41,8 +43,18 @@ class BaseModelDeployer:
 
     @classmethod
     @abstractmethod
+    def schema_dict(cls) -> dict:
+        return {
+            'name': str,
+            sch.Optional('description'): str,
+        }
+
+    @classmethod
+    @auto_tboolstr()
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        pass
+        schema = sch.Schema(cls.schema_dict())
+        schema.validate(data)
+        return True, None
 
     @classmethod
     @abstractmethod

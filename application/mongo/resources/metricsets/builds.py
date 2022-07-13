@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import schema as sch
 from mongoengine import ValidationError as MongoEngineValidationError
 
 # noinspection PyUnresolvedReferences
@@ -92,6 +94,26 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
         return data
     
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        data.update({
+            sch.Optional('accuracy', default={}): {str: bool},
+            sch.Optional('loss', default={}): {str: bool},
+            sch.Optional('forgetting', default={}): {str: bool},
+
+            sch.Optional('timing', default={}): {str: bool},
+            sch.Optional('ram_usage', default={}): {str: bool},
+            sch.Optional('cpu_usage', default={}): {str: bool},
+            sch.Optional('disk_usage', default={}): {str: bool},
+            sch.Optional('gpu_usage', default={}): {str: bool},
+
+            sch.Optional('bwt', default={}): {str: bool},
+            sch.Optional('forward_transfer', default={}): {str: bool},
+            sch.Optional('MAC', default={}): {str: bool},
+        })
+        return data
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return set()
 
@@ -144,24 +166,7 @@ class StandardMetricSetBuildConfig(MongoBuildConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, dtype: t.Type[DataType], context: ResourceContext) -> TBoolStr:
-        result, msg = super().validate_input(data, dtype, context)
-        if not result:
-            return result, msg
-
-        _, values = context.pop()
-        params = values['params']
-        for param in params.values():
-            checked = True
-            if not isinstance(param, dict):
-                checked = False
-            else:
-                for item in param.items():
-                    if not isinstance(item[0], str) or not isinstance(item[1], bool):
-                        checked = False
-                        break
-            if not checked:
-                return False, "One or more metrics types are not in {<string>: <bool>} dict type."
-        return True, None
+        return super().validate_input(data, dtype, context)
 
     @classmethod
     def create(cls, data: TDesc, tp: t.Type[DataType], context: ResourceContext, save: bool = True):

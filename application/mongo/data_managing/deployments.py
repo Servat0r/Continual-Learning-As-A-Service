@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import schema as sch
 import torch
 from torchvision.models import *
 
@@ -17,18 +18,17 @@ from application.mongo.base import MongoBaseUser, MongoBaseWorkspace
 class ExperimentExportModelDeployer(BaseModelDeployer):
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(ExperimentExportModelDeployer, cls).schema_dict()
+        data.update({
+            'experiment': str,
+            'execution': int,
+        })
+        return data
+
+    @classmethod
     def validate_input(cls, data: TDesc, context: UserWorkspaceResourceContext) -> TBoolStr:
-        required = ['experiment', 'execution']
-        check_required = all(field in data for field in required)
-        if not check_required:
-            return False, "Missing one or more required parameter."
-        experiment = data.get('experiment')
-        execution = data.get('execution')
-        if not isinstance(experiment, str):
-            return False, "'experiment' parameter must be a string!"
-        if not isinstance(execution, int):
-            return False, "'execution' parameter must be an integer!"
-        return True, None
+        return super(ExperimentExportModelDeployer, cls).validate_input(data, context)
 
     @classmethod
     def deploy_model(cls, data: TDesc, context: UserWorkspaceResourceContext, name: str, path: str) -> TBoolStr:
@@ -121,18 +121,17 @@ class TorchvisionExportModelDeployer(BaseModelDeployer):
     }
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        data = super(TorchvisionExportModelDeployer, cls).schema_dict()
+        data.update({
+            'net_type': sch.And(str, lambda x: x in cls.__NETS__),
+            'pretrained': bool,
+        })
+        return data
+
+    @classmethod
     def validate_input(cls, data: TDesc, context: UserWorkspaceResourceContext) -> TBoolStr:
-        required = ['net_type', 'pretrained']
-        req_check = all(req in data for req in required)
-        if not req_check:
-            return False, "One or more parameter(s) does not exist."
-        net_type = data.get('net_type')
-        pretrained = data.get('pretrained')
-        typecheck = isinstance(net_type, str) and isinstance(pretrained, bool)
-        if not typecheck:
-            return False, "'net_type' parameter must be a string and 'pretrained' must be a boolean"
-        validnet = net_type in cls.__NETS__
-        return validnet, None if validnet else f"Unknown net_type '{net_type}'"
+        return super(TorchvisionExportModelDeployer, cls).validate_input(data, context)
 
     @classmethod
     def deploy_model(cls, data: TDesc, context: UserWorkspaceResourceContext, name: str, path: str) -> TBoolStr:

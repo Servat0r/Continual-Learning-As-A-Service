@@ -1,6 +1,7 @@
 # Embedded Build Configs for dataset transforms
 from __future__ import annotations
 
+import schema as sch
 import io
 from PIL import Image
 
@@ -43,6 +44,10 @@ class TransformConfig(MongoEmbeddedBuildConfig):
                 raise ValueError('Missing name')
             else:
                 return cls.__CONFIGS__.get(cname)
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        return super(TransformConfig, cls).schema_dict()
 
     @classmethod
     def get_required(cls) -> set[str]:
@@ -100,9 +105,7 @@ class BytesToPILConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(BytesToPILConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(BytesToPILConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -130,9 +133,7 @@ class BytesToRGBConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(BytesToRGBConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(BytesToRGBConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -160,9 +161,7 @@ class BytesToGrayscaleConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(BytesToGrayscaleConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(BytesToGrayscaleConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -191,9 +190,7 @@ class ToTensorConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(ToTensorConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(ToTensorConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -214,6 +211,15 @@ class CenterCropConfig(TransformConfig):
     width = db.IntField(required=True)
     height = db.IntField(required=True)
 
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(CenterCropConfig, cls).schema_dict()
+        result.update({
+            'width': int,
+            'height': int,
+        })
+        return result
+
     def to_dict(self, links=True) -> TDesc:
         return {
             'name': 'CenterCrop',
@@ -231,16 +237,7 @@ class CenterCropConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(CenterCropConfig, cls).validate_input(data, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        params = values['params']
-        width = params['width']
-        height = params['height']
-        if not all(isinstance(val, int) for val in (width, height)):
-            return False, "One or more parameter(s) is/are not of the correct type."
-        return True, None
+        return super(CenterCropConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -259,6 +256,18 @@ class RandomCropConfig(TransformConfig):
     padding = db.ListField(db.IntField(), default=None)
     pad_if_needed = db.BooleanField(default=False)
     fill = db.IntField(default=0)
+
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(RandomCropConfig, cls).schema_dict()
+        result.update({
+            'width': int,
+            'height': int,
+            sch.Optional('padding'): [int],
+            sch.Optional('pad_if_needed'): bool,
+            sch.Optional('fill'): int,
+        })
+        return result
 
     def to_dict(self, links=True) -> TDesc:
         return {
@@ -280,27 +289,7 @@ class RandomCropConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(RandomCropConfig, cls).validate_input(data, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        params = values['params']
-
-        width = params['width']
-        height = params['height']
-        padding = params.get('padding', [])
-        pad_if_needed = params.get('pad_if_needed', False)
-        fill = params.get('fill', 0)
-
-        all_int = all(isinstance(val, int) for val in (width, height, fill))
-        all_bool = all(isinstance(val, bool) for val in (pad_if_needed,))
-        check_padding = False
-        if isinstance(padding, list):
-            check_padding = all(isinstance(val, int) for val in padding)
-
-        if not all_int and all_bool and check_padding:
-            return False, "One or more parameter(s) is/are not of the correct type."
-        return True, None
+        return super(RandomCropConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -328,6 +317,14 @@ class RandomHorizontalFlipConfig(TransformConfig):
         }
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(RandomHorizontalFlipConfig, cls).schema_dict()
+        result.update({
+            sch.Optional('p', default=0.5): float,
+        })
+        return result
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return super(RandomHorizontalFlipConfig, cls).get_required()
 
@@ -337,14 +334,7 @@ class RandomHorizontalFlipConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(RandomHorizontalFlipConfig, cls).validate_input(data, context)
-        if not result:
-            return False, msg
-        iname, values = context.pop()
-        params: TDesc = values['params']
-        p = params.get('p', 0.5)
-        result = isinstance(p, float)
-        return result, (None if result else "Parameter 'p' is not of the correct type!")
+        return super(RandomHorizontalFlipConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -371,6 +361,16 @@ class NormalizeConfig(TransformConfig):
         }
 
     @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(NormalizeConfig, cls).schema_dict()
+        result.update({
+            'mean': [float],
+            'std': [float],
+            sch.Optional('inplace', default=False): bool,
+        })
+        return result
+
+    @classmethod
     def get_required(cls) -> set[str]:
         return super(NormalizeConfig, cls).get_required().union({'mean', 'std'})
 
@@ -380,26 +380,7 @@ class NormalizeConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(NormalizeConfig, cls).validate_input(data, context)
-        if not result:
-            return result, msg
-        _, values = context.pop()
-        params = values['params']
-        mean = params['mean']
-        std = params['std']
-        inplace = params.get('inplace', False)
-        
-        check_mean = False
-        if isinstance(mean, list):
-            check_mean = all(isinstance(val, float) for val in mean)
-        
-        check_std = False
-        if isinstance(std, list):
-            check_std = all(isinstance(val, float) for val in std)
-        
-        if not check_mean and check_std and isinstance(inplace, bool):
-            return False, "One or more parameter(s) is/are not of the correct type."
-        return True, None
+        return super(NormalizeConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -429,6 +410,14 @@ class ComposeConfig(TransformConfig):
 
     transforms = db.ListField(db.EmbeddedDocumentField(TransformConfig), required=True)
 
+    @classmethod
+    def schema_dict(cls) -> dict:
+        result = super(ComposeConfig, cls).schema_dict()
+        result.update({
+            'transforms': [{str: object}],
+        })
+        return result
+
     def to_dict(self, links=True) -> TDesc:
         return {
             'name': 'Compose',
@@ -448,11 +437,7 @@ class ComposeConfig(TransformConfig):
         result, msg = super(ComposeConfig, cls).validate_input(data, context)
         if not result:
             return result, msg
-        _, values = context.pop()
-        params = values['params']
-        transforms = params['transforms']
-        if not isinstance(transforms, list):
-            return False, "'transforms' parameter must be a list!"
+        transforms = data.get('transforms')
         for transform_data in transforms:
             current_transform_config: t.Type[TransformConfig] = TransformConfig.get_by_name(transform_data)
             if current_transform_config is None:
@@ -503,9 +488,7 @@ class DefaultMNISTTrainTransformConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(DefaultMNISTTrainTransformConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(DefaultMNISTTrainTransformConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -533,9 +516,7 @@ class DefaultMNISTEvalTransformConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(DefaultMNISTEvalTransformConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(DefaultMNISTEvalTransformConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -564,9 +545,7 @@ class DefaultCIFAR10TrainTransformConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(DefaultCIFAR10TrainTransformConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(DefaultCIFAR10TrainTransformConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -601,9 +580,7 @@ class DefaultCIFAR10EvalTransformConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(DefaultCIFAR10EvalTransformConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(DefaultCIFAR10EvalTransformConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -637,9 +614,7 @@ class DefaultCIFAR100TrainTransformConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(DefaultCIFAR100TrainTransformConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(DefaultCIFAR100TrainTransformConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -674,9 +649,7 @@ class DefaultCIFAR100EvalTransformConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(DefaultCIFAR100EvalTransformConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(DefaultCIFAR100EvalTransformConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -710,9 +683,7 @@ class DefaultCORe50TrainTransformConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(DefaultCORe50TrainTransformConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(DefaultCORe50TrainTransformConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -744,9 +715,7 @@ class DefaultCORe50EvalTransformConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(DefaultCORe50EvalTransformConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(DefaultCORe50EvalTransformConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -778,9 +747,7 @@ class DefaultTinyImageNetTrainTransformConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(DefaultTinyImageNetTrainTransformConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(DefaultTinyImageNetTrainTransformConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):
@@ -814,9 +781,7 @@ class DefaultTinyImageNetEvalTransformConfig(TransformConfig):
 
     @classmethod
     def validate_input(cls, data: TDesc, context: ResourceContext) -> TBoolStr:
-        result, msg = super(DefaultTinyImageNetEvalTransformConfig, cls).validate_input(data, context)
-        context.pop()
-        return result, msg
+        return super(DefaultTinyImageNetEvalTransformConfig, cls).validate_input(data, context)
 
     @classmethod
     def create(cls, data: TDesc, context: ResourceContext, save: bool = True):

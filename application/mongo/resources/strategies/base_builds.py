@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from avalanche.logging import InteractiveLogger
+import schema as sch
+
 from avalanche.core import SupervisedPlugin
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.plugins import EvaluationPlugin
@@ -133,6 +134,22 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         })
         return data
 
+    @classmethod
+    def schema_dict(cls) -> dict:
+        data = super().schema_dict()
+        data.update({
+            'model': str,
+            'optimizer': str,
+            'criterion': str,
+            'metricset': str,
+            sch.Optional('train_mb_size'): int,
+            sch.Optional('train_epochs'): int,
+            sch.Optional('eval_mb_size'): int,
+            sch.Optional('eval_every'): int,
+            sch.Optional('plugins', default=[]): [{str: object}],
+        })
+        return data
+
     @staticmethod
     @abstractmethod
     def get_avalanche_strategy() -> t.Type[SupervisedTemplate]:
@@ -185,20 +202,7 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         result, msg = super().validate_input(data, dtype, context)
         if not result:
             return result, msg
-        iname, values = context.pop()
-        params: TDesc = values['params']
-
-        train_mb_size = params.get('train_mb_size', 0)
-        train_epochs = params.get('train_epochs', 0)
-        eval_mb_size = params.get('eval_mb_size', 0)
-        eval_every = params.get('eval_every', -1)
-        int_check = all(isinstance(param, int) for param in {
-            train_mb_size, train_epochs, eval_mb_size, eval_every,
-        })
-        if not int_check or eval_every < -1:
-            return False, "One or more parameters are not in the correct type."
-
-        plugins = params.get('plugins', None)
+        plugins = data.get('plugins', None)
         if plugins is not None:
             if not isinstance(plugins, list):
                 return False, "'plugins' parameter must be a list!"
@@ -212,10 +216,10 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
                 if not result:
                     return False, f"Failed to validate plugins data: '{msg}'"
 
-        model_name = params['model']
-        optim_name = params['optimizer']
-        criterion_name = params['criterion']
-        metricset_name = params['metricset']
+        model_name = data['model']
+        optim_name = data['optimizer']
+        criterion_name = data['criterion']
+        metricset_name = data['metricset']
 
         owner = t.cast(MongoBaseUser, User.canonicalize(context.get_username()))
         workspace = Workspace.canonicalize(context)
@@ -228,7 +232,6 @@ class MongoBaseStrategyBuildConfig(MongoBuildConfig):
         refs_check = all(res is not None for res in [model, optim, criterion, metricset])
         if not refs_check:
             return False, "One or more referred resource(s) do(es) not exist."
-        context.push(iname, values)
         return True, None
 
     @classmethod
