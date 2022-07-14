@@ -713,7 +713,7 @@ class BaseClient:
 
     @check_in_session('auth_token', 'username', 'workspace')
     def start_experiment(self, name: str):
-        return self.patch([self.experiments_base, name], data={'status': 'START'})
+        return self.patch([self.experiments_base, name, 'status'], data={'status': 'START'})
 
     @check_in_session('auth_token', 'username', 'workspace')
     def get_experiment_status(self, name: str):

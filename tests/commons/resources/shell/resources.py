@@ -565,7 +565,21 @@ def generic_resource_build(name, build, description='...'):
     }
 
 
+classes: dict[str, t.Type[MongoResourceConfig]] = {
+    'benchmark': MongoBenchmarkConfig,
+    'metricset': MongoStandardMetricSetConfig,
+    'criterion': MongoCLCriterionConfig,
+    'model': MongoModelConfig,
+    'optimizer': MongoCLOptimizerConfig,
+    'strategy': MongoStrategyConfig,
+}
+
+
 class ResourcesShellTest(BaseShellTest):
+
+    username = 'resource-shell-username'
+    email = 'resource_shell_' + EMAIL
+    password = PASSWORD
 
     repository_name = 'repository'
     repository = None
@@ -579,18 +593,35 @@ class ResourcesShellTest(BaseShellTest):
 
     deleted = False
 
-    def make_resource(self, resource_type: str):
-        name = eval(f"{resource_type}_name")
-        build = eval(f"{resource_type}_build")
-        resource_dict = generic_resource_build(name, build)
+    # noinspection PyMethodMayBeStatic
+    def make_resource(self, resource_type: str, context: UserWorkspaceResourceContext):
+        try:
+            name = eval(f"{resource_type}_name")
+            build = eval(f"{resource_type}_build")
+            resource_dict = generic_resource_build(name, build)
+            resource_config_class = classes.get(resource_type)
+            if resource_config_class is None:
+                raise TypeError(f"Unknown resource type '{resource_type}'")
+            resource_config = resource_config_class.create(resource_dict, context)
+            if resource_config is None:
+                raise RuntimeError(f"Failed to create resource '{resource_type}' with data = [{resource_dict}]")
+            exec(f"self.{resource_type} = resource_config")
+            print(f"Created resource {resource_config}")
+            resource = resource_config.build(context)
+            print(resource)
+            return True
+        except Exception as ex:
+            print(ex)
+            return False
 
 
     def test_main(self):
         self.deleted = False
         try:
             self.assertTrue(self.create_user_workspace())
-
-
+            context = UserWorkspaceResourceContext(self.username, self.wname)
+            for tp in ('benchmark', 'metricset', 'criterion', 'model', 'optimizer', 'strategy'):
+                self.assertTrue(self.make_resource(tp, context))
             self.assertTrue(self.delete_user_workspace())
             self.deleted = True
         finally:

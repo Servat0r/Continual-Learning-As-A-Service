@@ -145,7 +145,7 @@ class ResourceConfig(JSONSerializable, URIBasedResource):
 
     @classmethod
     @abstractmethod
-    def create(cls, data, context: ResourceContext, save: bool = True, **metadata):
+    def create(cls, data, context: ResourceContext, save: bool = True, **metadata) -> ResourceConfig | None:
         pass
 
     @classmethod
