@@ -7,6 +7,7 @@ import sys
 import traceback
 import typing as t
 import os
+import schema as sch
 from abc import ABC, abstractmethod
 from datetime import datetime
 from functools import wraps
@@ -14,7 +15,7 @@ from functools import wraps
 import torch
 from torch.nn.modules import Module
 from http import HTTPStatus
-from flask import Flask, Blueprint, url_for, Request, jsonify, Response
+from flask import Flask, Blueprint, url_for, Request, jsonify, Response, request, g
 from werkzeug.exceptions import BadRequest
 from flask_executor import Executor
 
@@ -69,6 +70,7 @@ def make_success_dict(status: int = HTTPStatus.OK, msg: str = _DFL_SUCCESS_MSG, 
     return response
 
 
+# JSON checking!
 def checked_json(request: Request, keyargs: bool = False, required: set[str] = None, optionals: set[str] = None,
                  force: bool = True) -> tuple[t.Any | None, ServerResponseError | None, list[str], list[str]]:
     """
@@ -124,7 +126,74 @@ def checked_json(request: Request, keyargs: bool = False, required: set[str] = N
         return None, BadJSONSyntax, [], []
 
 
+# todo incomplete!
+def schema_checked_json(
+        keyargs=False, required: set[str] | dict[str, object] = None,
+        optionals: set[str] | dict[str, object] = None, force: bool = True,
+):
+    schema = {}
+    if isinstance(required, set):
+        required = {item: object for item in required}
+    if isinstance(optionals, set):
+        optionals = {item: object for item in optionals}
+    schema.update(required)
+    schema.update({sch.Optional(key): value for key, value in optionals.items()})
+    if keyargs:
+        schema.update({str: object})
+    data = request.get_json(force=force)
+
+
+def check_json(keyargs=False, required=None, optionals=None, force=True):
+    """
+    Decorator for automatic checked_json.
+    :param keyargs:
+    :param required:
+    :param optionals:
+    :param force:
+    :return:
+    """
+    def wrapper(f: t.Callable):
+        @wraps(f)
+        def new_f(*args, **kwargs):
+            data, error, opts, extras = checked_json(request, keyargs, required, optionals, force)
+            if error is not None:
+                if data is not None:
+                    return error(**data)
+                else:
+                    return error()
+            g.check_json_data = data
+            g.check_json_opts = opts
+            g.check_json_extras = extras
+            return f(*args, **kwargs)
+        return new_f
+    return wrapper
+
+
+def get_check_json_data() -> tuple[t.Any | None, list[str], list[str]]:
+    data = g.pop('check_json_data', None)
+    opts = g.pop('check_json_opts', None)
+    extras = g.pop('check_json_extras', None)
+    return data, opts, extras
+
+
 # Linker
+class LinkRule:
+    def __init__(self, name: str, value: t.Any):
+        self.name = name
+        self.value = value
+
+    def make_link(self, linker: Linker) -> str:
+        link_view_func, link_bp = linker.get_link_rule(self.name)
+        args_rule = linker.get_args_rule(self.name)
+        if link_view_func is None:
+            raise TypeError(f"There is no link rule function registered for '{self.name}'")
+        extra_args: TDesc = {}
+        if args_rule is not None:
+            extra_args.update(args_rule(self.value))
+        url = (f"{link_bp.name}." if link_bp is not None else '') + link_view_func.__name__
+        return url_for(url, **extra_args)
+
+
 class Linker:
     @staticmethod
     def default_link_keyword():
@@ -189,12 +258,37 @@ class Linker:
             return new_view_function
         return wrapper
 
+    def _make_links_internal(self, data: t.Any):
+        """
+        :param data: Either a dict, a sequence, a set or a LinkRule.
+        :return:
+        """
+        if isinstance(data, t.MutableMapping):
+            for key, value in data.items():
+                data[key] = self._make_links_internal(value)
+        elif isinstance(data, t.MutableSequence):
+            for i in range(len(data)):
+                data[i] = self._make_links_internal(data[i])
+        elif isinstance(data, t.MutableSet):
+            data = {self._make_links_internal(item) for item in data}
+        elif isinstance(data, tuple):
+            if len(data) != 2:
+                raise TypeError("A tuple link rule must have a length of 2!")
+            data = self._make_links_internal(LinkRule(data[0], data[1]))
+        elif isinstance(data, LinkRule):
+            data = data.make_link(self)
+        else:
+            raise TypeError(f"Unknown type {type(data).__name__}")
+        return data
+
     def make_links(self, json_data: TDesc) -> TDesc:
         preprocess_links = json_data.pop(self.links_keyword, None)
         if preprocess_links is not None:
             if not isinstance(preprocess_links, dict):
                 raise TypeError("Malformed server response for resource linking")
             else:
+                links_dict = self._make_links_internal(preprocess_links)
+                """
                 links_dict: TDesc = {}
                 for field_name, field_data in preprocess_links.items():
                     resource_name, resource_val = field_data
@@ -208,6 +302,7 @@ class Linker:
                     url = (f"{link_bp.name}." if link_bp is not None else '') + link_view_func.__name__
                     resource_url = url_for(url, **extra_args)
                     links_dict[field_name] = resource_url
+                """
                 json_metadata = json_data.get('metadata', None)
                 if json_metadata is None:
                     json_metadata = {}
@@ -361,8 +456,12 @@ __all__ = [
 
     'make_success_kwargs',
     'make_success_dict',
-    'checked_json',
 
+    'checked_json',
+    'check_json',
+    'get_check_json_data',
+
+    'LinkRule',
     'Linker',
     'linker',
 

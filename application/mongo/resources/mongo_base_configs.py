@@ -115,20 +115,6 @@ class MongoEmbeddedBuildConfig(db.EmbeddedDocument, EmbeddedBuildConfig):
         schema = sch.Schema(cls.schema_dict())
         schema.validate(data)
         return True, None
-        """
-        ok, bc_name, params, extras = cls._filter_data(data)
-        result, msg = validate_workspace_resource_experiment(bc_name)
-
-        if not result:
-            return False, f"Invalid resource name: '{bc_name}'."
-        if not ok:
-            return False, "Missing one or more required parameter(s)."
-        if len(extras) > 0 and not cls.has_extras():
-            return False, "Unexpected extra arguments."
-
-        context.push('args', {'name': bc_name, 'params': params, 'extras': extras})
-        return True, None
-        """
 
     # noinspection PyUnusedLocal
     @classmethod
@@ -495,18 +481,6 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
         schema = sch.Schema(cls.schema_dict())
         schema.validate(data)
         return True, None
-        """
-        try:
-            if 'name' not in data:
-                return False, "Missing parameter 'name'."
-            else:
-                name = data['name']
-                result, msg = validate_workspace_resource_experiment(name)
-                return result, None if result else f"Invalid resource name: '{msg}'."
-        except Exception as ex:
-            traceback.print_exception(*sys.exc_info())
-            return False, str(ex)
-        """
 
     @abstractmethod
     def build(self, context: ResourceContext,
@@ -597,11 +571,8 @@ class MongoBaseResourceConfig(RWLockableDocument, ResourceConfig):
     @auto_tboolexc
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
-            try:
-                db.Document.delete(self)
-                return True, None
-            except Exception as ex:
-                return False, ex
+            db.Document.delete(self)
+            return True, None
 
 
 class MongoResourceConfig(MongoBaseResourceConfig):
@@ -660,22 +631,6 @@ class MongoResourceConfig(MongoBaseResourceConfig):
         schema.validate(data)
         config = MongoBuildConfig.get_by_name(data['build'])
         return t.cast(MongoBuildConfig, config).validate_input(data['build'], cls.target_type(), context)
-        """
-        try:
-            required = ['name', 'build']
-            if not all(fname in data for fname in required):
-                return False, 'Missing parameter(s).'
-            else:
-                name = data['name']
-                result, msg = validate_workspace_resource_experiment(name)
-                if not result:
-                    return False, f"Invalid resource name: '{msg}'."
-                config = MongoBuildConfig.get_by_name(data['build'])
-                return t.cast(MongoBuildConfig, config).validate_input(data['build'], cls.target_type(), context)
-        except Exception as ex:
-            traceback.print_exception(*sys.exc_info())
-            return False, str(ex)
-        """
 
     def build(self, context: ResourceContext,
               locked=False, parents_locked=False):

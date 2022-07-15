@@ -118,18 +118,15 @@ class MongoCLExperimentConfig(MongoResourceConfig):
     @auto_tboolexc
     def setup(self, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_read(locked=locked, parents_locked=parents_locked):
-            try:
-                if self.status == BaseCLExperiment.RUNNING:
-                    raise RuntimeError("Experiment already running!")
-                elif self.status == BaseCLExperiment.READY:
-                    return True, None
-                else:
-                    self.build_config.status = BaseCLExperiment.READY
-                    result = self.save()
-                    return result, None if result else \
-                        RuntimeError("Failed to setup experiment (modify operation failed).")
-            except Exception as ex:
-                return False, ex
+            if self.status == BaseCLExperiment.RUNNING:
+                raise RuntimeError("Experiment already running!")
+            elif self.status == BaseCLExperiment.READY:
+                return True, None
+            else:
+                self.build_config.status = BaseCLExperiment.READY
+                result = self.save()
+                return result, None if result else \
+                    RuntimeError("Failed to setup experiment (modify operation failed).")
 
     def set_started(self, locked=False, parents_locked=False) -> int | None:
         with self.resource_write(locked=locked, parents_locked=parents_locked):
@@ -155,24 +152,20 @@ class MongoCLExperimentConfig(MongoResourceConfig):
     @auto_tboolexc
     def set_finished(self, response: Response, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_read(locked=locked, parents_locked=parents_locked):
-            try:
-                execution = self.get_last_execution()
-                if self.status != BaseCLExperiment.RUNNING:
-                    raise RuntimeError("Experiment is not running!")
-                else:
-                    self.build_config.status = BaseCLExperiment.ENDED
-                    execution.completed = True
-                    now = datetime.utcnow()
-                    execution.end_time = now
-                    status_code = response.status_code
-                    payload = response.get_json()
-                    execution.status_code = status_code
-                    execution.payload = payload
-                    self.save()
-                    return True, None
-            except Exception as ex:
-                print(ex)
-                return False, ex
+            execution = self.get_last_execution()
+            if self.status != BaseCLExperiment.RUNNING:
+                raise RuntimeError("Experiment is not running!")
+            else:
+                self.build_config.status = BaseCLExperiment.ENDED
+                execution.completed = True
+                now = datetime.utcnow()
+                execution.end_time = now
+                status_code = response.status_code
+                payload = response.get_json()
+                execution.status_code = status_code
+                execution.payload = payload
+                self.save()
+                return True, None
 
     @classmethod
     def create(cls, data, context: UserWorkspaceResourceContext, save: bool = True,
@@ -227,16 +220,13 @@ class MongoCLExperimentConfig(MongoResourceConfig):
     @auto_tboolexc
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked=locked, parents_locked=parents_locked):
-            try:
-                db.Document.delete(self)
-                manager = BaseDataManager.get()
-                dirs = self.base_dir()
-                parents = dirs[:-1]
-                bdir = dirs[-1]
-                manager.remove_subdir(bdir, parents)
-                return True, None
-            except Exception as ex:
-                return False, ex
+            db.Document.delete(self)
+            manager = BaseDataManager.get()
+            dirs = self.base_dir()
+            parents = dirs[:-1]
+            bdir = dirs[-1]
+            manager.remove_subdir(bdir, parents)
+            return True, None
 
 
 __all__ = [

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import Blueprint, request
+from flask import Blueprint
 from http import HTTPStatus
 
 from application.errors import *
@@ -10,7 +10,7 @@ from application.validation import *
 from application.resources.contexts import UserWorkspaceResourceContext
 from application.models import User, Workspace
 
-from .auth import token_auth, check_current_user_ownership
+from .auth import *
 
 
 workspaces_bp = Blueprint('workspaces', __name__, url_prefix='/users/<user:username>/workspaces')
@@ -32,6 +32,8 @@ def workspaces_args(user: User):
 @workspaces_bp.post('/')
 @workspaces_bp.post('')
 @token_auth.login_required
+@check_json(False, required={'name'})
+@check_ownership(msg="You cannot create a workspace for another user ({user}).", eval_args={'user': 'username'})
 def create_workspace(username):
     """
     RequestSyntax:
@@ -49,23 +51,12 @@ def create_workspace(username):
     :param username:
     :return:
     """
-    data, error, opts, extras = checked_json(request, False, {'name'})
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
-
+    data, opts, extras = get_check_json_data()
     current_user = token_auth.current_user()
-
-    if current_user.username != username:
-        return ForbiddenOperation(msg="You cannot create a workspace for another user!")
-
     wname = data['name']
     result, msg = validate_workspace_resource_experiment(wname)
     if not result:
         return InvalidResourceName(payload={'resource_name': wname})
-
     workspace = Workspace.create(data['name'], current_user)
     if workspace:
         data = linker.make_links(workspace.to_dict())
@@ -78,6 +69,7 @@ def create_workspace(username):
 @workspaces_bp.get('/<workspace:wname>')
 @token_auth.login_required
 @linker.link_rule('Workspace', blueprint=workspaces_bp)
+@check_ownership(msg="You cannot retrieve another user ({user}) workspace data.", eval_args={'user': 'username'})
 def get_workspace(username, wname):
     user = User.get_by_name(username)
     if not user:
@@ -96,6 +88,7 @@ def get_workspace(username, wname):
 @workspaces_bp.get('')
 @token_auth.login_required
 @linker.link_rule('Workspaces', blueprint=workspaces_bp)
+@check_ownership(msg="You cannot retrieve another user ({user}) workspaces data.", eval_args={'user': 'username'})
 def get_workspaces(username):
     user = User.get_by_name(username)
     if not user:
@@ -109,6 +102,8 @@ def get_workspaces(username):
 @workspaces_bp.patch('/<workspace:wname>/name/')
 @workspaces_bp.patch('/<workspace:wname>/name')
 @token_auth.login_required
+@check_json(False, required={'new_name'})
+@check_ownership(msg="You cannot rename another user ({user}) workspace.", eval_args={'user': 'username'})
 def rename_workspace(username, wname):
     """
     RequestSyntax:
@@ -119,52 +114,33 @@ def rename_workspace(username, wname):
     :param wname:
     :return:
     """
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot rename another user ({username}) workspace ({wname}).",
-    )
+    data, opts, extras = get_check_json_data()
+    context = UserWorkspaceResourceContext(username, wname)
+    urn = Workspace.dfl_claas_urn_builder(context)
+    workspace = Workspace.get_by_claas_urn(urn)
+
+    new_name = data['new_name']
+    result, msg = validate_workspace_resource_experiment(new_name)
     if not result:
-        return error
+        return InvalidResourceName(payload={'resource_name': new_name})
 
-    data, error, opts, extras = checked_json(request, False, {'new_name'})
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
+    result, msg = workspace.rename(wname, new_name)
+    if not result:
+        return InternalFailure(msg=msg)
     else:
-        context = UserWorkspaceResourceContext(username, wname)
-        urn = Workspace.dfl_claas_urn_builder(context)
-        workspace = Workspace.get_by_claas_urn(urn)
-
-        new_name = data['new_name']
-        result, msg = validate_workspace_resource_experiment(new_name)
-        if not result:
-            return InvalidResourceName(payload={'resource_name': new_name})
-
-        result, msg = workspace.rename(wname, new_name)
-        if not result:
-            return InternalFailure(msg=msg)
-        else:
-            return make_success_dict(data={'old_name': wname, 'new_name': new_name})
+        return make_success_dict(data={'old_name': wname, 'new_name': new_name})
 
 
 @workspaces_bp.delete('/<workspace:wname>/')
 @workspaces_bp.delete('/<workspace:wname>')
 @token_auth.login_required
+@check_ownership(msg="You cannot delete another user workspace ({user})!", eval_args={'user': 'username'})
 def delete_workspace(username, wname):
-
-    current_user = token_auth.current_user()
     context = UserWorkspaceResourceContext(username, wname)
     urn = Workspace.dfl_claas_urn_builder(context)
     workspace = Workspace.get_by_claas_urn(urn)
-
     if not workspace:
         return ResourceNotFound(resource=wname)
-
-    if (current_user.username != username) or (workspace.owner.username != username):
-        return ForbiddenOperation(msg="You cannot delete another user's workspace!")
-
     result, ex = workspace.delete()
     if result:
         return make_success_dict()
@@ -175,6 +151,7 @@ def delete_workspace(username, wname):
 @workspaces_bp.get('<workspace:wname>/status/')
 @workspaces_bp.get('<workspace:wname>/status')
 @token_auth.login_required
+@check_ownership(msg="You cannot get another user ({user}) workspace", eval_args={'user': 'username'})
 def get_workspace_status(username, wname):
     user = User.get_by_name(username)
     if not user:
@@ -192,6 +169,8 @@ def get_workspace_status(username, wname):
 @workspaces_bp.patch('<workspace:wname>/status/')
 @workspaces_bp.patch('<workspace:wname>/status')
 @token_auth.login_required
+@check_json(False, required={'status'})
+@check_ownership(msg="You cannot set the status of another user ({user}) workspace!", eval_args={'user': 'username'})
 def set_workspace_status(username, wname):
     """
     RequestSyntax:
@@ -210,25 +189,12 @@ def set_workspace_status(username, wname):
     :param wname:
     :return:
     """
-
-    data, error, opts, extras = checked_json(request, False, {'status'})
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
-
-    current_user = token_auth.current_user()
+    data, opts, extras = get_check_json_data()
     context = UserWorkspaceResourceContext(username, wname)
     urn = Workspace.dfl_claas_urn_builder(context)
     workspace = Workspace.get_by_claas_urn(urn)
-
     if not workspace:
         return ResourceNotFound(resource=wname)
-
-    if (current_user.username != username) or (workspace.owner.id != current_user.id):
-        return ForbiddenOperation(msg="You cannot set the status of another user's workspace!")
-
     status = data['status']
     if status == Workspace.OPEN:
         workspace.open()

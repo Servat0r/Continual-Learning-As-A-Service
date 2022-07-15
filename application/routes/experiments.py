@@ -125,7 +125,6 @@ def create_experiment(username, wname):
 @experiments_bp.patch('/<experiment:name>/setup')
 @token_auth.login_required
 def setup_experiment(username, wname, name):
-
     experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
     if err_response is not None:
         return err_response
@@ -140,6 +139,7 @@ def setup_experiment(username, wname, name):
 @experiments_bp.patch('/<experiment:name>/status/')
 @experiments_bp.patch('/<experiment:name>/status')
 @token_auth.login_required
+@check_json(False, required={'status'})
 def set_experiment_status(username, wname, name):
     """
     RequestSyntax:
@@ -151,20 +151,14 @@ def set_experiment_status(username, wname, name):
     :param name:
     :return:
     """
-    data, error, opts, extras = checked_json(request, False, {'status'})
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
+    data, opts, extras = get_check_json_data()
+    status = data.get('status')
+    if status == _EXPERIMENT_START:
+        context = UserWorkspaceResourceContext(username, wname)
+        executor.submit(_experiment_run_task, name, context)
+        return make_success_dict(msg="Experiment successfully submitted!")
     else:
-        status = data.get('status')
-        if status == _EXPERIMENT_START:
-            context = UserWorkspaceResourceContext(username, wname)
-            executor.submit(_experiment_run_task, name, context)
-            return make_success_dict(msg="Experiment successfully submitted!")
-        else:
-            return ForbiddenOperation(msg="You can only start an experiment!")
+        return ForbiddenOperation(msg="You can only start an experiment!")
 
 
 @experiments_bp.get('/<experiment:name>/status/')

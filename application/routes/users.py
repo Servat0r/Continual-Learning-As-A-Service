@@ -2,7 +2,7 @@
 User handling routes.
 """
 from __future__ import annotations
-from flask import Blueprint, request
+from flask import Blueprint
 from mongoengine import NotUniqueError
 from http import HTTPStatus
 
@@ -10,7 +10,7 @@ from application.errors import *
 from application.utils import *
 from application.validation import *
 from application.models import *
-from .auth import token_auth, check_current_user_ownership
+from .auth import *
 
 
 _CHECK_DNS = bool(os.environ.get('EMAIL_VALIDATION_CHECK_DNS', False))
@@ -35,6 +35,7 @@ def service_unavailable(error):
 
 @users_bp.post('/')
 @users_bp.post('')
+@check_json(False, required={'username', 'email', 'password'})
 def register():
     """
     Registers a new user.
@@ -56,40 +57,33 @@ def register():
 
     :return:
     """
+    data, opts, extras = get_check_json_data()
+    username = data['username']
+    email = data['email']
+    password = data['password']
 
-    data, error, opts, extras = checked_json(request, False, {'username', 'email', 'password'})
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
+    result, msg = validate_username(username)
+    if not result:
+        return InvalidUsername(msg=msg)
+
+    result, msg = validate_email(email, _CHECK_DNS)
+    if not result:
+        return InvalidEmail(msg=msg)
+
+    result, msg = validate_password(password)
+    if not result:
+        return InvalidPassword(msg=msg)
+
+    if User.get_by_name(username) is not None:
+        return ExistingUser(user=username)
+    elif User.get_by_email(email) is not None:
+        return InvalidParameterValue(msg=f"Email '{email}' already in use.")
     else:
-        username = data['username']
-        email = data['email']
-        password = data['password']
-
-        result, msg = validate_username(username)
-        if not result:
-            return InvalidUsername(msg=msg)
-
-        result, msg = validate_email(email, _CHECK_DNS)
-        if not result:
-            return InvalidEmail(msg=msg)
-
-        result, msg = validate_password(password)
-        if not result:
-            return InvalidPassword(msg=msg)
-
-        if User.get_by_name(username) is not None:
-            return ExistingUser(user=username)
-        elif User.get_by_email(email) is not None:
-            return InvalidParameterValue(msg=f"Email '{email}' already in use.")
+        user = User.create(username, email, password)
+        if user:
+            return make_success_kwargs(HTTPStatus.CREATED, msg=f"User '{user.get_name()}' correctly registered.")
         else:
-            user = User.create(username, email, password)
-            if user:
-                return make_success_kwargs(HTTPStatus.CREATED, msg=f"User '{user.get_name()}' correctly registered.")
-            else:
-                return InternalFailure(msg=f"Error when registering user.")
+            return InternalFailure(msg=f"Error when registering user.")
 
 
 @users_bp.get('/')
@@ -156,6 +150,8 @@ def get_user(username):
 @users_bp.patch('/<user:username>/')
 @users_bp.patch('/<user:username>')
 @token_auth.login_required
+@check_json(False, required=None, optionals={'username', 'email'})
+@check_ownership(msg="You don't have permission to modify another user ({user}) profile", eval_args={'user': 'username'})
 def edit_user(username):
     """
     Edits username/email.
@@ -184,18 +180,9 @@ def edit_user(username):
     :return:
     """
 
-    data, error, opts, extras = checked_json(request, False, required=None, optionals={'username', 'email'})
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
-
-    hasUsername = False
-    email = ''
+    data, opts, extras = get_check_json_data()
 
     if 'username' in opts:
-        hasUsername = True
         result, msg = validate_username(data['username'])
         if not result:
             return InvalidUsername(msg=msg)
@@ -206,24 +193,22 @@ def edit_user(username):
         if not result:
             return InvalidEmail(msg=msg)
 
-    current_user = token_auth.current_user()
-    if (hasUsername and current_user.username != username) or ((not hasUsername) and current_user.email != email):
-        return ForbiddenOperation(msg="You don't have permission to modify another user profile, either because your"
-                                  " username or your email or both do not match.")
-    else:
-        try:
-            result = current_user.edit(data)
-            if len(result) == 0:
-                return make_success_kwargs(HTTPStatus.NOT_MODIFIED)
-            else:
-                return make_success_kwargs(HTTPStatus.OK, msg=f"User {username} successfully updated.", **result)
-        except NotUniqueError:
-            return ForbiddenOperation(msg="Username or email are in use by another profile.")
+    try:
+        current_user = token_auth.current_user()
+        result = current_user.edit(data)
+        if len(result) == 0:
+            return make_success_kwargs(HTTPStatus.NOT_MODIFIED)
+        else:
+            return make_success_kwargs(HTTPStatus.OK, msg=f"User {username} successfully updated.", **result)
+    except NotUniqueError:
+        return ForbiddenOperation(msg="Username or email are in use by another profile.")
 
 
 @users_bp.patch('/<user:username>/password/')
 @users_bp.patch('/<user:username>/password')
 @token_auth.login_required
+@check_json(False, required={'old_password', 'new_password'})
+@check_ownership(msg="You cannot change another user's ({user}) password!", eval_args={'user': 'username'})
 def edit_password(username):
     """
     Edits user password.
@@ -242,41 +227,33 @@ def edit_password(username):
     :param username: Username.
     :return:
     """
-    result, error = check_current_user_ownership(username, "You cannot change another user's password!")
+
+    data, opts, extras = get_check_json_data()
+    current_user = token_auth.current_user()
+    old_password = data['old_password']
+    new_password = data['new_password']
+
+    result, msg = validate_password(old_password)
     if not result:
-        return error
+        return InvalidPassword(msg=msg)
 
-    data, error, opts, extras = checked_json(request, False, {'old_password', 'new_password'})
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
+    result, msg = validate_password(new_password)
+    if not result:
+        return InvalidPassword(msg=msg)
+
+    if not current_user.check_correct_password(old_password):
+        return InvalidPassword(msg=f"Old password is incorrect.")
+    elif old_password == new_password:
+        return make_success_kwargs(HTTPStatus.NOT_MODIFIED)
     else:
-        current_user = token_auth.current_user()
-        old_password = data['old_password']
-        new_password = data['new_password']
-
-        result, msg = validate_password(old_password)
-        if not result:
-            return InvalidPassword(msg=msg)
-
-        result, msg = validate_password(new_password)
-        if not result:
-            return InvalidPassword(msg=msg)
-
-        if not current_user.check_correct_password(old_password):
-            return InvalidPassword(msg=f"Old password is incorrect.")
-        elif old_password == new_password:
-            return make_success_kwargs(HTTPStatus.NOT_MODIFIED)
-        else:
-            current_user.set_password(new_password)
-            return make_success_kwargs(HTTPStatus.OK)
+        current_user.set_password(new_password)
+        return make_success_kwargs(HTTPStatus.OK)
 
 
 @users_bp.delete('/<user:username>/')
 @users_bp.delete('/<user:username>')
 @token_auth.login_required
+@check_ownership(msg="You don't have the permission to delete another user ({user})!", eval_args={'user': 'username'})
 def delete_user(username):
     """
     Deletes user.
@@ -293,23 +270,16 @@ def delete_user(username):
     :param username:
     :return:
     """
-    result, error = check_current_user_ownership(username, "You don't have the permission to delete another user!")
-    if not result:
-        return error
-
     current_user = token_auth.current_user()
-    if current_user.username == username:
-        result, exc = current_user.delete()
-        if not result:
-            return InternalFailure(msg=exc.args[0])
-        else:
-            return make_success_kwargs(
-                HTTPStatus.OK,
-                msg=f"User '{username}' successfully deleted.",
-                username=username,
-            )
+    result, exc = current_user.delete()
+    if not result:
+        return InternalFailure(msg=exc.args[0])
     else:
-        return ForbiddenOperation(msg="You don't have the permission to delete another user!")
+        return make_success_kwargs(
+            HTTPStatus.OK,
+            msg=f"User '{username}' successfully deleted.",
+            username=username,
+        )
 
 
 __all__ = [

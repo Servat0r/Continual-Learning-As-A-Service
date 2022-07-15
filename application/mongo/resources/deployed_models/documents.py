@@ -202,11 +202,9 @@ class MongoDeployedModelConfig(MongoBaseResourceConfig):
     @auto_tboolexc
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked, parents_locked):
-            try:
-                db.Document.delete(self)
-                self.__manager_delete()
-            except Exception as ex:
-                return False, ex
+            db.Document.delete(self)
+            self.__manager_delete()
+            return True, None
 
 
 __all__ = [

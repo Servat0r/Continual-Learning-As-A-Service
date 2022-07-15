@@ -1,8 +1,7 @@
-from flask import Blueprint, request
+from flask import Blueprint
 from http import HTTPStatus
 
-from application.utils import checked_json, make_success_dict, linker
-# from application.resources import Benchmark
+from application.utils import *
 
 from .auth import token_auth
 from .resources import *
@@ -56,6 +55,7 @@ def get_benchmark(username, wname, name):
 @benchmarks_bp.patch('/<resource:name>/')
 @benchmarks_bp.patch('/<resource:name>')
 @token_auth.login_required
+@check_json(True, optionals={'name', 'description', 'build'})
 def update_benchmark(username, wname, name):
     """
     :param username:
@@ -63,14 +63,8 @@ def update_benchmark(username, wname, name):
     :param name:
     :return:
     """
-    data, error, opts, extras = checked_json(request, True)
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
-    else:
-        return update_resource(username, wname, _DFL_BENCHMARK_NAME_, name, data)
+    data, opts, extras = get_check_json_data()
+    return update_resource(username, wname, _DFL_BENCHMARK_NAME_, name, data)
 
 
 @benchmarks_bp.delete('/<resource:name>/')

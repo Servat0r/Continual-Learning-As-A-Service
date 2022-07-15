@@ -37,14 +37,11 @@ class MongoCLCriterionConfig(MongoResourceConfig):
     @auto_tboolexc
     def delete(self, context: UserWorkspaceResourceContext, locked=False, parents_locked=False) -> TBoolExc:
         with self.resource_delete(locked, parents_locked):
-            try:
-                StrategyClass = t.cast(ReferrableDataType, DataType.get_type('Strategy')).config_type()
-                strategies = StrategyClass.get(build_config__criterion=self)
-                for strategy in strategies:
-                    strategy.delete(context, parents_locked=True)
-                return super().delete(context, locked=True, parents_locked=True)
-            except Exception as ex:
-                return False, ex
+            StrategyClass = t.cast(ReferrableDataType, DataType.get_type('Strategy')).config_type()
+            strategies = StrategyClass.get(build_config__criterion=self)
+            for strategy in strategies:
+                strategy.delete(context, parents_locked=True)
+            return super().delete(context, locked=True, parents_locked=True)
 
 
 __all__ = [

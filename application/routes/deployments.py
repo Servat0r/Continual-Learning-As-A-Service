@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from http import HTTPStatus
 
-from application.utils import checked_json, make_success_dict, linker
+from application.utils import *
 from .auth import token_auth
 from .resources import *
 
@@ -68,6 +68,7 @@ def get_deployed_model(username, wname, name):
 @deployments_bp.patch('/<resource:name>/metadata/')
 @deployments_bp.patch('/<resource:name>/metadata')
 @token_auth.login_required
+@check_json(False, optionals={'name', 'description'})
 def update_deployed_model_metadata(username, wname, name):
     """
     :param username:
@@ -75,19 +76,14 @@ def update_deployed_model_metadata(username, wname, name):
     :param name:
     :return:
     """
-    data, error, opts, extras = checked_json(request, False, optionals={'name', 'description'})
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
-    else:
-        return update_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, name, data)
+    data, opts, extras = get_check_json_data()
+    return update_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, name, data)
 
 
 @deployments_bp.patch('/<resource:name>/redeploy/')
 @deployments_bp.patch('/<resource:name>/redeploy')
 @token_auth.login_required
+@check_json(False, required={'name', 'path', 'deploy'}, optionals={'description'})
 def redeploy_model(username, wname, name):
     """
     Redeploys a previously deployed model, i.e. substitutes the previous model
@@ -97,18 +93,8 @@ def redeploy_model(username, wname, name):
     :param name:
     :return:
     """
-    data, error, opts, extras = checked_json(
-        request, False,
-        required={'name', 'path', 'deploy'},
-        optionals={'description'},
-    )
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
-    else:
-        return update_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, name, data)
+    data, opts, extras = get_check_json_data()
+    return update_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, name, data)
 
 
 @deployments_bp.delete('/<resource:name>/')

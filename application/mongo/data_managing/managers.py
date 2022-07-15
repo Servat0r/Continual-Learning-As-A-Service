@@ -59,22 +59,16 @@ class MongoLocalDataManager(BaseDataManager):
         parents = tuple(parents)
         parent_path = os.path.join(self.root_dir, *parents)
         complete_path = os.path.join(parent_path, dir_name)
-        try:
-            os.makedirs(complete_path, exist_ok=True)
-            return True, None
-        except Exception as ex:
-            return False, ex
+        os.makedirs(complete_path, exist_ok=True)
+        return True, None
 
     @auto_tboolexc
     def move_subdir(self, src_name: str, dest_name: str,
                     src_parents: list[str] = None, dest_parents: list[str] = None) -> TBoolExc:
         src_path = os.path.join(self.root_dir, *src_parents, src_name)
         dest_path = os.path.join(self.root_dir, *dest_parents, dest_name)
-        try:
-            shutil.move(src_path, dest_path)
-            return True, None
-        except Exception as ex:
-            return False, ex
+        shutil.move(src_path, dest_path)
+        return True, None
 
     @auto_tboolexc
     def remove_subdir(self, dir_name: str, parents: list[str] = None) -> TBoolExc:
@@ -83,11 +77,8 @@ class MongoLocalDataManager(BaseDataManager):
         parents = tuple(parents)
         parent_path = os.path.join(self.root_dir, *parents)
         complete_path = os.path.join(parent_path, dir_name)
-        try:
-            shutil.rmtree(complete_path, ignore_errors=True)
-            return True, None
-        except Exception as ex:
-            return False, ex
+        shutil.rmtree(complete_path, ignore_errors=True)
+        return True, None
 
     def get_dir_list(self, dir_names: list[str] = None) -> list[str]:
         if dir_names is None:
@@ -111,16 +102,13 @@ class MongoLocalDataManager(BaseDataManager):
 
         fpath = os.path.join(self.get_root(), self.get_file_path(data[0], data[1]))
         fstorage = data[2]
-        try:
-            if fstorage is not None:
-                fstorage.save(fpath)
-            else:
-                # noinspection PyUnusedLocal
-                with open(fpath, 'w') as f:
-                    pass
-            return True, None
-        except Exception as ex:
-            return False, ex
+        if fstorage is not None:
+            fstorage.save(fpath)
+        else:
+            # noinspection PyUnusedLocal
+            with open(fpath, 'w') as f:
+                pass
+        return True, None
 
     def read_from_file(self, data: TFRead, base_dir: list[str] = None, binary=True) -> t.Any | None:
         base_dir = [] if base_dir is None else base_dir
@@ -141,25 +129,19 @@ class MongoLocalDataManager(BaseDataManager):
     @auto_tboolexc
     def print_to_file(self, file_name: str, dir_names: list[str], *values: t.Any,
                       sep=' ', newline=True, append=True, flush=True) -> TBoolExc:
-        try:
-            fpath = os.path.join(self.get_root(), *dir_names, file_name)
-            with open(fpath, 'a' if append else 'w') as f:
-                end = None if newline else ''
-                print(*values, sep=sep, file=f, end=end, flush=flush)
-            return True, None
-        except Exception as ex:
-            return False, ex
+        fpath = os.path.join(self.get_root(), *dir_names, file_name)
+        with open(fpath, 'a' if append else 'w') as f:
+            end = None if newline else ''
+            print(*values, sep=sep, file=f, end=end, flush=flush)
+        return True, None
 
     @auto_tboolexc
     def write_to_file(self, data: TFContent, append=True, binary=True) -> TBoolExc:
-        try:
-            fpath = os.path.join(self.get_root(), *data[1], data[0])
-            mode = ('a' if append else 'w') + ('b' if binary else '')
-            with open(fpath, mode) as f:
-                f.write(data[2])
-            return True, None
-        except Exception as ex:
-            return False, ex
+        fpath = os.path.join(self.get_root(), *data[1], data[0])
+        mode = ('a' if append else 'w') + ('b' if binary else '')
+        with open(fpath, mode) as f:
+            f.write(data[2])
+        return True, None
 
     def delete_file(self, file_name: str, dir_names: list[str], binary=True,
                     return_content=False) -> t.AnyStr | None:
@@ -177,16 +159,13 @@ class MongoLocalDataManager(BaseDataManager):
 
     @auto_tboolexc
     def save_model(self, model: Module, dir_names: list[str], model_name='model.pt') -> TBoolExc:
-        try:
-            fpath = os.path.join(self.get_root(), *dir_names, model_name)
-            result, exc = self.create_file((model_name, [self.get_root()] + dir_names, None))
-            if not result:
-                exc.args[0] = f"Failed to create file '{model_name}': {exc.args[0]}."
-                return result, exc
-            torch.save(model, fpath)
-            return True, None
-        except Exception as ex:
-            return False, ex
+        fpath = os.path.join(self.get_root(), *dir_names, model_name)
+        result, exc = self.create_file((model_name, [self.get_root()] + dir_names, None))
+        if not result:
+            exc.args[0] = f"Failed to create file '{model_name}': {exc.args[0]}."
+            return result, exc
+        torch.save(model, fpath)
+        return True, None
 
     def add_archive(self, stream, base_path_list: list[str], tmp_archive_name='tmp_file',
                     archive_type='zip') -> tuple[int, list[str]]:

@@ -15,6 +15,7 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @auth_bp.post('/login/')
 @auth_bp.post('/login')
+@check_json(False, required={'username', 'password'})
 def login():
     """
     Authentication token request (or retrieve).
@@ -38,12 +39,14 @@ def login():
     :return:
     """
 
-    data, error, opts, extras = checked_json(request, False, {'username', 'password'})
+    data, opts, extras = get_check_json_data()
+    """
     if error:
         if data:
             return error(**data)
         else:
             return error()
+    """
 
     username = data['username']
     password = data['password']

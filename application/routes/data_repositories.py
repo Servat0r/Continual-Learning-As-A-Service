@@ -5,12 +5,12 @@ from http import HTTPStatus
 from flask import Blueprint, request
 
 from application.errors import *
-from application.utils import checked_json, make_success_dict, linker
+from application.utils import *
 from application.validation import *
 from application.data_managing import TFContent
 from application.models import Workspace
 
-from .auth import token_auth, check_current_user_ownership
+from .auth import *
 from application.data_managing import BaseDataRepository
 
 
@@ -33,6 +33,8 @@ def data_repository_args(repository: BaseDataRepository):
 @data_repositories_bp.post('/')
 @data_repositories_bp.post('')
 @token_auth.login_required
+@check_json(False, required={'name'}, optionals={'description'})
+@check_ownership(msg="You cannot create a data repository for another user ({user}).", eval_args={'user': 'username'})
 def create_data_repository(username, wname):
     """
     RequestSyntax:
@@ -44,27 +46,13 @@ def create_data_repository(username, wname):
     :param wname:
     :return:
     """
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot create a data repository for another user ({username}).",
-    )
-    if not result:
-        return error
-
-    data, error, opts, extras = checked_json(request, False, {'name'}, {'description'})
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
-
+    data, opts, extras = get_check_json_data()
     workspace = Workspace.canonicalize((username, wname))
     name = data['name']
     description = data.get('description')
     result, msg = validate_workspace_resource_experiment(name)
     if not result:
         return InvalidResourceName(msg)
-
     data_repository = BaseDataRepository.create(name, workspace, desc=description)
     if data_repository is not None:
         data = linker.make_links(data_repository.to_dict())
@@ -76,20 +64,13 @@ def create_data_repository(username, wname):
 @data_repositories_bp.delete('/<resource:name>/')
 @data_repositories_bp.delete('/<resource:name>')
 @token_auth.login_required
+@check_ownership(msg="You cannot delete another user ('{user}') data repository.", eval_args={'user': 'username'})
 def delete_repo(username, wname, name):
 
     try:
-        result, error = check_current_user_ownership(
-            username,
-            f"You cannot delete another user ('{username}') data repository.",
-        )
-        if not result:
-            return error
-
         current_user = token_auth.current_user()
         workspace = Workspace.canonicalize((current_user, wname))
         data_repository = BaseDataRepository.get_one(workspace, name)
-
         if data_repository is not None:
             result, exc = data_repository.delete()
             if result:
@@ -107,18 +88,11 @@ def delete_repo(username, wname, name):
 @data_repositories_bp.get('/<resource:name>')
 @token_auth.login_required
 @linker.link_rule('DataRepository', blueprint=data_repositories_bp)
+@check_ownership(msg="You cannot retrieve another user ({user}) data repository.", eval_args={'user': 'username'})
 def get_data_repo(username, wname, name):
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot create a data repository for another user ({username}).",
-    )
-    if not result:
-        return error
-
     current_user = token_auth.current_user()
     workspace = Workspace.canonicalize((current_user, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
-
     if data_repository is not None:
         data = linker.make_links(data_repository.to_dict())
         return make_success_dict(data=data)
@@ -129,18 +103,11 @@ def get_data_repo(username, wname, name):
 @data_repositories_bp.get('/<resource:name>/desc/')
 @data_repositories_bp.get('/<resource:name>/desc')
 @token_auth.login_required
+@check_ownership(msg="You cannot retrieve another user ({user}) data repository.", eval_args={'user': 'username'})
 def get_data_repo_desc(username, wname, name):
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot create a data repository for another user ({username}).",
-    )
-    if not result:
-        return error
-
     current_user = token_auth.current_user()
     workspace = Workspace.canonicalize((current_user, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
-
     if data_repository is not None:
         desc = data_repository.get_description()
         return make_success_dict(data={'description': desc})
@@ -151,6 +118,8 @@ def get_data_repo_desc(username, wname, name):
 @data_repositories_bp.post('/<resource:name>/folders/')
 @data_repositories_bp.post('/<resource:name>/folders')
 @token_auth.login_required
+@check_json(False, required={'name'}, optionals={'path'})
+@check_ownership("You cannot create a directory in another user ({user}) data repository", eval_args={'user': 'username'})
 def create_sub_folder(username, wname, name):
     """
     RequestSyntax:
@@ -163,17 +132,7 @@ def create_sub_folder(username, wname, name):
     :param name:
     :return:
     """
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot create a folder in another user ({username}) repository.",
-    )
-    if not result:
-        return error
-
-    data, error, opts, extras = checked_json(request, False, {'name'}, {'path'})
-    if error:
-        return error(**data) if data else error()
-
+    data, opts, extras = get_check_json_data()
     folder_name = data['name']
     folder_path = data.get('path')
 
@@ -207,6 +166,8 @@ def create_sub_folder(username, wname, name):
 @data_repositories_bp.patch('/<resource:name>/folders/')
 @data_repositories_bp.patch('/<resource:name>/folders')
 @token_auth.login_required
+@check_json(False, required={'src_path', 'dest_path'})
+@check_ownership("You cannot create a folder in another user ({user}) repository.", eval_args={'user': 'username'})
 def move_folder(username, wname, name):
     """
     RequestSyntax:
@@ -230,10 +191,7 @@ def move_folder(username, wname, name):
     if not result:
         return error
 
-    data, error, opts, extras = checked_json(request, False, {'src_path', 'dest_path'})
-    if error:
-        return error(**data) if data else error()
-
+    data, opts, extras = get_check_json_data()
     src_path_str = data['src_path']
     dest_path_str = data['dest_path']
     
@@ -275,6 +233,7 @@ def move_folder(username, wname, name):
 @data_repositories_bp.delete('/<resource:name>/folders/<path:path>/')
 @data_repositories_bp.delete('/<resource:name>/folders/<path:path>')
 @token_auth.login_required
+@check_ownership("You cannot delete a folder in another user ({user}) repository.", eval_args={'user': 'username'})
 def delete_sub_folder(username, wname, name, path):
     result, error = \
         check_current_user_ownership(username,
@@ -308,6 +267,7 @@ def delete_sub_folder(username, wname, name, path):
 @data_repositories_bp.patch('/<resource:name>/folders/files/<path:path>/')
 @data_repositories_bp.patch('/<resource:name>/folders/files/<path:path>')
 @token_auth.login_required
+@check_ownership("You cannot send files to another user ({user}) repository.", eval_args={'user': 'username'})
 def send_files(username, wname, name, path):
     """
     RequestSyntax:
@@ -391,6 +351,8 @@ def send_files(username, wname, name, path):
 @data_repositories_bp.patch('/<resource:name>/')
 @data_repositories_bp.patch('/<resource:name>')
 @token_auth.login_required
+@check_json(False, optionals={'name', 'description'})
+@check_ownership("You cannot update another user ({user}) repository.", eval_args={'user': 'username'})
 def update_data_repository(username, wname, name):
     """
     Updates data repository (name or description).
@@ -399,24 +361,10 @@ def update_data_repository(username, wname, name):
     :param name:
     :return:
     """
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot create a data repository for another user ({username}).",
-    )
-    if not result:
-        return error
-
-    data, error, opts, extras = checked_json(request, False, optionals={'name', 'description'})
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
-
+    data, opts, extras = get_check_json_data()
     current_user = token_auth.current_user()
     workspace = Workspace.canonicalize((current_user, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
-
     if data_repository is not None:
         result, msg = data_repository.update(data)
         return make_success_dict() if result else InternalFailure(payload={'error': msg})
@@ -427,18 +375,11 @@ def update_data_repository(username, wname, name):
 @data_repositories_bp.get('/<resource:name>/folders/<path:path>/')
 @data_repositories_bp.get('/<resource:name>/folders/<path:path>')
 @token_auth.login_required
+@check_ownership("You cannot retrieve another user ({user}) repository folder content.", eval_args={'user': 'username'})
 def get_folder_content(username, wname, name, path):
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot create a data repository for another user ({username}).",
-    )
-    if not result:
-        return error
-
     current_user = token_auth.current_user()
     workspace = Workspace.canonicalize((current_user, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
-
     if data_repository is not None:
         files = data_repository.get_all_files(path)
         num_files = len(files) if files is not None else 0
@@ -450,28 +391,16 @@ def get_folder_content(username, wname, name, path):
 @data_repositories_bp.patch('/<resource:name>/folders/rename/<path:path>/')
 @data_repositories_bp.patch('/<resource:name>/folders/rename/<path:path>')
 @token_auth.login_required
+@check_json(False, optionals={'new_name'})
+@check_ownership("You cannot rename another user ({user}) repository folder.", eval_args={'user': 'username'})
 def rename_folder(username, wname, name, path):
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot create a data repository for another user ({username}).",
-    )
-    if not result:
-        return error
-
-    data, error, opts, extras = checked_json(request, False, optionals={'new_name'})
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
+    data, opts, extras = get_check_json_data()
     new_name = data.get('new_name')
     if new_name is None:
         return make_success_dict(status=HTTPStatus.NOT_MODIFIED)
-
     current_user = token_auth.current_user()
     workspace = Workspace.canonicalize((current_user, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
-
     if data_repository is not None:
         result, exc = data_repository.rename_directory(path, new_name)
         return make_success_dict() if result else InternalFailure(
@@ -484,6 +413,8 @@ def rename_folder(username, wname, name, path):
 @data_repositories_bp.delete('/<resource:name>/folders/files/')
 @data_repositories_bp.delete('/<resource:name>/folders/files')
 @token_auth.login_required
+@check_json(False, required={'files'})
+@check_ownership("You cannot delete another user ({user}) repository files.", eval_args={'user': 'username'})
 def delete_files(username, wname, name):
     """
     Request Syntax:
@@ -499,20 +430,7 @@ def delete_files(username, wname, name):
     :param name:
     :return:
     """
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot create a data repository for another user ({username}).",
-    )
-    if not result:
-        return error
-
-    data, error, opts, extras = checked_json(request, False, required={'files'})
-    if error:
-        if data:
-            return error(**data)
-        else:
-            return error()
-
+    data, opts, extras = get_check_json_data()
     files = data.get('files')
     if files is None:
         return InternalFailure()
@@ -552,7 +470,5 @@ __all__ = [
     'delete_sub_folder',
 
     'send_files',
-    # 'move_files' # ?
-    # 'rename_files' # ?
     'delete_files',
 ]
