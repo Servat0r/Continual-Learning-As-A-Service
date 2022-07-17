@@ -54,7 +54,7 @@ def get_metricset(username, wname, name):
 @metricsets_bp.patch('/<resource:name>/')
 @metricsets_bp.patch('/<resource:name>')
 @token_auth.login_required
-@check_json(True, optionals={'name', 'description', 'build'})
+@check_json(False, optionals={'name', 'description', 'build'})
 def update_metricset(username, wname, name):
     """
     :param username:

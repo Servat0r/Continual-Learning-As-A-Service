@@ -66,22 +66,17 @@ def create_data_repository(username, wname):
 @token_auth.login_required
 @check_ownership(msg="You cannot delete another user ('{user}') data repository.", eval_args={'user': 'username'})
 def delete_repo(username, wname, name):
-
-    try:
-        current_user = token_auth.current_user()
-        workspace = Workspace.canonicalize((current_user, wname))
-        data_repository = BaseDataRepository.get_one(workspace, name)
-        if data_repository is not None:
-            result, exc = data_repository.delete()
-            if result:
-                return make_success_dict(msg=f"Data repository '{name}' successfully deleted.")
-            else:
-                return InternalFailure(msg=exc.args[0], exception=str(exc))
+    current_user = token_auth.current_user()
+    workspace = Workspace.canonicalize((current_user, wname))
+    data_repository = BaseDataRepository.get_one(workspace, name)
+    if data_repository is not None:
+        result, exc = data_repository.delete()
+        if result:
+            return make_success_dict(msg=f"Data repository '{name}' successfully deleted.")
         else:
-            return ResourceNotFound(resource=name)
-    except Exception as ex:
-        print(ex, ex.args)
-        return InternalFailure(exception=str(ex))
+            raise exc
+    else:
+        return ResourceNotFound(resource=name)
 
 
 @data_repositories_bp.get('/<resource:name>/')
@@ -158,7 +153,7 @@ def create_sub_folder(username, wname, name):
         if result:
             return make_success_dict(HTTPStatus.CREATED)
         else:
-            return InternalFailure(msg=exc.args[0])
+            raise exc
     else:
         return ResourceNotFound(resource=name)
 
@@ -184,13 +179,6 @@ def move_folder(username, wname, name):
     :param name:
     :return:
     """
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot create a folder in another user ({username}) repository.",
-    )
-    if not result:
-        return error
-
     data, opts, extras = get_check_json_data()
     src_path_str = data['src_path']
     dest_path_str = data['dest_path']
@@ -205,10 +193,8 @@ def move_folder(username, wname, name):
 
     src_path = src_path_str.split('/')
     src_path = [item for item in src_path if len(item) > 0]
-
     dest_path = dest_path_str.split('/')
     dest_path = [item for item in dest_path if len(item) > 0]
-
 
     if len(src_path) < 1 or len(dest_path) < 1:
         return BadRequestSyntax(msg="Source and destination paths must have at least one item!")
@@ -225,7 +211,7 @@ def move_folder(username, wname, name):
         if result:
             return make_success_dict(data={'old_path': data['src_path'], 'new_path': data['dest_path']})
         else:
-            return InternalFailure(msg=exc.args[0])
+            raise exc
     else:
         return ResourceNotFound(resource=name)
 
@@ -235,12 +221,6 @@ def move_folder(username, wname, name):
 @token_auth.login_required
 @check_ownership("You cannot delete a folder in another user ({user}) repository.", eval_args={'user': 'username'})
 def delete_sub_folder(username, wname, name, path):
-    result, error = \
-        check_current_user_ownership(username,
-                                     f"You cannot create a folder in another user ({username}) repository.")
-    if not result:
-        return error
-
     result, msg = validate_path(path)
     if not result:
         return InvalidPath(msg)
@@ -260,7 +240,7 @@ def delete_sub_folder(username, wname, name, path):
     if result:
         return make_success_dict()
     else:
-        return InternalFailure(msg=exc.args[0])
+        raise exc
 
 
 # Fa anche da update dei files
@@ -289,13 +269,6 @@ def send_files(username, wname, name, path):
     :param path:
     :return:
     """
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot create a folder in another user ({username}) repository.",
-    )
-    if not result:
-        return error
-
     workspace = Workspace.canonicalize((username, wname))
     data_repository = BaseDataRepository.get_one(workspace, name)
 
@@ -333,7 +306,6 @@ def send_files(username, wname, name, path):
             successes = data_repository.add_files(files_and_labels)
             data['success'] += successes
             data['n_success'] += len(successes)
-
         elif files_mode == 'zip':
             for fstorage in files:  # zip file
                 total, successes = data_repository.add_archive(fstorage, base_path_list)
@@ -367,7 +339,10 @@ def update_data_repository(username, wname, name):
     data_repository = BaseDataRepository.get_one(workspace, name)
     if data_repository is not None:
         result, msg = data_repository.update(data)
-        return make_success_dict() if result else InternalFailure(payload={'error': msg})
+        if result:
+            return make_success_dict()
+        else:
+            raise RuntimeError(msg)
     else:
         return ResourceNotFound(resource=name)
 
@@ -403,9 +378,10 @@ def rename_folder(username, wname, name, path):
     data_repository = BaseDataRepository.get_one(workspace, name)
     if data_repository is not None:
         result, exc = data_repository.rename_directory(path, new_name)
-        return make_success_dict() if result else InternalFailure(
-            payload={'error': str(exc), 'error_msg': str(exc.args)}
-        )
+        if result:
+            return make_success_dict()
+        else:
+            raise exc
     else:
         return ResourceNotFound(resource=name)
 

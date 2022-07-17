@@ -3,14 +3,14 @@ Base module for handling operations on "generic" resources.
 """
 from __future__ import annotations
 from http import HTTPStatus
-from flask import request, Response
+from flask import Response
 
 from application.utils import *
 from application.errors import *
 from application.resources import *
 
 from application.mongo.resources import MongoResourceConfig
-from .auth import check_current_user_ownership
+from .auth import *
 
 
 UnknownResourceType = ServerResponseError(
@@ -31,6 +31,8 @@ def _canonicalize_datatype(tp: str | t.Type[DataType]) -> \
         return None, UnknownResourceType(type=str(tp))
 
 
+@tuple_check_ownership(msg="You cannot add a new {type} for another user ({user}).",
+                       eval_args={'type': 'typename', 'user': 'username'})
 def add_new_resource(username, workspace, typename: str | t.Type[DataType], required=None) -> Response:
     """
     Base method for adding a new "generic" resource.
@@ -40,15 +42,8 @@ def add_new_resource(username, workspace, typename: str | t.Type[DataType], requ
     :param required:
     :return:
     """
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot add a new {typename} for another user ({username}).",
-    )
-    if not result:
-        return error
-
     required = {'name', 'build'} if required is None else required
-    data, error, opts, extras = checked_json(request, True, required, {'description'})
+    data, error, opts, extras = checked_json(True, required, {'description'})
     if error:
         if data:
             return error(**data)
@@ -73,6 +68,8 @@ def add_new_resource(username, workspace, typename: str | t.Type[DataType], requ
         return make_success_dict(HTTPStatus.CREATED, msg=f"Successfully created resource of type '{typename}'!")
 
 
+@tuple_check_ownership(msg="You cannot build a {type} for another user ({user}).",
+                       eval_args={'type': 'typename', 'user': 'username'})
 def build_resource(username, workspace, typename: str | t.Type[DataType], name) -> Response:
     """
     Base method for building a "generic" resource.
@@ -82,15 +79,7 @@ def build_resource(username, workspace, typename: str | t.Type[DataType], name) 
     :param name:
     :return:
     """
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot build a {typename} for another user ({username}).",
-    )
-    if not result:
-        return error
-
     context = UserWorkspaceResourceContext(username, workspace)
-
     dtype, error = _canonicalize_datatype(typename)
     if error:
         return error
@@ -113,39 +102,23 @@ def build_resource(username, workspace, typename: str | t.Type[DataType], name) 
         return InternalFailure(msg=f"Failed to build resource '{name}'.")
 
 
-def get_resource(username, workspace, typename: str | t.Type[DataType], ownership_fail_msg: str = None,
-                 name: str = None, **args) -> tuple[MongoResourceConfig | None, Response | None]:
-
-    ownership_fail_msg = ForbiddenOperation.dfl_msg if ownership_fail_msg is None else ownership_fail_msg
-    result, error = check_current_user_ownership(username, ownership_fail_msg)
-    if not result:
-        return None, error
-
+@tuple_check_ownership(msg="You cannot retrieve another user ({user}) {type}",
+                       eval_args={'user': 'username', 'type': 'typename'})
+def get_resource(username, workspace, typename: str | t.Type[DataType], name: str = None,
+                 **args) -> tuple[MongoResourceConfig | None, Response | None]:
     dtype, error = _canonicalize_datatype(typename)
     if error:
         return None, error
-
-    resource: MongoResourceConfig = t.cast(ReferrableDataType, dtype).config_type().get_one(username, workspace,
-                                                                                            name, **args)
+    # noinspection PyUnresolvedReferences
+    resource: MongoResourceConfig = dtype.config_type().get_one(username, workspace, name, **args)
     if resource is not None:
         return resource, None
     else:
         return None, ResourceNotFound(resource=name)
-    """
-    if isinstance(name, str):
-        resource: MongoResourceConfig = t.cast(ReferrableDataType, dtype).config_type().get_one(username, workspace, name)
-    elif isinstance(name, dict):
-        resource: MongoResourceConfig = t.cast(ReferrableDataType, dtype).config_type().get_one(username, workspace,
-                                                                                                **name)
-    else:
-        raise ValueError('inia')
-    if resource is not None:
-        return resource, None
-    else:
-        return None, ResourceNotFound(resource=name)
-    """
 
 
+@tuple_check_ownership(msg="You cannot update a {type} for another user ({user}).",
+                       eval_args={'type': 'typename', 'user': 'username'})
 def update_resource(username, workspace, typename: str | t.Type[DataType], name, updata) -> Response:
     """
     Updates a resource.
@@ -156,13 +129,6 @@ def update_resource(username, workspace, typename: str | t.Type[DataType], name,
     :param updata:
     :return:
     """
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot update a {typename} for another user ({username}).",
-    )
-    if not result:
-        return error
-
     dtype, error = _canonicalize_datatype(typename)
     if error:
         return error
@@ -170,11 +136,9 @@ def update_resource(username, workspace, typename: str | t.Type[DataType], name,
     ctp: t.Type[MongoResourceConfig] = t.cast(ReferrableDataType, dtype).config_type()
     if ctp is None:
         return InternalFailure(msg=f"Unknown config type '{typename}' for building resource.")
-
     context = UserWorkspaceResourceContext(username, workspace)
 
     resource_document = ctp.get(username, workspace, name)
-
     if resource_document is None or len(resource_document) != 1:
         return InternalFailure(
             msg=f"Failed to retrieve resource document for resource '{name}' of type {typename}."
@@ -187,6 +151,8 @@ def update_resource(username, workspace, typename: str | t.Type[DataType], name,
         return make_success_dict()
 
 
+@tuple_check_ownership(msg="You cannot delete a {type} for another user ({user}).",
+                       eval_args={'type': 'typename', 'user': 'username'})
 def delete_resource(username, workspace, typename: str | t.Type[DataType], name) -> Response:
     """
     :param username:
@@ -195,15 +161,7 @@ def delete_resource(username, workspace, typename: str | t.Type[DataType], name)
     :param name:
     :return:
     """
-    result, error = check_current_user_ownership(
-        username,
-        f"You cannot delete a {typename} for another user ({username}).",
-    )
-    if not result:
-        return error
-
     context = UserWorkspaceResourceContext(username, workspace)
-
     dtype, error = _canonicalize_datatype(typename)
     if error:
         return error

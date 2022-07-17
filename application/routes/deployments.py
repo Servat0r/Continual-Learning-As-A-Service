@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint
 from http import HTTPStatus
 
 from application.utils import *
@@ -42,7 +42,7 @@ def create_deployed_model(username, wname):
     :param wname:
     :return:
     """
-    return add_new_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, required={'name', 'path', 'deploy'})
+    return add_new_resource(username, wname, typename=_DFL_DEPLOYED_MODEL_NAME_, required={'name', 'path', 'deploy'})
 
 
 @deployments_bp.get('/<resource:name>/')
@@ -57,7 +57,7 @@ def get_deployed_model(username, wname, name):
     :param name:
     :return:
     """
-    resource, response = get_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, name=name)
+    resource, response = get_resource(username, wname, typename=_DFL_DEPLOYED_MODEL_NAME_, name=name)
     if response is not None:    # error
         return response
     else:
@@ -77,7 +77,7 @@ def update_deployed_model_metadata(username, wname, name):
     :return:
     """
     data, opts, extras = get_check_json_data()
-    return update_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, name, data)
+    return update_resource(username, wname, typename=_DFL_DEPLOYED_MODEL_NAME_, name=name, updata=data)
 
 
 @deployments_bp.patch('/<resource:name>/redeploy/')
@@ -94,7 +94,7 @@ def redeploy_model(username, wname, name):
     :return:
     """
     data, opts, extras = get_check_json_data()
-    return update_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, name, data)
+    return update_resource(username, wname, typename=_DFL_DEPLOYED_MODEL_NAME_, name=name, updata=data)
 
 
 @deployments_bp.delete('/<resource:name>/')
@@ -107,7 +107,7 @@ def delete_deployed_model(username, wname, name):
     :param name:
     :return:
     """
-    return delete_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, name)
+    return delete_resource(username, wname, typename=_DFL_DEPLOYED_MODEL_NAME_, name=name)
 
 
 __all__ = [

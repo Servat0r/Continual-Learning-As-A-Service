@@ -54,7 +54,7 @@ def get_optimizer(username, wname, name):
 @optimizers_bp.patch('/<resource:name>/')
 @optimizers_bp.patch('/<resource:name>')
 @token_auth.login_required
-@check_json(True, optionals={'name', 'description', 'build'})
+@check_json(False, optionals={'name', 'description', 'build'})
 def update_optimizer(username, wname, name):
     """
     :param username:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 import traceback
-from flask import Blueprint, request, Response, send_file
+from flask import Blueprint, Response, send_file
 from http import HTTPStatus
 
 from application.errors import *
@@ -38,23 +38,9 @@ def experiment_args(experiment):
 
 def _experiment_run_task(experiment_config_name: str,
                          context: UserWorkspaceResourceContext) -> Response:
-    """
-    # app = create_app(use_logger=False)
-    db = MongoEngine()
-    try:
-        app = Flask(__name__)
-        app.config['DEFAULT_CONNECTION_NAME'] = 'another'
-        db.DEFAULT_CONNECTION_NAME = 'another'
-        db.init_app(app)
-        username = context.get_username()
-        wname = context.get_workspace()
-    except Exception as ex:
-        print(ex, ex.args, sep='\n *** \n')
-        return make_error(HTTPStatus.INTERNAL_SERVER_ERROR, msg="Failed to connect to database!")
-    """
     username = context.get_username()
     wname = context.get_workspace()
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=experiment_config_name)
+    experiment_config, err_response = get_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=experiment_config_name)
     if err_response:
         return err_response
     context.stack = []
@@ -118,14 +104,14 @@ def _experiment_run_task(experiment_config_name: str,
 @experiments_bp.post('')
 @token_auth.login_required
 def create_experiment(username, wname):
-    return add_new_resource(username, wname, _DFL_EXPERIMENT_NAME)
+    return add_new_resource(username, wname, typename=_DFL_EXPERIMENT_NAME)
 
 
 @experiments_bp.patch('/<experiment:name>/setup/')
 @experiments_bp.patch('/<experiment:name>/setup')
 @token_auth.login_required
 def setup_experiment(username, wname, name):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
+    experiment_config, err_response = get_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=name)
     if err_response is not None:
         return err_response
 
@@ -165,7 +151,7 @@ def set_experiment_status(username, wname, name):
 @experiments_bp.get('/<experiment:name>/status')
 @token_auth.login_required
 def get_experiment_status(username, wname, name):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
+    experiment_config, err_response = get_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -182,7 +168,7 @@ def get_experiment_status(username, wname, name):
 @experiments_bp.get('/<experiment:name>/results/exec')
 @token_auth.login_required
 def get_experiment_results(username, wname, name):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
+    experiment_config, err_response = get_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=name)
     exec_id = experiment_config.current_exec_id
     return get_experiment_execution_results(username, wname, name, exec_id)
 
@@ -191,7 +177,7 @@ def get_experiment_results(username, wname, name):
 @experiments_bp.get('/<experiment:name>/results/exec/<int:exec_id>')
 @token_auth.login_required
 def get_experiment_execution_results(username, wname, name, exec_id):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
+    experiment_config, err_response = get_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     elif exec_id <= len(experiment_config.executions):
@@ -213,7 +199,7 @@ def get_experiment_execution_results(username, wname, name, exec_id):
 @token_auth.login_required
 @linker.link_rule(_DFL_EXPERIMENT_NAME, blueprint=experiments_bp)
 def get_experiment_settings(username, wname, name):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
+    experiment_config, err_response = get_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -225,7 +211,7 @@ def get_experiment_settings(username, wname, name):
 @experiments_bp.get('/<experiment:name>/model')
 @token_auth.login_required
 def get_experiment_model(username, wname, name):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
+    experiment_config, err_response = get_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -237,7 +223,7 @@ def get_experiment_model(username, wname, name):
 @experiments_bp.get('/<experiment:name>/model/<int:exec_id>')
 @token_auth.login_required
 def get_experiment_execution_model(username, wname, name, exec_id):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
+    experiment_config, err_response = get_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -256,7 +242,7 @@ def get_experiment_execution_model(username, wname, name, exec_id):
 @experiments_bp.get('/<experiment:name>/results/csv')
 @token_auth.login_required
 def get_experiment_csv_results(username, wname, name):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
+    experiment_config, err_response = get_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -268,7 +254,7 @@ def get_experiment_csv_results(username, wname, name):
 @experiments_bp.get('/<experiment:name>/results/csv/<int:exec_id>')
 @token_auth.login_required
 def get_experiment_execution_csv_results(username, wname, name, exec_id):
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
+    experiment_config, err_response = get_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -287,7 +273,7 @@ def get_experiment_execution_csv_results(username, wname, name, exec_id):
 @experiments_bp.delete('/<experiment:name>')
 @token_auth.login_required
 def delete_experiment(username, wname, name):
-    return delete_resource(username, wname, _DFL_EXPERIMENT_NAME, name)
+    return delete_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=name)
 
 
 __all__ = [

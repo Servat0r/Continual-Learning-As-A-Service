@@ -27,15 +27,29 @@ def drop_collections(db_name: str = DFL_DATABASE_NAME, names: list[str] = None):
 app = create_app()
 
 
+@app.errorhandler(HTTPStatus.INTERNAL_SERVER_ERROR)
+def internal_server_error(error):
+    return InternalFailure(msg=str(error))
+
+
+@app.errorhandler(HTTPStatus.SERVICE_UNAVAILABLE)
+def service_unavailable(error):
+    return ServiceUnavailable(msg=str(error))
+
+
 @app.errorhandler(Exception)
 def return_exception(ex: Exception):
     msgs = [str(arg) for arg in ex.args]
-    resp = make_error(
-        HTTPStatus.INTERNAL_SERVER_ERROR,
-        msg=f"Unhandled exception '{type(ex).__name__}'.",
-        err_type='InternalFailure', errors=msgs,
+    exception = type(ex).__name__
+    return InternalFailure(
+        msg=f"Unhandled exception '{exception}'.",
+        payload={
+            'exception_data': {
+                'name': exception,
+                'args': msgs,
+            }
+        }
     )
-    return resp
 
 
 def user_n(n: int) -> t.Callable:

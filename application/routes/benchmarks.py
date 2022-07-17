@@ -30,7 +30,7 @@ def benchmark_args(benchmark):
 @benchmarks_bp.post('')
 @token_auth.login_required
 def create_benchmark(username, wname):
-    return add_new_resource(username, wname, _DFL_BENCHMARK_NAME_)
+    return add_new_resource(username, wname, typename=_DFL_BENCHMARK_NAME_)
 
 
 @benchmarks_bp.get('/<resource:name>/')
@@ -44,7 +44,7 @@ def get_benchmark(username, wname, name):
     :param name:
     :return:
     """
-    resource, response = get_resource(username, wname, _DFL_BENCHMARK_NAME_, name=name)
+    resource, response = get_resource(username, wname, typename=_DFL_BENCHMARK_NAME_, name=name)
     if response is not None:    # error
         return response
     else:
@@ -55,7 +55,7 @@ def get_benchmark(username, wname, name):
 @benchmarks_bp.patch('/<resource:name>/')
 @benchmarks_bp.patch('/<resource:name>')
 @token_auth.login_required
-@check_json(True, optionals={'name', 'description', 'build'})
+@check_json(False, optionals={'name', 'description', 'build'})
 def update_benchmark(username, wname, name):
     """
     :param username:
@@ -64,7 +64,7 @@ def update_benchmark(username, wname, name):
     :return:
     """
     data, opts, extras = get_check_json_data()
-    return update_resource(username, wname, _DFL_BENCHMARK_NAME_, name, data)
+    return update_resource(username, wname, typename=_DFL_BENCHMARK_NAME_, name=name, updata=data)
 
 
 @benchmarks_bp.delete('/<resource:name>/')
@@ -77,7 +77,7 @@ def delete_benchmark(username, wname, name):
     :param name:
     :return:
     """
-    return delete_resource(username, wname, _DFL_BENCHMARK_NAME_, name)
+    return delete_resource(username, wname, typename=_DFL_BENCHMARK_NAME_, name=name)
 
 
 __all__ = [

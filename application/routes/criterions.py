@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint
 from http import HTTPStatus
 
 from application.utils import *
@@ -54,7 +54,7 @@ def get_criterion(username, wname, name):
 @criterions_bp.patch('/<resource:name>/')
 @criterions_bp.patch('/<resource:name>')
 @token_auth.login_required
-@check_json(True, optionals={'name', 'description', 'build'})
+@check_json(False, optionals={'name', 'description', 'build'})
 def update_criterion(username, wname, name):
     data, opts, extras = get_check_json_data()
     return update_resource(username, wname, _DFL_CRITERION_NAME, name, data)

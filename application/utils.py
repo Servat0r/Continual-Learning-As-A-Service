@@ -7,7 +7,6 @@ import sys
 import traceback
 import typing as t
 import os
-import schema as sch
 from abc import ABC, abstractmethod
 from datetime import datetime
 from functools import wraps
@@ -15,7 +14,7 @@ from functools import wraps
 import torch
 from torch.nn.modules import Module
 from http import HTTPStatus
-from flask import Flask, Blueprint, url_for, Request, jsonify, Response, request, g
+from flask import Flask, Blueprint, url_for, jsonify, Response, request, g
 from werkzeug.exceptions import BadRequest
 from flask_executor import Executor
 
@@ -71,11 +70,10 @@ def make_success_dict(status: int = HTTPStatus.OK, msg: str = _DFL_SUCCESS_MSG, 
 
 
 # JSON checking!
-def checked_json(request: Request, keyargs: bool = False, required: set[str] = None, optionals: set[str] = None,
+def checked_json(keyargs: bool = False, required: set[str] = None, optionals: set[str] = None,
                  force: bool = True) -> tuple[t.Any | None, ServerResponseError | None, list[str], list[str]]:
     """
     Checks if request data is JSON-syntactically correct and has exactly the expected parameters (even optional ones).
-    :param request: Current incoming request.
     :param keyargs: If true, enables optional parameters in the request.
     :param required: Required parameters for this request.
     :param optionals: Optional parameters for this request (except for "key" extra arguments).
@@ -126,23 +124,6 @@ def checked_json(request: Request, keyargs: bool = False, required: set[str] = N
         return None, BadJSONSyntax, [], []
 
 
-# todo incomplete!
-def schema_checked_json(
-        keyargs=False, required: set[str] | dict[str, object] = None,
-        optionals: set[str] | dict[str, object] = None, force: bool = True,
-):
-    schema = {}
-    if isinstance(required, set):
-        required = {item: object for item in required}
-    if isinstance(optionals, set):
-        optionals = {item: object for item in optionals}
-    schema.update(required)
-    schema.update({sch.Optional(key): value for key, value in optionals.items()})
-    if keyargs:
-        schema.update({str: object})
-    data = request.get_json(force=force)
-
-
 def check_json(keyargs=False, required=None, optionals=None, force=True):
     """
     Decorator for automatic checked_json.
@@ -155,7 +136,7 @@ def check_json(keyargs=False, required=None, optionals=None, force=True):
     def wrapper(f: t.Callable):
         @wraps(f)
         def new_f(*args, **kwargs):
-            data, error, opts, extras = checked_json(request, keyargs, required, optionals, force)
+            data, error, opts, extras = checked_json(keyargs, required, optionals, force)
             if error is not None:
                 if data is not None:
                     return error(**data)
@@ -288,55 +269,12 @@ class Linker:
                 raise TypeError("Malformed server response for resource linking")
             else:
                 links_dict = self._make_links_internal(preprocess_links)
-                """
-                links_dict: TDesc = {}
-                for field_name, field_data in preprocess_links.items():
-                    resource_name, resource_val = field_data
-                    link_view_func, link_bp = self.get_link_rule(resource_name)
-                    args_rule = self.get_args_rule(resource_name)
-                    if link_view_func is None:
-                        raise TypeError(f"There is no link rule function registered for '{resource_name}'")
-                    extra_args: TDesc = {}
-                    if args_rule is not None:
-                        extra_args.update(args_rule(resource_val))
-                    url = (f"{link_bp.name}." if link_bp is not None else '') + link_view_func.__name__
-                    resource_url = url_for(url, **extra_args)
-                    links_dict[field_name] = resource_url
-                """
                 json_metadata = json_data.get('metadata', None)
                 if json_metadata is None:
                     json_metadata = {}
                     json_data['metadata'] = json_metadata
                 json_metadata['links'] = links_dict
         return json_data
-
-    def make_decor_links(self, view_function: t.Callable):
-        @wraps(view_function)
-        def new_view_function(*args, **kwargs):
-            response: Response = view_function(*args, **kwargs)
-            json_data = response.get_json()
-            preprocess_links = json_data.pop(self.links_keyword, None)
-            if preprocess_links is None:
-                return response
-            elif not isinstance(preprocess_links, dict):
-                raise TypeError("Malformed server response for resource linking")
-            else:
-                links_dict: TDesc = {}
-                for field_name, field_data in preprocess_links.items():
-                    resource_name, resource_val = field_data
-                    link_view_func, link_bp = self.get_link_rule(resource_name)
-                    args_rule = self.get_args_rule(resource_name)
-                    if link_view_func is None:
-                        raise TypeError(f"There is no link rule function registered for '{resource_name}'")
-                    extra_args: TDesc = {}
-                    if args_rule is not None:
-                        extra_args.update(args_rule(resource_val))
-                    url = (f"{link_bp.name}." if link_bp is not None else '') + link_view_func.__name__
-                    resource_url = url_for(url, **extra_args)
-                    links_dict[field_name] = resource_url
-                json_data['links'] = links_dict
-                return make_success_dict(response.status_code, data=json_data)
-        return new_view_function
 
     def __repr__(self):
         func_dict = {k: (self.get_link_rule(k), self.get_args_rule(k)) for k in self.link_rules}

@@ -92,7 +92,9 @@ optimizer_build = {
 }
 edited_optimizer = {
     'name': f'new_{optimizer_name}',
-    'momentum': 0.8,
+    'build': {
+        'momentum': 0.8,
+    }
 }
 
 

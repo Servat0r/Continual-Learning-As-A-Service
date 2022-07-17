@@ -23,16 +23,6 @@ def user_args(user: User):
     return {'username': user.get_name()}
 
 
-@users_bp.app_errorhandler(HTTPStatus.INTERNAL_SERVER_ERROR)
-def internal_server_error(error):
-    return InternalFailure(msg=str(error))
-
-
-@users_bp.app_errorhandler(HTTPStatus.SERVICE_UNAVAILABLE)
-def service_unavailable(error):
-    return ServiceUnavailable(msg=str(error))
-
-
 @users_bp.post('/')
 @users_bp.post('')
 @check_json(False, required={'username', 'email', 'password'})
@@ -284,8 +274,6 @@ def delete_user(username):
 
 __all__ = [
     'users_bp',
-    'internal_server_error',
-    'service_unavailable',
     'user_args',
 
     'register',

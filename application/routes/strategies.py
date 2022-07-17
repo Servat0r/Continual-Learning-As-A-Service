@@ -54,7 +54,7 @@ def get_strategy(username, wname, name):
 @strategies_bp.patch('/<resource:name>/')
 @strategies_bp.patch('/<resource:name>')
 @token_auth.login_required
-@check_json(True, optionals={'name', 'description', 'build'})
+@check_json(False, optionals={'name', 'description', 'build'})
 def update_strategy(username, wname, name):
     """
     :param username:

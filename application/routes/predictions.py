@@ -81,7 +81,7 @@ def get_experiment_predictions(username, wname, name):
     :param name:
     :return:
     """
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
+    experiment_config, err_response = get_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     else:
@@ -105,7 +105,7 @@ def get_experiment_execution_predictions(username, wname, name, exec_id):
     :param exec_id:
     :return:
     """
-    experiment_config, err_response = get_resource(username, wname, _DFL_EXPERIMENT_NAME, name=name)
+    experiment_config, err_response = get_resource(username, wname, typename=_DFL_EXPERIMENT_NAME, name=name)
     if err_response:
         return err_response
     filestores = request.files
@@ -138,7 +138,7 @@ def get_deployed_model_predictions(username, wname, path):
     path_list = path.split('/')
     path_list = [s for s in path_list if len(s) > 0]
     path = '/'.join(path_list)
-    deployed_model_config, err_response = get_resource(username, wname, _DFL_DEPLOYED_MODEL_NAME_, path=path)
+    deployed_model_config, err_response = get_resource(username, wname, typename=_DFL_DEPLOYED_MODEL_NAME_, path=path)
     if err_response:
         return err_response
     filestores = request.files
